@@ -55,8 +55,7 @@ function displayTable(data) {
     const headerRow = document.createElement('tr');
     orderedHeaders.forEach(header => {
         const th = document.createElement('th');
-        const headerText = parseHeader(header);
-        th.textContent = headerText;
+        th.textContent = parseHeader(header);
         headerRow.appendChild(th);
     });
     table.appendChild(headerRow);
