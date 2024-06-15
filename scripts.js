@@ -36,7 +36,9 @@ function getCountryFlag(country) {
         'Hungary': 'hu',
         'Croatia': 'hr',
         'Italy': 'it',
-        'Albania': 'al'
+        'Albania': 'al',
+        'Portugal': 'pt',
+        'Netherlands': 'nl',
         // Add more countries as needed
     };
     return countryMap[country] || '';
