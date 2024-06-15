@@ -51,11 +51,11 @@ function displayTable(data) {
     if (data.length === 0) return;
 
     // Define the desired order of headers
-    const orderedHeaders = [2,3,4,5,6];
+    const orderedHeaders = [2,3,5,4,6];
 
     // Create table headers
     const headerRow = document.createElement('tr');
-    const headers = ['Position', 'Username', 'Champion', 'Points', 'Reward'];
+    const headers = ['Position', 'Username','Points', 'Champion' , 'Reward'];
     headers.forEach(header => {
         const th = document.createElement('th');
         th.textContent = header;
