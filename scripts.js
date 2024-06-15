@@ -51,32 +51,38 @@ function displayTable(data) {
     if (data.length === 0) return;
 
     // Define the desired order of headers
-    const orderedHeaders = ['__EMPTY', 'Name', 'Score', 'winnwer', 'Reward'];
+    const orderedHeaders = [2,3,4,5,6];
 
     // Create table headers
     const headerRow = document.createElement('tr');
-    orderedHeaders.forEach(header => {
+    const headers = ['Position', 'Username', 'Champion', 'Points', 'Reward'];
+    headers.forEach(header => {
         const th = document.createElement('th');
-        th.textContent = parseHeader(header);
+        th.textContent = header;
         headerRow.appendChild(th);
     });
     table.appendChild(headerRow);
 
     // Create table rows
-    data.forEach(row => {
+    data.forEach((row, index) => {
+        // Skip the first two rows as they are not relevant
+        if (index < 1) return;
+
         const tr = document.createElement('tr');
-        orderedHeaders.forEach(header => {
+        orderedHeaders.forEach(headerIndex => {
             const td = document.createElement('td');
+            const prefix = '__EMPTY_'
+            const header = prefix + headerIndex;
             let cellValue = row[header];
 
-            if (header === 'Score') {
+            if (headerIndex === 5) {
                 cellValue = parseInt(cellValue, 10); // Format Points as integer
-            } else if (header === 'winnwer') {
+            } else if (headerIndex === 4) {
                 const countryCode = getCountryFlag(cellValue);
                 if (countryCode) {
                     cellValue = `<div class="flag-container"><span class="flag-icon flag-icon-${countryCode}"></span>${cellValue}</div>`;
                 }
-            } else if (header === 'Reward' && !cellValue) {
+            } else if (headerIndex === 6 && !cellValue) {
                 cellValue = ''; // Handle undefined reward
             }
 
@@ -86,3 +92,4 @@ function displayTable(data) {
         table.appendChild(tr);
     });
 }
+
