@@ -13,7 +13,7 @@ body {
 .card {
     border: 1px solid #444;
     height: auto;
-    transition: opacity 1s ease-in; /* Add transition for height */
+    transition: opacity 0.5s ease-in; /* Add transition for height */
     overflow: hidden; /* Ensure content doesn't overflow */
     opacity: 0;
 }
