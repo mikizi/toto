@@ -1,0 +1,21 @@
+{
+  "name": "Euro 2024 Bets",
+  "short_name": "Euro2024",
+  "description": "Track your Euro 2024 bets and see the latest game results.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#2c2f33",
+  "theme_color": "#2c2f33",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
