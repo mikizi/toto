@@ -2,7 +2,7 @@
   "name": "Euro 2024 Bets",
   "short_name": "Euro2024",
   "description": "Track your Euro 2024 bets and see the latest game results.",
-  "start_url": "/toto/",
+  "start_url": "/toto/index.html",
   "display": "standalone",
   "background_color": "#2c2f33",
   "theme_color": "#2c2f33",
