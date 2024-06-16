@@ -1,3 +1,5 @@
+const USERS = 70;
+const TOP_EMPTY_ROWS = 1;
 document.addEventListener('DOMContentLoaded', () => {
     const fileUrl = 'Master_euro2024.xlsx';
 
@@ -48,10 +50,25 @@ function displayTable(data) {
     const table = document.getElementById('betsTable');
     table.innerHTML = '';
 
-    if (data.length === 0) return;
+    if (data.length === 0) {
+        return;
+    }
 
+    const enumHeaders = {
+        'Position': 2,
+        'Username': 3,
+        'Champion': 4,
+        'Points': 5,
+        'Reward': 6
+    }
     // Define the desired order of headers
-    const orderedHeaders = [2,3,5,4,6];
+    const orderedHeaders = [
+        enumHeaders.Position,
+        enumHeaders.Username,
+        enumHeaders.Points,
+        enumHeaders.Champion,
+        enumHeaders.Reward,
+     ];
 
     // Create table headers
     const headerRow = document.createElement('tr');
@@ -66,7 +83,9 @@ function displayTable(data) {
     // Create table rows
     data.forEach((row, index) => {
         // Skip the first two rows as they are not relevant
-        if (index < 1) return;
+        if (index < TOP_EMPTY_ROWS || index > USERS) {
+            return;
+        }
 
         const tr = document.createElement('tr');
         orderedHeaders.forEach(headerIndex => {
