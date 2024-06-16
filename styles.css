@@ -121,7 +121,7 @@ body {
 }
 
 #betsTable tr:nth-child(6) td {
-    color: #fff; /* White text */
+    color: #000; /* Black text */
 }
 
 /* Responsive Design */
