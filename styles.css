@@ -1,5 +1,5 @@
 body {
-    background: linear-gradient(to right, #2c3e50, #1e727e);
+    background: linear-gradient(to right, #2a415e, #072d33);
     color: #ffffff;
     font-family: 'Arial', sans-serif;
     margin: 0;
@@ -16,6 +16,9 @@ body {
     transition: opacity 0.5s ease-in; /* Add transition for height */
     overflow: hidden; /* Ensure content doesn't overflow */
     opacity: 0;
+    box-shadow: 0 10px 20px 5px rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    background-color: rgb(33, 40, 45);
 }
 
 .card-body {
@@ -24,6 +27,10 @@ body {
 .card-header {
     border-bottom: 1px solid #444;
     background-color: #1c1e21;
+}
+
+.table-responsive table {
+    background-color: rgb(33, 40, 45);
 }
 
 .table th, .table td {
@@ -40,8 +47,13 @@ body {
     background-color: #555;
 }
 
+
 .table-dark th, .table-dark td {
     color: #fff;
+}
+
+.table td.username {
+    text-transform: capitalize;
 }
 
 .table-dark thead th {

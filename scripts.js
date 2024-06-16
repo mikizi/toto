@@ -184,6 +184,9 @@ function displayTable(data) {
                 }
             } else if (headerIndex === 6 && !cellValue) {
                 cellValue = ''; // Handle undefined reward
+            }else if (headerIndex === 3) {
+                td.classList.add('username');
+                cellValue = cellValue.replaceAll('_', ' ');
             }
 
             td.innerHTML = cellValue;
