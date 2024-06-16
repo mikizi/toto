@@ -49,12 +49,39 @@ body {
     background-size: cover;
     border-radius: 50%;
     box-shadow: 0 0 5px rgba(0, 0, 0, 1);
-    margin-right: 10px;
+    margin-inline: 5px;
 }
 
 .flag-container {
     display: flex;
     align-items: center;
+}
+
+.game-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 5px; /* Adjust as needed */
+    font-size: 14px; /* Adjust font size as needed */
+}
+
+.team {
+    display: flex;
+    align-items: center;
+}
+
+.team + .team {
+    margin-left: 10px;
+}
+
+.result {
+    margin: 0 10px;
+}
+
+.datetime {
+    text-align: center;
+    font-size: 12px; /* Adjust font size as needed */
+    margin-bottom: 10px; /* Adjust as needed */
 }
 
 #betsTable tr:nth-child(2) {
@@ -123,17 +150,40 @@ body {
         padding: 10px;
     }
 
-    #betsTable th:nth-child(2),
-    #betsTable td:nth-child(2) {
-        max-width: 150px;
+    #betsTable th:nth-child(1),
+    #betsTable td:nth-child(1) {
+        max-width: 88px;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    #betsTable th:nth-child(1),
-    #betsTable td:nth-child(1) {
-        max-width: 90px;
+    #betsTable th:nth-child(2),
+    #betsTable td:nth-child(2) {
+        max-width: 170px;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    .game-info {
+        font-size: 16px; /* Adjust font size as needed for mobile */
+    }
+
+    .flag-icon {
+        width: 20px;
+        height: 20px;
+        margin-inline: 2px;
+    }
+
+    .team + .team {
+        margin-left: 5px;
+    }
+
+    .result {
+        margin: 0 5px;
+    }
+
+    .datetime {
+        font-size: 10px; /* Adjust font size as needed for mobile */
+        margin-top: 5px;
     }
 }
