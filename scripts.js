@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             displayLastOrLiveGame(json);
             displayTable(json);
+
+            // Adjust the card height after content is loaded
+            const card = document.querySelector('.card');
+            card.style.opacity = '0.7';
+
         })
         .catch(error => console.error('Error fetching or processing Excel file:', error));
 });
