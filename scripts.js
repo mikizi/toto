@@ -66,7 +66,7 @@ function displayLastOrLiveGame(data) {
         const teams = row['__EMPTY_10'].split('-');
         const results = [row['__EMPTY_11'], row['__EMPTY_12']];
 
-        if (gameDateTime <= now && results[0] && results[1]) {
+        if (gameDateTime <= now && results[0] !== undefined && results[1] !== undefined) {
             game = {
                 gameDateTime,
                 teams,
