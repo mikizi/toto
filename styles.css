@@ -18,7 +18,7 @@ body {
     opacity: 0;
     box-shadow: 0 10px 20px 5px rgba(0, 0, 0, 0.5);
     border-radius: 5px;
-    background-color: rgb(33, 40, 45);
+    background-color: rgb(33, 40, 45) !important;
 }
 
 .card-body {
@@ -162,16 +162,8 @@ body {
         white-space: nowrap;
     }
 
-    .card {
-        padding: 10px;
-    }
-
     .card-header {
         font-size: 1.5em;
-        padding: 10px;
-    }
-
-    .card-body {
         padding: 10px;
     }
 
