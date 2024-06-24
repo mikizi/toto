@@ -11,12 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(worksheet);
+            const updateDate  = excelSerialDateToJSDateLocal(json[0]['__EMPTY_2']);
+            document.querySelector('#lastUpdateDatetime').textContent = formatDateTime(updateDate);
 
             displayLastOrLiveGame(json);
             displayTable(json);
+            //displayQualifiedTeams(json);
 
             // Adjust the card height after content is loaded
-            const card = document.querySelector('.card');
+            const card = document.querySelector('.container');
             card.style.opacity = '0.9';
 
         })
@@ -66,6 +69,9 @@ function displayLastOrLiveGame(data) {
         }
 
         const gameDate = row['__EMPTY_14'];
+        if(gameDate === undefined) {
+            return;
+        }
         const gameTimeFraction = row['__EMPTY_15'];
         const gameDateTime = parseExcelDateTime(gameDate, gameTimeFraction);
         const teams = row['__EMPTY_10'].split('-');
@@ -194,4 +200,48 @@ function displayTable(data) {
         });
         table.appendChild(tr);
     });
+}
+
+function excelSerialDateToJSDateLocal(serial) {
+    // 25569 is the number of days from Jan 1, 1900 to Jan 1, 1970
+    // 86400000 is the number of milliseconds in a day
+    const utc_days  = Math.floor(serial - 25569);
+    const utc_value = utc_days * 86400000;
+    const date_info = new Date(utc_value);
+
+    const fractional_day = serial - Math.floor(serial) + 0.0000001;
+    const total_seconds_of_day = Math.floor(86400 * fractional_day);
+
+    const seconds = total_seconds_of_day % 60;
+    const minutes = Math.floor(total_seconds_of_day / 60) % 60;
+    const hours   = Math.floor(total_seconds_of_day / 3600);
+
+    // Adjust for local timezone
+
+    date_info.setHours(hours + 3);
+    date_info.setMinutes(minutes);
+    date_info.setSeconds(seconds);
+
+    return date_info;
+}
+
+function displayQualifiedTeams(data,round) {
+    const qualifiedTeams = [];
+
+    data.forEach((row, index) => {
+        // Skip the first two rows as they are not relevant
+        if (index < TOP_EMPTY_ROWS || index > round) {
+            return;
+        }
+
+        const team = row['__EMPTY_16'];
+
+        if (team) {
+            qualifiedTeams.push(team);
+        }
+    });
+
+    // Update the HTML of the "qualifiedTeams" element with the list of qualified teams
+    const qualifiedTeamsElement = document.getElementById('qualifiedTeams');
+    qualifiedTeamsElement.innerHTML = qualifiedTeams.join(', ');
 }
