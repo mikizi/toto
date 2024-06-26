@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             displayLastOrLiveGame(json);
             displayTable(json);
-            //displayQualifiedTeams(json);
+            displayQualifiedTeams(json);
 
             // Adjust the card height after content is loaded
             const card = document.querySelector('.container');
@@ -226,22 +226,59 @@ function excelSerialDateToJSDateLocal(serial) {
 }
 
 function displayQualifiedTeams(data,round) {
-    const qualifiedTeams = [];
+    const qualifiedTeams = {
+        'Round of 16': [],
+        'Quarterfinals': [],
+        'Semi': [],
+        'Final': [],
+        'Winner': ''
+    };
 
-    data.forEach((row, index) => {
-        // Skip the first two rows as they are not relevant
-        if (index < TOP_EMPTY_ROWS || index > round) {
-            return;
-        }
-
+    let key = '';
+    for (let i = 0; i < data.length ; i++) {
+        const row = data[i];
         const team = row['__EMPTY_16'];
 
-        if (team) {
-            qualifiedTeams.push(team);
+        if (team === 'Round of 16') {
+            key = 'Round of 16';
+            continue;
+        } else if (team === 'Quarterfinals') {
+            key = 'Quarterfinals';
+            continue;
+        }else if (team === 'Semi') {
+            key = 'Semi';
+            continue;
+        }else if (team === 'Final') {
+            key = 'Final';
+            continue;
+        }else if (team === 'Winner') {
+            key = 'Winner';
+            continue;
         }
-    });
 
-    // Update the HTML of the "qualifiedTeams" element with the list of qualified teams
-    const qualifiedTeamsElement = document.getElementById('qualifiedTeams');
-    qualifiedTeamsElement.innerHTML = qualifiedTeams.join(', ');
+        if (team) {
+            qualifiedTeams[key].push(team);
+        }
+    }
+    updateKnockoutStages(qualifiedTeams);
+}
+
+function updateKnockoutStages(teams) {
+    const stages = {
+        "Round of 16": "last16",
+        "Quarterfinals": "quarterFinals",
+        "Semi": "semiFinals",
+        "Final": "final",
+        "Winner": "winner"
+    };
+
+    for (const [stage, elementId] of Object.entries(stages)) {
+        const element = document.getElementById(elementId).querySelector("ul");
+        const teamsList = teams[stage];
+        for (let index = 0; index < teamsList.length; index++) {
+            const teamHtml = element.querySelector(`li:nth-child(${index +1})`);
+            teamHtml.classList.add('active');
+            teamHtml.innerText = teamsList[index];
+        }
+    }
 }

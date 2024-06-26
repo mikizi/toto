@@ -10,9 +10,60 @@ body {
     align-items: center;
 }
 
-.container{
+.container {
     opacity: 0;
     transition: opacity 0.5s ease-in; /* Add transition for height */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+div#lastUpdate {
+    width: 100%;
+    margin-left: 15px;
+}
+
+.content-wrapper {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.main-content {
+    flex: 0 0 80%;
+}
+
+.knockout-stages {
+    flex: 0 0 20%;
+    margin-left: 20px;
+    margin-top: 20px;
+}
+
+.knockout-stages h4,
+.knockout-stages h5 {
+    color: #ffcc00;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.knockout-stages ul {
+    list-style: none;
+    padding: 0;
+    text-align: center;
+}
+
+.knockout-stages ul li {
+    padding: 5px;
+    background-color: #1c1e21;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    color: gray;
+    transition: color 1s ease-in;
+}
+
+.knockout-stages ul li.active{
+  color: white;
 }
 
 .card {
@@ -27,6 +78,7 @@ body {
 .card-body {
     padding: 0;
 }
+
 .card-header {
     border-bottom: 1px solid #444;
     background-color: #1c1e21;
@@ -49,7 +101,6 @@ body {
 .table-hover tbody tr:hover {
     background-color: #555;
 }
-
 
 .table-dark th, .table-dark td {
     color: #fff;
@@ -154,6 +205,19 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .content-wrapper {
+        flex-direction: column;
+    }
+
+    .main-content {
+        width: 100%;
+    }
+
+    .knockout-stages {
+        width: 100%;
+        margin-left: 0;
+    }
+
     .table-responsive {
         display: block;
         width: 100%;
