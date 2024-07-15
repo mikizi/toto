@@ -225,13 +225,13 @@ function excelSerialDateToJSDateLocal(serial) {
     return date_info;
 }
 
-function displayQualifiedTeams(data,round) {
+function displayQualifiedTeams(data) {
     const qualifiedTeams = {
         'Round of 16': [],
         'Quarterfinals': [],
         'Semi': [],
         'Final': [],
-        'Winner': ''
+        'Winner': []
     };
 
     let key = '';
