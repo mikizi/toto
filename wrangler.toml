@@ -1,0 +1,7 @@
+name = "toto-admin-publish"
+main = "workers/admin-publish-worker.js"
+compatibility_date = "2026-05-24"
+
+[vars]
+GITHUB_REPO = "mikizi/toto"
+ALLOWED_ORIGIN = "https://mikizi.github.io"

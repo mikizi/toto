@@ -10,6 +10,7 @@ import openpyxl
 
 from scripts.paths import BACKUP_PATH, XLSX_PATH
 from scripts.cleanup_calc import cleanup_calc
+from scripts.libreoffice_recalc import recalc
 
 SUMMARY = "Summary"
 KNOCKOUT_HEADERS = {"Quarterfinals", "Semi", "Final", "Winner", "Round of 16", "Round of 32"}
@@ -42,7 +43,11 @@ def _clear_summary(ws: openpyxl.worksheet.worksheet.Worksheet) -> int:
     return cleared
 
 
-def reset_scores(xlsx_path: Path = XLSX_PATH, backup: bool = True) -> None:
+def reset_scores(
+    xlsx_path: Path = XLSX_PATH,
+    backup: bool = True,
+    recalc_after: bool = True,
+) -> None:
     """Clear actual results only (Summary L/M and knockout P/R). Keeps predictions."""
     if backup:
         shutil.copy2(xlsx_path, BACKUP_PATH)
@@ -55,7 +60,11 @@ def reset_scores(xlsx_path: Path = XLSX_PATH, backup: bool = True) -> None:
     print(f"Cleared {summary_cleared} Summary match scores (L/M)")
     print(f"Calc cleanup: {sheet_users} sheet users, {test_rows} test rows zeroed")
     print("Predictions on user sheets were NOT touched (F/G are picks, not results).")
-    print("Run: python scripts/libreoffice_recalc.py && python scripts/export_summary.py")
+    if recalc_after:
+        recalc(xlsx_path)
+        print(f"Recalculated → {xlsx_path}")
+    else:
+        print("Run: python scripts/libreoffice_recalc.py && python scripts/export_summary.py")
 
 
 def main() -> None:

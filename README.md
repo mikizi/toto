@@ -42,8 +42,38 @@ PYTHONPATH=. python3 scripts/publish_match.py 1 0 1
 ### Test score changes via admin (production, after merge to main)
 
 1. Open https://mikizi.github.io/toto/admin/
-2. GitHub token with `repo` scope → **Publish via GitHub**
+2. Enter the shared admin password → **Publish**
 3. Wait ~1–2 min for Actions + Pages deploy.
+
+### One-time admin proxy setup
+
+The production admin uses a free Cloudflare Worker so admins do not need GitHub tokens.
+
+1. Create a GitHub token for the worker:
+   - Classic token: `repo` scope, or fine-grained token with access to `mikizi/toto`
+   - Store it only in Cloudflare, not in `public/`
+2. Log in to Cloudflare and deploy:
+
+```sh
+npx wrangler login
+npx wrangler secret put GITHUB_TOKEN
+npx wrangler secret put ADMIN_PASSWORD
+npx wrangler deploy
+```
+
+3. Copy the Worker URL from deploy output, for example:
+
+```text
+https://toto-admin-publish.your-subdomain.workers.dev
+```
+
+4. Update `PUBLISH_PROXY_URL` in `public/admin/admin.js` to:
+
+```text
+https://toto-admin-publish.your-subdomain.workers.dev/publish
+```
+
+5. Commit and push. Admins can then publish with the shared password only.
 
 ## Local tests
 

@@ -1,9 +1,9 @@
 /** Admin — publish results locally (dev) or via GitHub Actions (production) */
 
 const DATA_URL = "../data/latest.json";
-const REPO = "mikizi/toto";
-const WORKFLOW_FILE = "publish-results.yml";
 const LOCAL_API = "http://127.0.0.1:8090/publish";
+const PUBLISH_PROXY_URL =
+  "https://toto-admin-publish.mikizi-toto.workers.dev/publish";
 
 const IS_LOCAL =
   location.hostname === "localhost" || location.hostname === "127.0.0.1";
@@ -22,13 +22,13 @@ document.addEventListener("DOMContentLoaded", () => {
 function setupModeBanner() {
   const localBox = document.getElementById("localModeBox");
   const prodBox = document.getElementById("prodModeBox");
-  const tokenGroup = document.getElementById("tokenGroup");
+  const adminPasswordGroup = document.getElementById("adminPasswordGroup");
   const submitBtn = document.getElementById("publishBtn");
 
   if (IS_LOCAL) {
     localBox?.classList.remove("hidden");
     prodBox?.classList.add("hidden");
-    tokenGroup?.classList.add("hidden");
+    adminPasswordGroup?.classList.add("hidden");
     if (submitBtn) {
       submitBtn.textContent = "Publish locally";
     }
@@ -37,9 +37,9 @@ function setupModeBanner() {
 
   localBox?.classList.add("hidden");
   prodBox?.classList.remove("hidden");
-  tokenGroup?.classList.remove("hidden");
+  adminPasswordGroup?.classList.remove("hidden");
   if (submitBtn) {
-    submitBtn.textContent = "Publish via GitHub";
+    submitBtn.textContent = "Publish";
   }
 }
 
@@ -151,39 +151,48 @@ async function onPublish(event) {
     return;
   }
 
-  const token = document.getElementById("githubToken")?.value.trim();
-  if (!token) {
+  await publishViaProxy(matchId, homeScore, awayScore, msg);
+}
+
+/**
+ * @param {number} matchId
+ * @param {number} homeScore
+ * @param {number} awayScore
+ * @param {HTMLElement | null} msg
+ */
+async function publishViaProxy(matchId, homeScore, awayScore, msg) {
+  if (!isProxyConfigured()) {
     if (msg) {
-      msg.textContent =
-        "Add a GitHub token with repo scope, or use Actions → Publish match result on github.com.";
+      msg.textContent = "Admin proxy is not configured yet. Deploy the Cloudflare Worker first.";
+    }
+    return;
+  }
+
+  const password = document.getElementById("adminPassword")?.value.trim();
+  if (!password) {
+    if (msg) {
+      msg.textContent = "Enter the shared admin password.";
     }
     return;
   }
 
   if (msg) {
-    msg.textContent = "Publishing via GitHub Actions…";
+    msg.textContent = "Publishing…";
   }
 
   try {
-    const response = await fetch(
-      `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: `Bearer ${token}`,
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-        body: JSON.stringify({
-          ref: "main",
-          inputs: {
-            match_id: matchId,
-            home_score: homeScore,
-            away_score: awayScore,
-          },
-        }),
-      }
-    );
+    const response = await fetch(PUBLISH_PROXY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Password": password,
+      },
+      body: JSON.stringify({
+        matchId,
+        homeScore,
+        awayScore,
+      }),
+    });
     if (!response.ok) {
       const text = await response.text();
       throw new Error(`${response.status}: ${text}`);
@@ -197,6 +206,10 @@ async function onPublish(event) {
       msg.textContent = `Failed: ${err instanceof Error ? err.message : "unknown error"}`;
     }
   }
+}
+
+function isProxyConfigured() {
+  return !PUBLISH_PROXY_URL.includes("YOUR_WORKERS_SUBDOMAIN");
 }
 
 /**

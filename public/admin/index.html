@@ -37,7 +37,7 @@
                     </div>
                     <div id="prodModeBox" class="mode-box mode-prod hidden">
                         <strong>Production mode.</strong>
-                        Sends GitHub Actions workflow on <code>main</code> (patch → recalc → export → deploy).
+                        Sends a private admin proxy request, then GitHub Actions updates <code>main</code>.
                         <a class="text-warning" href="https://github.com/mikizi/toto/actions/workflows/publish-results.yml" target="_blank" rel="noopener">Open workflow</a>
                     </div>
                     <form id="publishForm">
@@ -55,10 +55,10 @@
                                 <input id="awayScore" type="number" min="0" class="form-control" required>
                             </div>
                         </div>
-                        <div id="tokenGroup" class="form-group">
-                            <label for="githubToken">GitHub token (repo scope)</label>
-                            <input id="githubToken" type="password" class="form-control" autocomplete="off"
-                                   placeholder="ghp_… — memory only in this tab">
+                        <div id="adminPasswordGroup" class="form-group">
+                            <label for="adminPassword">Admin password</label>
+                            <input id="adminPassword" type="password" class="form-control" autocomplete="current-password"
+                                   placeholder="Shared admin password">
                         </div>
                         <button id="publishBtn" type="submit" class="btn btn-warning">Publish</button>
                         <p id="publishMsg" class="small mt-2 mb-0 text-info"></p>
