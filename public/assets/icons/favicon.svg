@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="World Cup 2026 Toto">
+  <defs>
+    <linearGradient id="tile" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1f3548"/>
+      <stop offset="0.48" stop-color="#0d1724"/>
+      <stop offset="1" stop-color="#05080d"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="32" cy="26" r="33" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e8b923" stop-opacity="0.52"/>
+      <stop offset="0.44" stop-color="#18a6b8" stop-opacity="0.23"/>
+      <stop offset="1" stop-color="#05080d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="21" y1="9" x2="46" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff3b0"/>
+      <stop offset="0.4" stop-color="#e8b923"/>
+      <stop offset="1" stop-color="#a86f10"/>
+    </linearGradient>
+    <linearGradient id="ball" x1="19" y1="19" x2="45" y2="47" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8fbff"/>
+      <stop offset="0.43" stop-color="#d7e1ea"/>
+      <stop offset="1" stop-color="#8fa5b9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="15" fill="url(#tile)"/>
+  <rect width="64" height="64" rx="15" fill="url(#glow)"/>
+  <path d="M20 13h24v7c0 8.3-5.2 15-12 15S20 28.3 20 20v-7Z" fill="none" stroke="url(#gold)" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M25 14v-3h14v3" fill="none" stroke="#fff3b0" stroke-width="3" stroke-linecap="round"/>
+  <path d="M32 35v8" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M24 45h16" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+
+  <circle cx="32" cy="35" r="16" fill="url(#ball)" stroke="#07101b" stroke-width="3"/>
+  <path d="M32 25l7 5-3 8h-8l-3-8 7-5Z" fill="#0a1624"/>
+  <path d="M32 25v-5M39 30l5-4M36 38l4 6M28 38l-4 6M25 30l-5-4" stroke="#0a1624" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M20 34h8M36 38l7 7M28 38l-7 7M39 30h8M25 30h-8" stroke="#0a1624" stroke-width="2" stroke-linecap="round"/>
+  <path d="M47 13l1.7 4.3L53 19l-4.3 1.7L47 25l-1.7-4.3L41 19l4.3-1.7L47 13Z" fill="#fff3b0"/>
+  <path d="M17 17l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1 1-2.6Z" fill="#e8b923"/>
+</svg>

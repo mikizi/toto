@@ -51,6 +51,7 @@ function updateLiveIndicator(data) {
   badge?.classList.toggle("hidden", !showLive);
   card?.classList.toggle("is-live", showLive);
   statusDot?.classList.toggle("is-live", inProgress);
+  statusDot?.classList.toggle("hidden", showLive);
 }
 
 /** @param {TotoData} data @returns {boolean} */
@@ -104,8 +105,111 @@ function onKickoffReached() {
 document.addEventListener("DOMContentLoaded", () => {
   const refreshBtn = document.getElementById("refreshBtn");
   refreshBtn?.addEventListener("click", () => loadData(true));
+  document.getElementById("viewFixturesBtn")?.addEventListener("click", toggleFixturesPanel);
   loadData(false);
 });
+
+/** @param {TotoData} data @param {number} [limit] */
+function upcomingMatches(data, limit = 3) {
+  return data.matches
+    .filter((m) => !m.played)
+    .sort((a, b) => {
+      const ta = a.kickoffAt ? Date.parse(a.kickoffAt) : Number.POSITIVE_INFINITY;
+      const tb = b.kickoffAt ? Date.parse(b.kickoffAt) : Number.POSITIVE_INFINITY;
+      if (ta !== tb) {
+        return ta - tb;
+      }
+      return a.id - b.id;
+    })
+    .slice(0, limit);
+}
+
+/** @param {TotoData} data */
+function allUpcomingMatches(data) {
+  return data.matches
+    .filter((m) => !m.played)
+    .sort((a, b) => {
+      const ta = a.kickoffAt ? Date.parse(a.kickoffAt) : Number.POSITIVE_INFINITY;
+      const tb = b.kickoffAt ? Date.parse(b.kickoffAt) : Number.POSITIVE_INFINITY;
+      if (ta !== tb) {
+        return ta - tb;
+      }
+      return a.id - b.id;
+    });
+}
+
+/** @param {MatchEntry} match */
+function nextGameItemHtml(match) {
+  const kickoff = match.kickoffAt
+    ? formatNextGameKickoff(match.kickoffAt)
+    : `Match ${match.id} · TBD`;
+  const home = shortTeamName(match.home);
+  const away = shortTeamName(match.away);
+  return `
+    <div class="next-game-item">
+      <div class="next-game-matchup">
+        <div class="next-game-team next-game-team--home" title="${escapeHtml(match.home)}">
+          ${flagHtml(match.home, "sm")}
+          <span class="next-game-team-name">${escapeHtml(home)}</span>
+        </div>
+        <span class="next-game-vs-badge" aria-hidden="true">vs</span>
+        <div class="next-game-team next-game-team--away" title="${escapeHtml(match.away)}">
+          ${flagHtml(match.away, "sm")}
+          <span class="next-game-team-name">${escapeHtml(away)}</span>
+        </div>
+      </div>
+      <div class="next-game-meta">${escapeHtml(kickoff)}</div>
+    </div>`;
+}
+
+/** @param {string} iso */
+function formatNextGameKickoff(iso) {
+  const d = new Date(iso);
+  const date = d.toLocaleString("en-US", { month: "short", day: "numeric" });
+  const time = d.toLocaleString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${date} · ${time}`;
+}
+
+/**
+ * @param {HTMLElement | null} listEl
+ * @param {HTMLElement | null} fixturesEl
+ * @param {TotoData} data
+ */
+function renderNextGames(listEl, fixturesEl, data) {
+  const preview = upcomingMatches(data, 3);
+  const all = allUpcomingMatches(data);
+
+  if (listEl) {
+    if (preview.length === 0) {
+      listEl.innerHTML = '<p class="next-games-empty">No upcoming matches</p>';
+    } else {
+      listEl.innerHTML = preview.map((m) => nextGameItemHtml(m)).join("");
+    }
+  }
+
+  if (fixturesEl) {
+    if (all.length === 0) {
+      fixturesEl.innerHTML = '<p class="next-games-empty">No fixtures left</p>';
+    } else {
+      fixturesEl.innerHTML = all.map((m) => nextGameItemHtml(m)).join("");
+    }
+  }
+}
+
+function toggleFixturesPanel() {
+  const panel = document.getElementById("fixturesPanel");
+  const btn = document.getElementById("viewFixturesBtn");
+  if (!panel || !btn) {
+    return;
+  }
+  const isOpen = panel.classList.toggle("hidden") === false;
+  btn.setAttribute("aria-expanded", String(isOpen));
+  btn.textContent = isOpen ? "Hide fixtures" : "View all fixtures";
+}
 
 /** @param {TotoData} data @returns {MatchEntry | undefined} */
 function nextUnplayedMatch(data) {
@@ -186,6 +290,11 @@ async function loadData(fromUserClick) {
 
     if (isScoreboardLive(data)) {
       renderLeaderboard(table, data.leaderboard);
+      renderNextGames(
+        document.getElementById("nextGamesList"),
+        document.getElementById("fixturesPanel"),
+        data
+      );
       if (gamesBadge) {
         gamesBadge.innerHTML = gamesBadgeHtml(data.gamesPlayed, fromUserClick);
       }
@@ -326,9 +435,18 @@ function renderLeaderboard(container, leaderboard) {
       const rowClass = displayRank <= 5 ? `rank-${displayRank}` : "";
       const crown = displayRank === 1 ? CROWN_SVG : "";
       const trend = trendHtml(entry.movement);
+      const rowFlag = lbRowFlagHtml(entry.champion);
+      const championClass = rowFlag ? " lb-row--champion" : "";
+      const championLabel = entry.champion
+        ? `, champion ${entry.champion}`
+        : "";
+      const rowTitle = entry.champion
+        ? `Champion pick: ${entry.champion}`
+        : "";
 
       return `
-    <div class="lb-row ${rowClass}">
+    <div class="lb-row ${rowClass}${championClass}" title="${escapeHtml(rowTitle)}" aria-label="${escapeHtml(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}">
+      ${rowFlag}
       <div class="lb-rank-cell">
         <span class="rank-badge ${rankClass}">${displayRank}</span>
       </div>
@@ -338,7 +456,6 @@ function renderLeaderboard(container, leaderboard) {
         <span class="lb-player-name">${escapeHtml(entry.name)}</span>
       </div>
       <div class="lb-pts">${entry.points.toFixed(0)}</div>
-      <div class="lb-champion-cell">${championCell(entry.champion)}</div>
     </div>`;
     })
     .join("");
@@ -416,17 +533,13 @@ function trendHtml(movement) {
 /** @param {string} iso */
 function formatDateTime(iso) {
   const d = new Date(iso);
-  const date = d
-    .toLocaleString("en-US", { month: "short", day: "numeric" })
-    .toUpperCase();
-  const time = d
-    .toLocaleString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
-    .toUpperCase();
-  return `${date}, ${time}`;
+  const date = d.toLocaleString("en-US", { month: "short", day: "numeric" });
+  const time = d.toLocaleString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${date} · ${time}`;
 }
 
 /** @param {string} text */

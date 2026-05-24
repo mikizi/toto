@@ -8,10 +8,12 @@
     <title>World Cup 2026 Toto</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://flagcdn.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=6">
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
     <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png">
     <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
     <meta name="mobile-web-app-capable" content="yes">
@@ -28,13 +30,16 @@
     <meta name="twitter:image" content="https://mikizi.github.io/toto/assets/euro2024_bets.png">
 </head>
 <body>
+<div class="page-bg" role="presentation" aria-hidden="true"></div>
 <div class="app">
-    <section class="scoreboard-card">
+    <section class="scoreboard-card glass-panel">
         <header class="top-bar">
             <div class="last-updated">
                 <span id="topBarLabel" class="update-label">Next match</span>
-                <span id="statusDot" class="status-dot" aria-hidden="true"></span>
-                <time id="topBarDatetime">—</time>
+                <div class="last-updated-row">
+                    <span id="statusDot" class="status-dot" aria-hidden="true"></span>
+                    <time id="topBarDatetime">—</time>
+                </div>
             </div>
             <div class="top-bar-actions">
                 <span id="liveBadge" class="live-badge hidden" aria-label="Live">Live</span>
@@ -51,7 +56,7 @@
         <div id="countdown" class="countdown-panel" aria-live="polite"></div>
     </section>
 
-    <section id="comingSoon" class="coming-soon hidden" aria-label="Coming soon">
+    <section id="comingSoon" class="coming-soon glass-panel hidden" aria-label="Coming soon">
         <div class="coming-soon-footer">
             <h2 class="coming-soon-title">World Cup <span class="gold">2026</span> Toto</h2>
             <p class="coming-soon-tag">Full scoreboard opens at kickoff</p>
@@ -64,19 +69,29 @@
             <span id="gamesBadge" class="games-badge">—</span>
         </div>
 
-        <section class="leaderboard" aria-label="Leaderboard">
-            <div class="lb-header">
-                <span class="lb-col lb-col-rank">Rank</span>
-                <span class="lb-col lb-col-trend">Last</span>
-                <span class="lb-col lb-col-player">Player</span>
-                <span class="lb-col lb-col-pts">Pts</span>
-                <span class="lb-col lb-col-champion">Champion</span>
-            </div>
-            <div id="betsTable" class="lb-body"></div>
-        </section>
+        <div class="desktop-dashboard">
+            <section class="leaderboard glass-panel" aria-label="Leaderboard">
+                <div class="lb-header">
+                    <span class="lb-col lb-col-rank"><span class="lb-h-long">Rank</span><span class="lb-h-short">Rk</span></span>
+                    <span class="lb-col lb-col-trend"><span class="lb-h-long">Last</span><span class="lb-h-short">Last</span></span>
+                    <span class="lb-col lb-col-player"><span class="lb-h-long">Player</span><span class="lb-h-short">Player</span></span>
+                    <span class="lb-col lb-col-pts"><span class="lb-h-long">Pts</span><span class="lb-h-short">Pts</span></span>
+                </div>
+                <div id="betsTable" class="lb-body"></div>
+            </section>
+
+            <aside class="next-games-panel glass-panel" aria-label="Next games">
+                <h2 class="panel-title">Next Games</h2>
+                <div id="nextGamesList" class="next-games-list" aria-live="polite"></div>
+                <button id="viewFixturesBtn" type="button" class="btn-fixtures" aria-expanded="false" aria-controls="fixturesPanel">
+                    View all fixtures
+                </button>
+                <div id="fixturesPanel" class="fixtures-panel hidden" aria-label="All upcoming fixtures"></div>
+            </aside>
+        </div>
     </div>
 </div>
-<script src="js/flags.js"></script>
-<script src="js/app.js"></script>
+<script src="js/flags.js?v=5"></script>
+<script src="js/app.js?v=7"></script>
 </body>
 </html>

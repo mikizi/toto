@@ -58,6 +58,25 @@ const TEAM_ALIASES = {
   Curacao: "Curaçao",
 };
 
+/** Shorter labels for tight columns (Next Games, leaderboard champion) */
+/** @type {Readonly<Record<string, string>>} */
+const TEAM_DISPLAY_SHORT = {
+  "Bosnia and Herzegovina": "Bosnia",
+  "Czech Republic": "Czech Rep.",
+  "DR Congo": "DR Congo",
+  "Ivory Coast": "Ivory Coast",
+  "Korea Republic": "Korea Rep.",
+  "New Zealand": "N. Zealand",
+  "Saudi Arabia": "Saudi",
+  "South Africa": "S. Africa",
+  "United States": "U.S.A.",
+};
+
+/** @param {string} teamName */
+function shortTeamName(teamName) {
+  return TEAM_DISPLAY_SHORT[teamName] ?? teamName;
+}
+
 /** @param {string} teamName */
 function normalizeTeamName(teamName) {
   const trimmed = teamName.trim();
@@ -83,6 +102,33 @@ function normalizeTeamName(teamName) {
 function getFlagCode(teamName) {
   const normalized = normalizeTeamName(teamName);
   return TEAM_FLAGS[normalized] ?? "";
+}
+
+/**
+ * Large flag image for row backgrounds (flagcdn.com — no API key).
+ * @param {string} teamName
+ * @param {number} [width]
+ * @returns {string}
+ */
+function getFlagImageUrl(teamName, width = 640) {
+  const code = getFlagCode(teamName);
+  if (!code) {
+    return "";
+  }
+  return `https://flagcdn.com/w${width}/${code}.png`;
+}
+
+/**
+ * Faded champion flag behind a leaderboard row (flagcdn image).
+ * @param {string | null | undefined} teamName
+ * @returns {string}
+ */
+function lbRowFlagHtml(teamName) {
+  const url = teamName ? getFlagImageUrl(teamName, 640) : "";
+  if (!url) {
+    return "";
+  }
+  return `<img class="lb-row-flag" src="${url}" alt="" decoding="async" loading="lazy" aria-hidden="true" /><span class="lb-row-flag-fade" aria-hidden="true"></span>`;
 }
 
 /**
@@ -113,18 +159,6 @@ function heroTeamBlock(teamName, side) {
       <div class="hero-team-name">${escapeHtml(teamName.toUpperCase())}</div>
       <div class="hero-team-side">${label}</div>
     </div>`;
-}
-
-/** @param {string | null | undefined} teamName @returns {string} */
-function championCell(teamName) {
-  if (!teamName) {
-    return '<span class="lb-champion-empty">—</span>';
-  }
-  return `
-    <span class="lb-champion">
-      ${flagHtml(teamName, "sm")}
-      <span class="lb-champion-name">${escapeHtml(teamName.toUpperCase())}</span>
-    </span>`;
 }
 
 /** @param {string} text */
