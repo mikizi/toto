@@ -45,6 +45,12 @@ class TestExportFromXlsx(unittest.TestCase):
             self.assertIn(name, by_name)
             self.assertIsNotNone(by_name[name]["champion"], msg=f"{name} missing champion")
 
+    def test_leaderboard_excludes_test_users(self) -> None:
+        payload = build_export(XLSX_PATH)
+        names = [e["name"] for e in payload["leaderboard"]]
+        self.assertFalse(any(n.lower().startswith("test") for n in names))
+        self.assertLessEqual(len(payload["leaderboard"]), 10)
+
     def test_validate_latest_export(self) -> None:
         payload = build_export(XLSX_PATH)
         errors = validate(payload)

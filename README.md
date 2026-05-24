@@ -24,14 +24,67 @@ pip install -r requirements.txt
 make dev
 ```
 
-- Scoreboard: http://localhost:8080/index.html
+- Scoreboard: http://localhost:8080/
 - Admin: http://localhost:8080/admin/
+
+### Test score changes via admin (local)
+
+1. Run `make dev` (starts site + admin API on port 8090).
+2. Open **Admin** → pick match → enter scores → **Publish locally**.
+3. Open **Scoreboard** and refresh — hero + points should update.
+
+CLI equivalent:
+
+```sh
+PYTHONPATH=. python3 scripts/publish_match.py 1 0 1
+```
+
+### Test score changes via admin (production, after merge to main)
+
+1. Open https://mikizi.github.io/toto/admin/
+2. GitHub token with `repo` scope → **Publish via GitHub**
+3. Wait ~1–2 min for Actions + Pages deploy.
 
 ## Local tests
 
 ```sh
 python scripts/run_local_tests.py
 ```
+
+## Kickoff simulation (local)
+
+Simulate the first match kicking off in 5 minutes. Before kickoff you see coming soon; when the countdown hits zero the scoreboard appears.
+
+```sh
+make simulate    # reset scores, move match 1 kickoff +5 min, export JSON
+make serve       # in another terminal
+open http://localhost:8080/
+```
+
+Restore the real schedule when done:
+
+```sh
+make simulate-restore
+```
+
+## Score simulation (local)
+
+Verify that patching a result recalculates points and export correctly:
+
+```sh
+make simulate-scores
+```
+
+This runs day zero → 1-0 → 0-1 → 1-0 on a temp copy and checks real-user points after each step.
+
+Apply a result to your local xlsx + site JSON (example: South Africa win 0-1):
+
+```sh
+make simulate-scores-apply
+make serve
+```
+
+CI runs score + kickoff checks after merge via `.github/workflows/kickoff-simulation.yml`.
 
 ## Repo layout
 

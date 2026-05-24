@@ -11,28 +11,78 @@ const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="currentColo
 /** @type {number | undefined} */
 let countdownTimerId;
 
+/** @type {TotoData | null} */
+let cachedData = null;
+
 /** @returns {boolean} */
 function isDebugMode() {
   const debug = new URLSearchParams(window.location.search).get("debug");
   return debug === "1" || debug === "true";
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+/** @param {TotoData} data @returns {boolean} */
+function isMatchInProgress(data) {
+  if (isDebugMode()) {
+    return false;
+  }
+  const next = nextUnplayedMatch(data);
+  if (!next?.kickoffAt) {
+    return false;
+  }
+  return Date.parse(next.kickoffAt) <= Date.now();
+}
+
+/** @param {TotoData} data @returns {boolean} */
+function shouldShowLiveBadge(data) {
+  if (isDebugMode()) {
+    return false;
+  }
+  return isScoreboardLive(data);
+}
+
+/** @param {TotoData} data */
+function updateLiveIndicator(data) {
+  const badge = document.getElementById("liveBadge");
+  const statusDot = document.getElementById("statusDot");
+  const card = document.querySelector(".scoreboard-card");
+  const showLive = shouldShowLiveBadge(data);
+  const inProgress = isMatchInProgress(data);
+
+  badge?.classList.toggle("hidden", !showLive);
+  card?.classList.toggle("is-live", showLive);
+  statusDot?.classList.toggle("is-live", inProgress);
+}
+
+/** @param {TotoData} data @returns {boolean} */
+function isScoreboardLive(data) {
+  if (isDebugMode()) {
+    return true;
+  }
+  if (data.gamesPlayed > 0) {
+    return true;
+  }
+  const next = nextUnplayedMatch(data);
+  if (!next?.kickoffAt) {
+    return false;
+  }
+  return Date.parse(next.kickoffAt) <= Date.now();
+}
+
+/** @param {TotoData} data */
+function applyViewMode(data) {
   const scoreboardApp = document.getElementById("scoreboardApp");
   const comingSoon = document.getElementById("comingSoon");
   const refreshBtn = document.getElementById("refreshBtn");
   const topBarLabel = document.getElementById("topBarLabel");
-  const debug = isDebugMode();
+  const live = isScoreboardLive(data);
 
-  if (debug) {
+  if (live) {
     comingSoon?.classList.add("hidden");
     scoreboardApp?.classList.remove("hidden");
     refreshBtn?.classList.remove("hidden");
     if (topBarLabel) {
       topBarLabel.textContent = "Last updated";
     }
-    refreshBtn?.addEventListener("click", () => loadData(true));
-    loadData(false);
     return;
   }
 
@@ -42,6 +92,18 @@ document.addEventListener("DOMContentLoaded", () => {
   if (topBarLabel) {
     topBarLabel.textContent = "Next match";
   }
+}
+
+function onKickoffReached() {
+  if (!cachedData || isScoreboardLive(cachedData)) {
+    return;
+  }
+  loadData(false);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const refreshBtn = document.getElementById("refreshBtn");
+  refreshBtn?.addEventListener("click", () => loadData(true));
   loadData(false);
 });
 
@@ -51,20 +113,45 @@ function nextUnplayedMatch(data) {
 }
 
 /**
- * @param {TotoData} data
- * @param {{ previewNext?: boolean }} [options]
+ * @param {HTMLElement | null} el
  */
-function renderHeroAndCountdown(data, options = {}) {
+function hideCountdown(el) {
+  if (countdownTimerId !== undefined) {
+    window.clearInterval(countdownTimerId);
+    countdownTimerId = undefined;
+  }
+  if (el) {
+    el.innerHTML = "";
+    el.classList.add("hidden");
+  }
+}
+
+/**
+ * @param {TotoData} data
+ */
+function renderHeroAndCountdown(data) {
   const hero = document.getElementById("gameInfo");
   const countdown = document.getElementById("countdown");
   const topBarDatetime = document.getElementById("topBarDatetime");
   const next = nextUnplayedMatch(data);
+  const live = isScoreboardLive(data);
 
-  renderHeroMatch(hero, data, options.previewNext === true);
-  startCountdown(countdown, next?.kickoffAt ?? null);
+  renderHeroMatch(hero, data, !live, isMatchInProgress(data));
+  updateLiveIndicator(data);
 
-  if (topBarDatetime && !isDebugMode() && next?.kickoffAt) {
-    topBarDatetime.textContent = formatKickoffLabel(next.kickoffAt);
+  if (live) {
+    hideCountdown(countdown);
+  } else {
+    countdown?.classList.remove("hidden");
+    startCountdown(countdown, next?.kickoffAt ?? null, onKickoffReached);
+  }
+
+  if (topBarDatetime) {
+    if (live) {
+      topBarDatetime.textContent = formatDateTime(data.generatedAt);
+    } else if (next?.kickoffAt) {
+      topBarDatetime.textContent = formatKickoffLabel(next.kickoffAt);
+    }
   }
 }
 
@@ -74,15 +161,15 @@ function renderHeroAndCountdown(data, options = {}) {
 async function loadData(fromUserClick) {
   const table = document.getElementById("betsTable");
   const gamesBadge = document.getElementById("gamesBadge");
-  const topBarDatetime = document.getElementById("topBarDatetime");
   const countdown = document.getElementById("countdown");
-  const debug = isDebugMode();
-
-  if (debug && gamesBadge) {
+  if (gamesBadge && cachedData && isScoreboardLive(cachedData)) {
     gamesBadge.textContent = "Loading…";
   }
-  if (countdown && !countdown.innerHTML) {
-    countdown.innerHTML = '<p class="countdown-loading">Loading…</p>';
+  if (countdown && (!cachedData || !isScoreboardLive(cachedData))) {
+    if (!countdown.innerHTML) {
+      countdown.innerHTML = '<p class="countdown-loading">Loading…</p>';
+    }
+    countdown.classList.remove("hidden");
   }
 
   try {
@@ -92,14 +179,13 @@ async function loadData(fromUserClick) {
     }
     /** @type {TotoData} */
     const data = await response.json();
+    cachedData = data;
 
-    renderHeroAndCountdown(data, { previewNext: !debug });
+    applyViewMode(data);
+    renderHeroAndCountdown(data);
 
-    if (debug) {
+    if (isScoreboardLive(data)) {
       renderLeaderboard(table, data.leaderboard);
-      if (topBarDatetime) {
-        topBarDatetime.textContent = formatDateTime(data.generatedAt);
-      }
       if (gamesBadge) {
         gamesBadge.innerHTML = gamesBadgeHtml(data.gamesPlayed, fromUserClick);
       }
@@ -109,7 +195,7 @@ async function loadData(fromUserClick) {
   } catch (err) {
     console.error(err);
     const hero = document.getElementById("gameInfo");
-    if (debug) {
+    if (cachedData && isScoreboardLive(cachedData)) {
       if (gamesBadge) {
         gamesBadge.textContent = "Offline";
       }
@@ -120,7 +206,7 @@ async function loadData(fromUserClick) {
       hero.innerHTML = '<div class="hero-empty">Could not load match info</div>';
     }
     if (countdown) {
-      countdown.innerHTML = "";
+      hideCountdown(countdown);
     }
     document.querySelector(".app")?.classList.add("loaded");
   }
@@ -129,8 +215,9 @@ async function loadData(fromUserClick) {
 /**
  * @param {HTMLElement | null} el
  * @param {string | null} kickoffAt
+ * @param {() => void} [onReached]
  */
-function startCountdown(el, kickoffAt) {
+function startCountdown(el, kickoffAt, onReached) {
   if (countdownTimerId !== undefined) {
     window.clearInterval(countdownTimerId);
     countdownTimerId = undefined;
@@ -138,6 +225,7 @@ function startCountdown(el, kickoffAt) {
   if (!el) {
     return;
   }
+  el.classList.remove("hidden");
   if (!kickoffAt) {
     el.innerHTML = '<p class="countdown-empty">Kickoff time TBD</p>';
     return;
@@ -161,13 +249,8 @@ function startCountdown(el, kickoffAt) {
   function tick() {
     const diff = targetMs - Date.now();
     if (diff <= 0) {
-      el.innerHTML = `
-        <div class="countdown-label">Kickoff</div>
-        <div class="countdown-live">Underway!</div>`;
-      if (countdownTimerId !== undefined) {
-        window.clearInterval(countdownTimerId);
-        countdownTimerId = undefined;
-      }
+      hideCountdown(el);
+      onReached?.();
       return;
     }
 
@@ -265,8 +348,9 @@ function renderLeaderboard(container, leaderboard) {
  * @param {HTMLElement | null} el
  * @param {TotoData} data
  * @param {boolean} [previewNext]
+ * @param {boolean} [showLive]
  */
-function renderHeroMatch(el, data, previewNext = false) {
+function renderHeroMatch(el, data, previewNext = false, showLive = false) {
   if (!el) {
     return;
   }
@@ -277,7 +361,7 @@ function renderHeroMatch(el, data, previewNext = false) {
       <div class="hero-body-inner">
         <div class="hero-grid">
           ${heroTeamBlock(last.home, "home")}
-          ${heroCenterBlock(`${last.homeScore}&nbsp;—&nbsp;${last.awayScore}`, last.matchId, false)}
+          ${heroCenterBlock(`${last.homeScore}&nbsp;—&nbsp;${last.awayScore}`, last.matchId, false, false)}
           ${heroTeamBlock(last.away, "away")}
         </div>
       </div>`;
@@ -290,7 +374,7 @@ function renderHeroMatch(el, data, previewNext = false) {
       <div class="hero-body-inner">
         <div class="hero-grid">
           ${heroTeamBlock(next.home, "home")}
-          ${heroCenterBlock("VS", next.id, true)}
+          ${heroCenterBlock("VS", next.id, true, showLive)}
           ${heroTeamBlock(next.away, "away")}
         </div>
       </div>`;
@@ -304,10 +388,15 @@ function renderHeroMatch(el, data, previewNext = false) {
  * @param {string} main
  * @param {number} matchId
  * @param {boolean} isVs
+ * @param {boolean} [showLive]
  */
-function heroCenterBlock(main, matchId, isVs) {
+function heroCenterBlock(main, matchId, isVs, showLive = false) {
+  const livePill = showLive
+    ? '<div class="hero-live-pill"><span class="hero-live-dot" aria-hidden="true"></span>Live</div>'
+    : "";
   return `
     <div class="hero-center">
+      ${livePill}
       <div class="hero-score${isVs ? " hero-vs" : ""}">${main}</div>
       <div class="hero-meta">Match ${matchId}</div>
     </div>`;

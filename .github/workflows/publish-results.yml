@@ -61,19 +61,10 @@ jobs:
 
       - name: Patch match score
         run: |
-          python scripts/patch_match.py \
+          PYTHONPATH=. python scripts/publish_match.py \
             "${{ steps.inputs.outputs.match_id }}" \
             "${{ steps.inputs.outputs.home_score }}" \
             "${{ steps.inputs.outputs.away_score }}"
-
-      - name: Recalculate xlsx
-        run: python scripts/libreoffice_recalc.py
-
-      - name: Export JSON
-        run: python scripts/export_summary.py
-
-      - name: Validate export
-        run: python scripts/validate_export.py
 
       - name: Commit and push
         run: |

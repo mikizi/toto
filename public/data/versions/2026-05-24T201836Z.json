@@ -1,13 +1,20 @@
 {
-  "version": "2026-05-24T202257Z",
-  "generatedAt": "2026-05-24T20:22:57.495901+00:00",
-  "gamesPlayed": 0,
-  "lastResult": null,
+  "version": "2026-05-24T201836Z",
+  "generatedAt": "2026-05-24T20:18:36.417592+00:00",
+  "gamesPlayed": 1,
+  "lastResult": {
+    "matchId": 1,
+    "teams": "Mexico-South Africa",
+    "home": "Mexico",
+    "away": "South Africa",
+    "homeScore": 1,
+    "awayScore": 0
+  },
   "leaderboard": [
     {
       "id": "003",
       "name": "Miki_Ziso",
-      "points": 0.0,
+      "points": 5.0,
       "rank": 1,
       "champion": "Brazil",
       "movement": "same"
@@ -15,7 +22,7 @@
     {
       "id": "002",
       "name": "MikiZiso2",
-      "points": 0.0,
+      "points": 5.0,
       "rank": 2,
       "champion": "Germany",
       "movement": "same"
@@ -23,34 +30,34 @@
     {
       "id": "001",
       "name": "MikiZiso3",
-      "points": 0.0,
+      "points": 5.0,
       "rank": 3,
       "champion": "France",
+      "movement": "same"
+    },
+    {
+      "id": "006",
+      "name": "Nir3",
+      "points": 3.0,
+      "rank": 4,
+      "champion": "Uzbekistan",
       "movement": "same"
     },
     {
       "id": "004",
       "name": "Nir1",
       "points": 0.0,
-      "rank": 4,
+      "rank": 5,
       "champion": "Senegal",
-      "movement": "up"
+      "movement": "same"
     },
     {
       "id": "005",
       "name": "Nir2",
       "points": 0.0,
-      "rank": 5,
-      "champion": "Belgium",
-      "movement": "up"
-    },
-    {
-      "id": "006",
-      "name": "Nir3",
-      "points": 0.0,
       "rank": 6,
-      "champion": "Uzbekistan",
-      "movement": "down"
+      "champion": "Belgium",
+      "movement": "same"
     }
   ],
   "matches": [
@@ -59,9 +66,9 @@
       "teams": "Mexico-South Africa",
       "home": "Mexico",
       "away": "South Africa",
-      "homeScore": null,
-      "awayScore": null,
-      "played": false,
+      "homeScore": 1,
+      "awayScore": 0,
+      "played": true,
       "kickoffAt": "2026-06-11T19:00:00+00:00"
     },
     {

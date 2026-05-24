@@ -33,16 +33,19 @@
         <header class="top-bar">
             <div class="last-updated">
                 <span id="topBarLabel" class="update-label">Next match</span>
-                <span class="status-dot" aria-hidden="true"></span>
+                <span id="statusDot" class="status-dot" aria-hidden="true"></span>
                 <time id="topBarDatetime">—</time>
             </div>
-            <button id="refreshBtn" type="button" class="btn-refresh hidden" aria-label="Refresh">
-                <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
-                    <polyline points="21 3 21 9 15 9"/>
-                </svg>
-                Refresh
-            </button>
+            <div class="top-bar-actions">
+                <span id="liveBadge" class="live-badge hidden" aria-label="Live">Live</span>
+                <button id="refreshBtn" type="button" class="btn-refresh hidden" aria-label="Refresh">
+                    <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+                        <polyline points="21 3 21 9 15 9"/>
+                    </svg>
+                    Refresh
+                </button>
+            </div>
         </header>
         <div id="gameInfo" class="hero-body" aria-live="polite"></div>
         <div id="countdown" class="countdown-panel" aria-live="polite"></div>

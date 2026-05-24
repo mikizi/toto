@@ -176,6 +176,14 @@ body {
     overflow: hidden;
 }
 
+.scoreboard-card.is-live {
+    border-color: rgba(239, 68, 68, 0.45);
+    box-shadow:
+        0 0 0 1px rgba(239, 68, 68, 0.08),
+        0 0 40px rgba(239, 68, 68, 0.12),
+        inset 0 1px 0 rgba(232, 185, 35, 0.18);
+}
+
 .scoreboard-card .top-bar {
     margin-bottom: 0;
     padding: 0.85rem 1.25rem;
@@ -310,6 +318,31 @@ body {
     color: var(--gold);
 }
 
+.hero-live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.16);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
+}
+
+.hero-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+    animation: live-pulse 1.4s ease-in-out infinite;
+}
+
 .hero-empty {
     position: relative;
     z-index: 1;
@@ -326,6 +359,51 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+}
+
+.top-bar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-shrink: 0;
+}
+
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.14);
+    border: 1px solid rgba(239, 68, 68, 0.42);
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.22);
+}
+
+.live-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
+    animation: live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.55;
+        transform: scale(0.85);
+    }
 }
 
 .last-updated {
@@ -351,6 +429,12 @@ body {
     background: var(--green);
     box-shadow: 0 0 8px var(--green-glow);
     flex-shrink: 0;
+}
+
+.status-dot.is-live {
+    background: var(--red);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.65);
+    animation: live-pulse 1.4s ease-in-out infinite;
 }
 
 #lastUpdateDatetime {

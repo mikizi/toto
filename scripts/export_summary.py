@@ -140,6 +140,23 @@ def _read_matches(
     return matches
 
 
+def _is_test_user(name: str) -> bool:
+    """Test sheets use names like test1, test54 — hide from public scoreboard."""
+    return name.lower().startswith("test")
+
+
+def _public_leaderboard(
+    raw: list[dict[str, Any]], previous: dict[str, Any] | None
+) -> list[dict[str, Any]]:
+    """Pool-only leaderboard with ranks 1..n (excludes test users)."""
+    pool = [entry for entry in raw if not _is_test_user(entry["name"])]
+    pool.sort(key=lambda e: (-e["points"], e["name"].lower()))
+    ranked: list[dict[str, Any]] = []
+    for index, entry in enumerate(pool, start=1):
+        ranked.append({**entry, "rank": index})
+    return _movement(ranked, previous)
+
+
 def _read_leaderboard(
     wb: openpyxl.Workbook, ws: openpyxl.worksheet.worksheet.Worksheet
 ) -> list[dict[str, Any]]:
@@ -209,7 +226,8 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
     ws = wb[SUMMARY]
     kickoffs = _read_match_kickoffs(wb)
     matches = _read_matches(ws, kickoffs)
-    leaderboard = _movement(_read_leaderboard(wb, ws), previous)
+    raw_leaderboard = _read_leaderboard(wb, ws)
+    leaderboard = _public_leaderboard(raw_leaderboard, previous)
     version = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     played_count = sum(1 for m in matches if m["played"])
     return {

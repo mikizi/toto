@@ -4,45 +4,26 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 import openpyxl
 
+from scripts.libreoffice_recalc import recalc
 from scripts.paths import BACKUP_PATH
+from scripts.score_simulation import (
+    EXPECTED_MATCH_1,
+    apply_match_result,
+    read_real_user_points,
+    run_score_simulation,
+)
 
 KNOCKOUT_HEADERS = {"Quarterfinals", "Semi", "Final", "Winner", "Round of 16", "Round of 32"}
-REAL_USERS = ["MikiZiso3", "MikiZiso2", "Miki_Ziso", "Nir1", "Nir2", "Nir3"]
 
 
 def _soffice_available() -> bool:
     return shutil.which("soffice") is not None
-
-
-def _recalc(path: Path) -> None:
-    result = subprocess.run(
-        [
-            "soffice",
-            "--headless",
-            "--invisible",
-            "--nodefault",
-            "--nologo",
-            "--norestore",
-            "--convert-to",
-            "xlsx",
-            "--outdir",
-            str(path.parent),
-            str(path),
-        ],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr or "LibreOffice recalc failed")
 
 
 def _reset_day_zero(path: Path) -> None:
@@ -57,18 +38,6 @@ def _reset_day_zero(path: Path) -> None:
             if val is not None and str(val).strip() not in KNOCKOUT_HEADERS:
                 ws[f"{col}{row}"].value = None
     wb.save(path)
-
-
-def _read_real_user_points(path: Path) -> dict[str, float]:
-    wb = openpyxl.load_workbook(path, data_only=True)
-    ws = wb["Summary"]
-    points: dict[str, float] = {}
-    for row in range(79, 149):
-        name = ws[f"D{row}"].value
-        if name in REAL_USERS:
-            val = ws[f"F{row}"].value
-            points[str(name)] = float(val) if val is not None else 0.0
-    return points
 
 
 def _predictions_intact(path: Path) -> bool:
@@ -98,37 +67,50 @@ class TestPipelineIntegration(unittest.TestCase):
     def test_day_zero_real_users_all_zero(self) -> None:
         _reset_day_zero(self.work)
         self.assertTrue(_predictions_intact(self.work))
-        _recalc(self.work)
-        pts = _read_real_user_points(self.work)
+        recalc(self.work)
+        pts = read_real_user_points(self.work)
         self.assertEqual(len(pts), 6)
         for name, score in pts.items():
             self.assertEqual(score, 0.0, msg=f"{name} should be 0 at day zero")
 
     def test_patch_match_1_updates_scoreboard(self) -> None:
-        from scripts.patch_match import patch_match
-
         _reset_day_zero(self.work)
-        _recalc(self.work)
-        before = _read_real_user_points(self.work)
+        recalc(self.work)
+        before = read_real_user_points(self.work)
 
-        patch_match(1, 1, 0, self.work)
-        _recalc(self.work)
-        after = _read_real_user_points(self.work)
+        after = apply_match_result(self.work, 1, 1, 0)
 
         self.assertEqual(before["MikiZiso3"], 0.0)
-        self.assertGreater(after["MikiZiso3"], before["MikiZiso3"])
         self.assertAlmostEqual(after["MikiZiso3"], 5.0, places=2)
-        self.assertEqual(after["Nir1"], 0.0)
-        self.assertGreater(after["Nir3"], 0.0)
+        self.assertEqual(after["Nir2"], 0.0)
+        self.assertAlmostEqual(after["Nir3"], 3.0, places=2)
+
+    def test_patch_match_1_south_africa_win(self) -> None:
+        _reset_day_zero(self.work)
+        recalc(self.work)
+        after = apply_match_result(self.work, 1, 0, 1)
+        expected = EXPECTED_MATCH_1[(0, 1)]
+        for name, want in expected.items():
+            self.assertAlmostEqual(after[name], want, places=2, msg=name)
+
+    def test_score_change_overwrites_previous_result(self) -> None:
+        _reset_day_zero(self.work)
+        recalc(self.work)
+        apply_match_result(self.work, 1, 1, 0)
+        after_sa = apply_match_result(self.work, 1, 0, 1)
+        self.assertAlmostEqual(after_sa["Nir2"], 5.0, places=2)
+        self.assertAlmostEqual(after_sa["MikiZiso3"], 0.0, places=2)
+
+    def test_full_score_simulation(self) -> None:
+        results = run_score_simulation()
+        self.assertTrue(all(step.passed for step in results), msg=results)
 
     def test_export_after_patch_passes_validation(self) -> None:
         from scripts.export_summary import build_export
-        from scripts.patch_match import patch_match
         from scripts.validate_export import validate
 
         _reset_day_zero(self.work)
-        patch_match(1, 1, 0, self.work)
-        _recalc(self.work)
+        apply_match_result(self.work, 1, 1, 0)
         payload = build_export(self.work)
         errors = validate(payload)
         self.assertEqual(errors, [])

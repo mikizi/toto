@@ -1,56 +1,575 @@
 {
-  "version": "2026-05-24T202257Z",
-  "generatedAt": "2026-05-24T20:22:57.495901+00:00",
-  "gamesPlayed": 0,
-  "lastResult": null,
+  "version": "2026-05-24T201403Z",
+  "generatedAt": "2026-05-24T20:14:03.838981+00:00",
+  "gamesPlayed": 1,
+  "lastResult": {
+    "matchId": 1,
+    "teams": "Mexico-South Africa",
+    "home": "Mexico",
+    "away": "South Africa",
+    "homeScore": 0,
+    "awayScore": 1
+  },
   "leaderboard": [
     {
-      "id": "003",
-      "name": "Miki_Ziso",
+      "id": "001",
+      "name": "MikiZiso3",
       "points": 0.0,
-      "rank": 1,
-      "champion": "Brazil",
+      "rank": null,
+      "champion": "France",
       "movement": "same"
     },
     {
       "id": "002",
       "name": "MikiZiso2",
       "points": 0.0,
-      "rank": 2,
+      "rank": null,
       "champion": "Germany",
       "movement": "same"
     },
     {
-      "id": "001",
-      "name": "MikiZiso3",
+      "id": "003",
+      "name": "Miki_Ziso",
       "points": 0.0,
-      "rank": 3,
-      "champion": "France",
+      "rank": null,
+      "champion": "Brazil",
       "movement": "same"
     },
     {
       "id": "004",
       "name": "Nir1",
       "points": 0.0,
-      "rank": 4,
+      "rank": null,
       "champion": "Senegal",
-      "movement": "up"
+      "movement": "same"
     },
     {
       "id": "005",
       "name": "Nir2",
       "points": 0.0,
-      "rank": 5,
+      "rank": null,
       "champion": "Belgium",
-      "movement": "up"
+      "movement": "same"
     },
     {
       "id": "006",
       "name": "Nir3",
       "points": 0.0,
-      "rank": 6,
+      "rank": null,
       "champion": "Uzbekistan",
-      "movement": "down"
+      "movement": "same"
+    },
+    {
+      "id": "007",
+      "name": "test1",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "008",
+      "name": "test2",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "009",
+      "name": "test3",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "010",
+      "name": "test4",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "011",
+      "name": "test5",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "012",
+      "name": "test6",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "013",
+      "name": "test7",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "014",
+      "name": "test8",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "015",
+      "name": "test9",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "016",
+      "name": "test10",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "017",
+      "name": "test11",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "018",
+      "name": "test12",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "019",
+      "name": "test13",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "020",
+      "name": "test14",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "021",
+      "name": "test15",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "022",
+      "name": "test16",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "023",
+      "name": "test17",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "024",
+      "name": "test18",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "025",
+      "name": "test19",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "026",
+      "name": "test20",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "027",
+      "name": "test21",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "028",
+      "name": "test22",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "029",
+      "name": "test23",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "030",
+      "name": "test24",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "031",
+      "name": "test25",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "032",
+      "name": "test26",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "033",
+      "name": "test27",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "034",
+      "name": "test28",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "035",
+      "name": "test29",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "036",
+      "name": "test30",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "037",
+      "name": "test31",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "038",
+      "name": "test32",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "039",
+      "name": "test33",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "040",
+      "name": "test34",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "041",
+      "name": "test35",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "042",
+      "name": "test36",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "043",
+      "name": "test37",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "044",
+      "name": "test38",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "045",
+      "name": "test39",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "046",
+      "name": "test40",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "047",
+      "name": "test41",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "048",
+      "name": "test42",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "049",
+      "name": "test43",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "050",
+      "name": "test44",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "051",
+      "name": "test45",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "052",
+      "name": "test46",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "053",
+      "name": "test47",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "054",
+      "name": "test48",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "055",
+      "name": "test49",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "056",
+      "name": "test50",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "057",
+      "name": "test51",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "058",
+      "name": "test52",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "059",
+      "name": "test53",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "060",
+      "name": "test54",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "061",
+      "name": "test55",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "062",
+      "name": "test56",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "063",
+      "name": "test57",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "064",
+      "name": "test58",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "065",
+      "name": "test59",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "066",
+      "name": "test60",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "067",
+      "name": "test61",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "068",
+      "name": "test62",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "069",
+      "name": "test63",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
+    },
+    {
+      "id": "070",
+      "name": "test64",
+      "points": 0.0,
+      "rank": null,
+      "champion": null,
+      "movement": "same"
     }
   ],
   "matches": [
@@ -59,9 +578,9 @@
       "teams": "Mexico-South Africa",
       "home": "Mexico",
       "away": "South Africa",
-      "homeScore": null,
-      "awayScore": null,
-      "played": false,
+      "homeScore": 0,
+      "awayScore": 1,
+      "played": true,
       "kickoffAt": "2026-06-11T19:00:00+00:00"
     },
     {

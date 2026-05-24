@@ -1,0 +1,57 @@
+name: Kickoff simulation
+
+on:
+  workflow_dispatch:
+    inputs:
+      wait_seconds:
+        description: Seconds until simulated kickoff
+        required: false
+        default: "20"
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - "public/js/app.js"
+      - "scripts/simulate_kickoff.py"
+      - "scripts/kickoff_gate.py"
+      - "scripts/verify_kickoff_ui.py"
+      - "tests/test_kickoff_simulation.py"
+      - ".github/workflows/kickoff-simulation.yml"
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Score change simulation (patch → recalc → export)
+        run: python scripts/score_simulation.py
+
+      - name: Prepare kickoff simulation
+        run: |
+          python scripts/simulate_kickoff.py \
+            --json-only \
+            --seconds "${{ inputs.wait_seconds || '20' }}"
+
+      - name: Verify coming soon → scoreboard transition
+        run: |
+          python scripts/verify_kickoff_ui.py \
+            --start-server \
+            --wait-seconds "${{ inputs.wait_seconds || '20' }}"
+
+      - name: Run kickoff unit tests
+        run: python scripts/run_local_tests.py
