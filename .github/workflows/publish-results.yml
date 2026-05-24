@@ -40,7 +40,11 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install LibreOffice
-        run: sudo apt-get update && sudo apt-get install -y libreoffice-calc libreoffice-core-nogui dbus-x11 xvfb
+        run: |
+          sudo apt-get update
+          # ubuntu-24.04 runners ship libreoffice-core; core-nogui conflicts with it
+          sudo apt-get install -y libreoffice-calc dbus-x11 xvfb
+          soffice --version || libreoffice --version
 
       - name: Resolve inputs
         id: inputs
