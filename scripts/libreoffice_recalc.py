@@ -99,20 +99,22 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
     if not xlsx_path.exists():
         raise FileNotFoundError(xlsx_path)
 
-    temp_path = Path(tempfile.gettempdir()) / f"wc26_recalc_{uuid.uuid4().hex}.xlsx"
-    out_dir = Path(tempfile.gettempdir()) / f"lo_out_{uuid.uuid4().hex}"
-    profile_dir = Path(tempfile.gettempdir()) / f"lo_profile_{uuid.uuid4().hex}"
-    profile_dir.mkdir(parents=True, exist_ok=True)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(xlsx_path, temp_path)
+    work_dir = Path(tempfile.gettempdir()) / f"lo_work_{uuid.uuid4().hex}"
+    in_dir = work_dir / "in"
+    out_dir = work_dir / "out"
+    profile_dir = work_dir / "profile"
+    source = in_dir / "workbook.xlsx"
+    for directory in (in_dir, out_dir, profile_dir):
+        directory.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(xlsx_path, source)
 
     last_error = ""
     try:
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             shutil.rmtree(out_dir, ignore_errors=True)
             out_dir.mkdir(parents=True, exist_ok=True)
-            result = _run_soffice(temp_path, out_dir, profile_dir)
-            converted = out_dir / temp_path.name
+            result = _run_soffice(source, out_dir, profile_dir)
+            converted = out_dir / source.name
             stderr = result.stderr or ""
             stdout = result.stdout or ""
             if _conversion_succeeded(result, converted):
@@ -130,9 +132,7 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
             if attempt < _MAX_ATTEMPTS:
                 time.sleep(1.5)
     finally:
-        temp_path.unlink(missing_ok=True)
-        shutil.rmtree(out_dir, ignore_errors=True)
-        shutil.rmtree(profile_dir, ignore_errors=True)
+        shutil.rmtree(work_dir, ignore_errors=True)
 
     raise RuntimeError(f"LibreOffice recalc failed after {_MAX_ATTEMPTS} attempts: {last_error}")
 
