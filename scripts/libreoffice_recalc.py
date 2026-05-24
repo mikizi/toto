@@ -17,6 +17,10 @@ from scripts.paths import XLSX_PATH
 # Lazy import — avoid circular import at module load
 _assert_recalc_cached = None
 
+ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_XLSX = XLSX_PATH
+_MAX_ATTEMPTS = 3
+
 
 def _verify_recalc_cached(xlsx_path: Path) -> bool:
     global _assert_recalc_cached
@@ -36,10 +40,6 @@ def _verify_recalc_cached(xlsx_path: Path) -> bool:
     except RuntimeError:
         return False
 
-ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_XLSX = XLSX_PATH
-_MAX_ATTEMPTS = 3
-
 
 def _soffice_binary() -> str:
     for candidate in ("soffice", "libreoffice"):
@@ -49,11 +49,15 @@ def _soffice_binary() -> str:
     raise RuntimeError("LibreOffice not found (install soffice or libreoffice)")
 
 
-def _conversion_succeeded(result: subprocess.CompletedProcess[str], output_path: Path) -> bool:
-    if result.returncode != 0 or not output_path.exists():
-        return False
-    combined = f"{result.stdout or ''}\n{result.stderr or ''}".lower()
-    return "error:" not in combined and "failed:" not in combined
+def _lo_env(profile_dir: Path | None = None) -> dict[str, str]:
+    env = os.environ.copy()
+    env.setdefault("HOME", str(Path(tempfile.gettempdir())))
+    env.setdefault("SAL_USE_VCLPLUGIN", _vcl_plugin())
+    env.setdefault("SAL_DISABLE_OPENCL", "1")
+    env.setdefault("LANG", "C.UTF-8")
+    if profile_dir is not None:
+        env["UserInstallation"] = profile_dir.resolve().as_uri()
+    return env
 
 
 def _vcl_plugin() -> str:
@@ -61,40 +65,159 @@ def _vcl_plugin() -> str:
     return "gen" if shutil.which("xvfb-run") else "svp"
 
 
-def _run_soffice(
-    source: Path, out_dir: Path, profile_dir: Path
-) -> subprocess.CompletedProcess[str]:
-    profile_uri = profile_dir.resolve().as_uri()
-    env = os.environ.copy()
-    env.setdefault("HOME", str(Path(tempfile.gettempdir())))
-    env.setdefault("SAL_USE_VCLPLUGIN", _vcl_plugin())
-    env.setdefault("SAL_DISABLE_OPENCL", "1")
-    env.setdefault("LANG", "C.UTF-8")
+def _uno_available() -> bool:
+    try:
+        import uno  # noqa: F401
 
-    command = [
-        _soffice_binary(),
-        "--headless",
-        "--invisible",
-        "--norestore",
-        "--nologo",
-        "--nodefault",
-        "--nofirststartwizard",
-        f"-env:UserInstallation={profile_uri}",
-        "--convert-to",
-        "xlsx",
-        "--outdir",
-        str(out_dir),
-        str(source),
-    ]
+        return True
+    except ImportError:
+        return False
+
+
+def _system_python_with_uno() -> str | None:
+    for candidate in ("/usr/bin/python3", "/usr/local/bin/python3"):
+        if not Path(candidate).is_file():
+            continue
+        if Path(candidate).resolve() == Path(sys.executable).resolve():
+            continue
+        probe = subprocess.run(
+            [candidate, "-c", "import uno"],
+            capture_output=True,
+            timeout=10,
+        )
+        if probe.returncode == 0:
+            return candidate
+    return None
+
+
+def _ensure_uno_python() -> None:
+    """Re-exec with system python when the active interpreter lacks python3-uno."""
+    if _uno_available():
+        return
+    system_python = _system_python_with_uno()
+    if system_python is None:
+        return
+    os.execve(system_python, [system_python, *sys.argv], os.environ)
+
+
+def _wrap_xvfb(command: list[str]) -> list[str]:
     xvfb = shutil.which("xvfb-run")
     if xvfb:
-        command = [xvfb, "-a", *command]
+        return [xvfb, "-a", *command]
+    return command
+
+
+def _start_soffice_listener(profile_dir: Path, port: int, env: dict[str, str]) -> subprocess.Popen[bytes]:
+    command = _wrap_xvfb(
+        [
+            _soffice_binary(),
+            "--headless",
+            "--invisible",
+            "--norestore",
+            "--nologo",
+            "--nodefault",
+            f"-env:UserInstallation={profile_dir.resolve().as_uri()}",
+            f"--accept=socket,host=127.0.0.1,port={port};urp;StarOffice.ComponentContext",
+        ]
+    )
+    return subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+    )
+
+
+def _recalc_via_uno(source: Path, profile_dir: Path) -> tuple[bool, str]:
+    """Force a full formula recalc via LibreOffice UNO (works reliably on Ubuntu CI)."""
+    try:
+        import uno
+        from com.sun.star.beans import PropertyValue
+    except ImportError as exc:
+        return False, f"uno import failed: {exc}"
+
+    port = 3000 + (os.getpid() % 60000)
+    env = _lo_env(profile_dir)
+    proc = _start_soffice_listener(profile_dir, port, env)
+    stderr_tail = ""
+    try:
+        time.sleep(3)
+        local_context = uno.getComponentContext()
+        resolver = local_context.ServiceManager.createInstanceWithContext(
+            "com.sun.star.bridge.UnoUrlResolver", local_context
+        )
+        ctx = None
+        for _ in range(40):
+            try:
+                ctx = resolver.resolve(
+                    f"uno:socket,host=127.0.0.1,port={port};urp;StarOffice.ComponentContext"
+                )
+                break
+            except Exception:
+                time.sleep(0.25)
+        if ctx is None:
+            if proc.stderr is not None:
+                stderr_tail = proc.stderr.read().decode(errors="replace")[-500:]
+            return False, f"uno connect timeout: {stderr_tail}"
+
+        desktop = ctx.ServiceManager.createInstanceWithContext(
+            "com.sun.star.frame.Desktop", ctx
+        )
+        url = uno.systemPathToFileUrl(str(source.resolve()))
+        hidden = PropertyValue("Hidden", 0, True, 0)
+        doc = desktop.loadComponentFromURL(url, "_blank", 0, (hidden,))
+        if doc is None:
+            return False, "loadComponentFromURL returned None"
+        try:
+            if hasattr(doc, "calculateAll"):
+                doc.calculateAll()
+            doc.store()
+        finally:
+            doc.close(True)
+        return True, ""
+    except Exception as exc:
+        return False, str(exc)
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+def _conversion_succeeded(result: subprocess.CompletedProcess[str], output_path: Path) -> bool:
+    if result.returncode != 0 or not output_path.exists():
+        return False
+    combined = f"{result.stdout or ''}\n{result.stderr or ''}".lower()
+    return "error:" not in combined and "failed:" not in combined
+
+
+def _run_soffice_convert(
+    source: Path, out_dir: Path, profile_dir: Path
+) -> subprocess.CompletedProcess[str]:
+    command = _wrap_xvfb(
+        [
+            _soffice_binary(),
+            "--headless",
+            "--invisible",
+            "--norestore",
+            "--nologo",
+            "--nodefault",
+            "--nofirststartwizard",
+            f"-env:UserInstallation={profile_dir.resolve().as_uri()}",
+            "--convert-to",
+            "xlsx",
+            "--outdir",
+            str(out_dir),
+            str(source),
+        ]
+    )
     return subprocess.run(
         command,
         capture_output=True,
         text=True,
         timeout=600,
-        env=env,
+        env=_lo_env(profile_dir),
     )
 
 
@@ -115,10 +238,20 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
 
     last_error = ""
     try:
+        if _uno_available():
+            ok, err = _recalc_via_uno(source, profile_dir)
+            if ok:
+                shutil.copy2(source, xlsx_path)
+                if _verify_recalc_cached(xlsx_path):
+                    return
+                last_error = "LibreOffice UNO saved the file but formula results were not cached"
+            else:
+                last_error = f"LibreOffice UNO recalc failed: {err}"
+
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             shutil.rmtree(out_dir, ignore_errors=True)
             out_dir.mkdir(parents=True, exist_ok=True)
-            result = _run_soffice(source, out_dir, profile_dir)
+            result = _run_soffice_convert(source, out_dir, profile_dir)
             converted = out_dir / source.name
             stderr = result.stderr or ""
             stdout = result.stdout or ""
@@ -143,6 +276,7 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
 
 
 def main() -> None:
+    _ensure_uno_python()
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_XLSX
     recalc(path)
     print(f"Recalculated → {path}")

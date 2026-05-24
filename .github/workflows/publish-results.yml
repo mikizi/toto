@@ -70,14 +70,26 @@ jobs:
           SAL_USE_VCLPLUGIN: gen
         run: |
           cp "xlsx/Master WorldCup26.xlsx" /tmp/wc26-smoke.xlsx
-          PYTHONPATH=. python scripts/libreoffice_recalc.py /tmp/wc26-smoke.xlsx
+          PYTHONPATH=. python3 -c "
+          import openpyxl
+          from pathlib import Path
+          path = Path('/tmp/wc26-smoke.xlsx')
+          wb = openpyxl.load_workbook(path)
+          ws = wb['Summary']
+          for row in range(4, 120):
+              if ws[f'J{row}'].value and ws[f'K{row}'].value and '-' in str(ws[f'K{row}'].value):
+                  ws[f'L{row}'].value = None
+                  ws[f'M{row}'].value = None
+          wb.save(path)
+          "
+          PYTHONPATH=. python3 scripts/libreoffice_recalc.py /tmp/wc26-smoke.xlsx
 
       - name: Patch match score
         env:
           HOME: /tmp
           SAL_USE_VCLPLUGIN: gen
         run: |
-          PYTHONPATH=. python -u scripts/publish_match.py \
+          PYTHONPATH=. python3 -u scripts/publish_match.py \
             "${{ steps.inputs.outputs.match_id }}" \
             "${{ steps.inputs.outputs.home_score }}" \
             "${{ steps.inputs.outputs.away_score }}"
