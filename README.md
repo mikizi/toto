@@ -1,62 +1,60 @@
-# Euro 2024 Bets
+# World Cup 2026 Toto
 
-This project allows you to track your Euro 2024 bets and see the latest game results.
+Private friends pool — scoreboard reads `public/data/latest.json` (exported from `xlsx/Master WorldCup26.xlsx`).
 
-## Getting Started
+## Public site
 
-### Prerequisites
+Everything the browser loads lives in **`public/`**:
 
-- [Git](https://git-scm.com/)
-- [Node.js](https://nodejs.org/)
+- **Scoreboard:** `public/index.html` → https://mikizi.github.io/toto/
+- **Admin:** `public/admin/`
 
-### Installation
+GitHub Pages deploys the `public/` folder (see `.github/workflows/pages.yml`).
 
-1. Clone the repository:
-    ```sh
-    git clone https://github.com/mikizi/toto.git
-    ```
+## Publish a match result (during tournament)
 
-2. Navigate to the project directory:
-    ```sh
-    cd toto
-    ```
+1. [Actions → Publish match result](https://github.com/mikizi/toto/actions/workflows/publish-results.yml)
+2. Run workflow → match #, home score, away score
+3. Wait ~1–2 min → site updates (Pages redeploys on push)
 
-3. Open `index.html` in your browser to view the project.
+## Local dev
 
-### Usage
+```sh
+pip install -r requirements.txt
+make dev
+```
 
-- The `index.html` file displays the Euro 2024 bets and latest game results.
-- The `scripts.js` file contains the logic for fetching and displaying the data from the Excel file.
+- Scoreboard: http://localhost:8080/index.html
+- Admin: http://localhost:8080/admin/
 
-### Updating Results
+## Local tests
 
-To update the results in the Excel file and commit the changes to GitHub, follow these steps:
+```sh
+python scripts/run_local_tests.py
+```
 
-1. **Navigate to the Repository**:
-    - Go to the [GitHub repository](https://github.com/mikizi/toto).
+## Repo layout
 
-2. **Upload the Updated Excel File**:
-    - Click on the `Add file` button located above the list of files.
-    - Select `Upload files` from the dropdown menu.
-    - Drag and drop the updated Excel file (`Master_euro2024.xlsx`) or click `choose your files` to select it.
-    - Ensure the file name is the same as the existing file (`Master_euro2024.xlsx`).
+```text
+public/                 ← entire client app (GitHub Pages root)
+  index.html
+  manifest.json         ← PWA
+  admin/
+  css/styles.css
+  js/app.js
+  assets/               ← images only
+    bg.png, bg-card-header.png, euro2024_bets.png
+    icons/
+  data/latest.json
+xlsx/                   ← Master WorldCup26.xlsx
+scripts/                ← patch, recalc, export
+tests/
+legacy/                 ← old Euro 2024 app
+.github/workflows/      ← pages.yml + publish-results.yml
+```
 
-3. **Commit the Changes**:
-    - In the commit message box, add a comment describing the updates or changes made. For example:
-        ```
-        Update results for the game on June 14, 2024
-        ```
-    - Click on the `Commit changes` button to commit the updates to the repository.
+## PWA
 
-### Contributing
+After merge, set **GitHub Pages → Source: GitHub Actions** in repo settings (one-time).
 
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/YourFeature`).
-3. Commit your changes (`git commit -m 'Add some feature'`).
-4. Push to the branch (`git push origin feature/YourFeature`).
-5. Open a pull request.
-
-### Contact
-
-If you have any questions or suggestions, please feel free to contact us.
-
+PWA icons and background images live under `public/assets/`. Replace `euro2024_bets.png` with a WC26 share image when ready.

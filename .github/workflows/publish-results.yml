@@ -1,0 +1,88 @@
+name: Publish match result
+
+on:
+  workflow_dispatch:
+    inputs:
+      match_id:
+        description: Match number (Summary column J)
+        required: true
+        type: number
+      home_score:
+        description: Home team score (Summary column L)
+        required: true
+        type: number
+      away_score:
+        description: Away team score (Summary column M)
+        required: true
+        type: number
+  repository_dispatch:
+    types: [update-score]
+
+concurrency:
+  group: publish-results
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install LibreOffice
+        run: sudo apt-get update && sudo apt-get install -y libreoffice-calc
+
+      - name: Resolve inputs
+        id: inputs
+        env:
+          DISPATCH_MATCH: ${{ github.event.client_payload.matchId }}
+          DISPATCH_HOME: ${{ github.event.client_payload.home }}
+          DISPATCH_AWAY: ${{ github.event.client_payload.away }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "match_id=${{ inputs.match_id }}" >> "$GITHUB_OUTPUT"
+            echo "home_score=${{ inputs.home_score }}" >> "$GITHUB_OUTPUT"
+            echo "away_score=${{ inputs.away_score }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "match_id=${DISPATCH_MATCH}" >> "$GITHUB_OUTPUT"
+            echo "home_score=${DISPATCH_HOME}" >> "$GITHUB_OUTPUT"
+            echo "away_score=${DISPATCH_AWAY}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Patch match score
+        run: |
+          python scripts/patch_match.py \
+            "${{ steps.inputs.outputs.match_id }}" \
+            "${{ steps.inputs.outputs.home_score }}" \
+            "${{ steps.inputs.outputs.away_score }}"
+
+      - name: Recalculate xlsx
+        run: python scripts/libreoffice_recalc.py
+
+      - name: Export JSON
+        run: python scripts/export_summary.py
+
+      - name: Validate export
+        run: python scripts/validate_export.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add xlsx/Master\ WorldCup26.xlsx public/data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Results: Match ${{ steps.inputs.outputs.match_id }} — ${{ steps.inputs.outputs.home_score }}-${{ steps.inputs.outputs.away_score }}"
+          git push

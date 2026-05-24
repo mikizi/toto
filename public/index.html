@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta name="theme-color" content="#0d1117" />
+    <title>World Cup 2026 Toto</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WC26 Toto">
+    <meta property="og:title" content="World Cup 2026 Toto">
+    <meta property="og:description" content="World Cup 2026 pool scoreboard">
+    <meta property="og:image" content="https://mikizi.github.io/toto/assets/euro2024_bets.png">
+    <meta property="og:url" content="https://mikizi.github.io/toto/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="World Cup 2026 Toto">
+    <meta name="twitter:image" content="https://mikizi.github.io/toto/assets/euro2024_bets.png">
+</head>
+<body>
+<div class="app">
+    <section class="scoreboard-card">
+        <header class="top-bar">
+            <div class="last-updated">
+                <span id="topBarLabel" class="update-label">Next match</span>
+                <span class="status-dot" aria-hidden="true"></span>
+                <time id="topBarDatetime">—</time>
+            </div>
+            <button id="refreshBtn" type="button" class="btn-refresh hidden" aria-label="Refresh">
+                <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+                    <polyline points="21 3 21 9 15 9"/>
+                </svg>
+                Refresh
+            </button>
+        </header>
+        <div id="gameInfo" class="hero-body" aria-live="polite"></div>
+        <div id="countdown" class="countdown-panel" aria-live="polite"></div>
+    </section>
+
+    <section id="comingSoon" class="coming-soon hidden" aria-label="Coming soon">
+        <div class="coming-soon-footer">
+            <h2 class="coming-soon-title">World Cup <span class="gold">2026</span> Toto</h2>
+            <p class="coming-soon-tag">Full scoreboard opens at kickoff</p>
+        </div>
+    </section>
+
+    <div id="scoreboardApp" class="scoreboard-app hidden">
+        <div class="title-row">
+            <h1 class="page-title">World Cup <span class="gold">2026</span> Toto</h1>
+            <span id="gamesBadge" class="games-badge">—</span>
+        </div>
+
+        <section class="leaderboard" aria-label="Leaderboard">
+            <div class="lb-header">
+                <span class="lb-col lb-col-rank">Rank</span>
+                <span class="lb-col lb-col-trend">Last</span>
+                <span class="lb-col lb-col-player">Player</span>
+                <span class="lb-col lb-col-pts">Pts</span>
+                <span class="lb-col lb-col-champion">Champion</span>
+            </div>
+            <div id="betsTable" class="lb-body"></div>
+        </section>
+    </div>
+</div>
+<script src="js/flags.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

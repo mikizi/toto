@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WC26 Admin</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="container my-4 loaded">
+    <div class="d-flex justify-content-between align-items-center mb-3 w-100 px-2">
+        <h4 class="mb-0">WC26 Admin</h4>
+        <div>
+            <a href="../index.html" class="btn btn-sm btn-outline-light mr-2">Scoreboard</a>
+            <button id="refreshBtn" type="button" class="btn btn-sm btn-outline-warning">Refresh</button>
+        </div>
+    </div>
+    <p id="statusMsg" class="text-muted small px-2"></p>
+
+    <div class="row w-100">
+        <div class="col-lg-7 mb-4">
+            <div class="card bg-dark text-white">
+                <div class="card-header">Publish result</div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        Patches the xlsx, recalculates in GitHub Actions, and updates the site.
+                        Or run manually:
+                        <a class="text-warning" href="https://github.com/mikizi/toto/actions/workflows/publish-results.yml" target="_blank" rel="noopener">Actions → Publish match result</a>
+                    </p>
+                    <form id="publishForm">
+                        <div class="form-group">
+                            <label for="matchSelect">Match</label>
+                            <select id="matchSelect" class="form-control bg-secondary text-white" required></select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label for="homeScore">Home score</label>
+                                <input id="homeScore" type="number" min="0" class="form-control" required>
+                            </div>
+                            <div class="form-group col-6">
+                                <label for="awayScore">Away score</label>
+                                <input id="awayScore" type="number" min="0" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="githubToken">GitHub token (repo scope, optional)</label>
+                            <input id="githubToken" type="password" class="form-control" autocomplete="off"
+                                   placeholder="ghp_… — stored in memory only for this tab">
+                        </div>
+                        <button type="submit" class="btn btn-warning">Publish</button>
+                        <p id="publishMsg" class="small mt-2 mb-0 text-info"></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5 mb-4">
+            <div class="card bg-dark text-white mb-4">
+                <div class="card-header">Top 15</div>
+                <div class="card-body p-0">
+                    <table class="table table-dark table-sm mb-0">
+                        <thead><tr><th>#</th><th>Player</th><th>Pts</th></tr></thead>
+                        <tbody id="leaderboardBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-dark text-white w-100">
+        <div class="card-header">All matches</div>
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-dark table-sm mb-0">
+                <thead><tr><th>#</th><th>Teams</th><th>Score</th></tr></thead>
+                <tbody id="matchesBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="admin.js"></script>
+</body>
+</html>

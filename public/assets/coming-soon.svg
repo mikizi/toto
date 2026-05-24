@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="720" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#121820"/>
+      <stop offset="1" stop-color="#0a0e14"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(360 180) rotate(90) scale(160 280)">
+      <stop stop-color="#E8B923" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#E8B923" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#F5D061"/>
+      <stop offset="1" stop-color="#C9920A"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="420" rx="24" fill="url(#bg)"/>
+  <rect width="720" height="420" rx="24" fill="url(#glow)"/>
+  <rect x="1" y="1" width="718" height="418" rx="23" stroke="#E8B923" stroke-opacity="0.28"/>
+  <g opacity="0.08">
+    <path d="M0 80H720M0 120H720M0 160H720M0 200H720M0 240H720M0 280H720M0 320H720" stroke="#fff"/>
+  </g>
+  <circle cx="360" cy="118" r="42" fill="#E8B923" fill-opacity="0.08" stroke="#E8B923" stroke-opacity="0.25"/>
+  <path d="M360 86l8.5 17.5 19 2.8-13.8 13.4 3.3 19-17-8.9-17 8.9 3.3-19-13.8-13.4 19-2.8L360 86z" fill="url(#gold)"/>
+  <text x="360" y="198" text-anchor="middle" fill="#EEF1F5" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="3">WORLD CUP</text>
+  <text x="360" y="238" text-anchor="middle" fill="#E8B923" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="3">2026 TOTO</text>
+  <rect x="230" y="268" width="260" height="40" rx="20" fill="#E8B923" fill-opacity="0.12" stroke="#E8B923" stroke-opacity="0.35"/>
+  <text x="360" y="294" text-anchor="middle" fill="#E8B923" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="5">COMING SOON</text>
+  <text x="360" y="348" text-anchor="middle" fill="#6B7280" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="500">Scoreboard opens at kickoff</text>
+</svg>
