@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -18,12 +19,26 @@ DEFAULT_XLSX = XLSX_PATH
 _MAX_ATTEMPTS = 3
 
 
-def _run_soffice(source: Path) -> subprocess.CompletedProcess[str]:
+def _soffice_binary() -> str:
+    for candidate in ("soffice", "libreoffice"):
+        path = shutil.which(candidate)
+        if path:
+            return path
+    raise RuntimeError("LibreOffice not found (install soffice or libreoffice)")
+
+
+def _run_soffice(source: Path, profile_dir: Path) -> subprocess.CompletedProcess[str]:
+    profile_uri = profile_dir.resolve().as_uri()
+    env = os.environ.copy()
+    env.setdefault("HOME", str(Path(tempfile.gettempdir())))
     return subprocess.run(
         [
-            "soffice",
+            _soffice_binary(),
             "--headless",
             "--invisible",
+            "--norestore",
+            "--nologo",
+            f"-env:UserInstallation={profile_uri}",
             "--convert-to",
             "xlsx",
             "--outdir",
@@ -33,6 +48,7 @@ def _run_soffice(source: Path) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         text=True,
         timeout=600,
+        env=env,
     )
 
 
@@ -43,21 +59,26 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
         raise FileNotFoundError(xlsx_path)
 
     temp_path = Path(tempfile.gettempdir()) / f"wc26_recalc_{uuid.uuid4().hex}.xlsx"
+    profile_dir = Path(tempfile.gettempdir()) / f"lo_profile_{uuid.uuid4().hex}"
+    profile_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(xlsx_path, temp_path)
 
     last_error = ""
-    for attempt in range(1, _MAX_ATTEMPTS + 1):
-        result = _run_soffice(temp_path)
-        stderr = result.stderr or ""
-        if result.returncode == 0 and "failed:" not in stderr.lower():
-            shutil.copy2(temp_path, xlsx_path)
-            temp_path.unlink(missing_ok=True)
-            return
-        last_error = stderr or f"exit {result.returncode}"
-        if attempt < _MAX_ATTEMPTS:
-            time.sleep(1.5)
+    try:
+        for attempt in range(1, _MAX_ATTEMPTS + 1):
+            result = _run_soffice(temp_path, profile_dir)
+            stderr = result.stderr or ""
+            stdout = result.stdout or ""
+            if result.returncode == 0 and "failed:" not in stderr.lower():
+                shutil.copy2(temp_path, xlsx_path)
+                return
+            last_error = stderr or stdout or f"exit {result.returncode}"
+            if attempt < _MAX_ATTEMPTS:
+                time.sleep(1.5)
+    finally:
+        temp_path.unlink(missing_ok=True)
+        shutil.rmtree(profile_dir, ignore_errors=True)
 
-    temp_path.unlink(missing_ok=True)
     raise RuntimeError(f"LibreOffice recalc failed after {_MAX_ATTEMPTS} attempts: {last_error}")
 
 

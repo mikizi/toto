@@ -201,7 +201,8 @@ async function publishViaProxy(matchId, homeScore, awayScore, msg) {
       throw new Error(`${response.status}: ${text}`);
     }
     if (msg) {
-      msg.textContent = "Published! Site updates in ~1–2 min on GitHub Pages.";
+      msg.textContent =
+        "Queued! Check GitHub Actions for a green checkmark, then refresh the scoreboard in ~2 min.";
     }
   } catch (err) {
     console.error(err);
