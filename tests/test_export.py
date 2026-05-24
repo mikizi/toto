@@ -113,6 +113,28 @@ class TestPatchMatch(unittest.TestCase):
             self.assertEqual(wb["Summary"][f"L{row}"].value, 2)
             self.assertEqual(wb["Summary"][f"M{row}"].value, 1)
 
+    def test_export_scores_from_picks_without_cached_formulas(self) -> None:
+        import openpyxl
+        import shutil
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "test.xlsx"
+            shutil.copy2(BACKUP_PATH, path)
+            patch_match(1, 1, 0, path)
+
+            wb = openpyxl.load_workbook(path)
+            ws = wb["Summary"]
+            for row in range(79, 85):
+                ws[f"F{row}"].value = "#N/A"
+                ws[f"G{row}"].value = "#N/A"
+            wb.save(path)
+
+            payload = build_export(path)
+            by_name = {entry["name"]: entry for entry in payload["leaderboard"]}
+            self.assertEqual(by_name["MikiZiso3"]["points"], 5.0)
+            self.assertEqual(by_name["Nir2"]["points"], 0.0)
+            self.assertEqual(by_name["Nir3"]["points"], 3.0)
+
 
 if __name__ == "__main__":
     unittest.main()

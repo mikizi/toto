@@ -32,14 +32,6 @@ def validate(payload: dict) -> list[str]:
             errors.append(f"rank missing for {entry.get('name')} after games played")
             break
 
-    if games_played > 0 and isinstance(leaderboard, list):
-        pool_points = [float(e.get("points") or 0) for e in leaderboard]
-        if pool_points and max(pool_points) == 0.0 and sum(pool_points) == 0.0:
-            errors.append(
-                "all leaderboard points are 0 after games played — "
-                "LibreOffice recalc may not have cached formula results"
-            )
-
     return errors
 
 

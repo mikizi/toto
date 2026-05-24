@@ -25,6 +25,10 @@ CHAMPION_CELL = "CM47"
 SCHEDULE_ROW_START = 7
 SCHEDULE_MATCH_ID_COL = 1
 SCHEDULE_KICKOFF_COL = 18
+PICK_HOME_COL = 6
+PICK_AWAY_COL = 7
+MATCH_RESULT_POINTS = 3.0
+EXACT_SCORE_POINTS = 2.0
 
 
 def _kickoff_to_iso(value: object) -> str | None:
@@ -182,11 +186,80 @@ def _cell_int(value: object) -> int | None:
     return int(round(number))
 
 
+def _result_key(home: float, away: float) -> str:
+    if home > away:
+        return "I"
+    if home < away:
+        return "II"
+    return "X"
+
+
+def _score_prediction(
+    actual_home: int,
+    actual_away: int,
+    pick_home: object,
+    pick_away: object,
+) -> float:
+    home = _cell_number(pick_home)
+    away = _cell_number(pick_away)
+    if home is None or away is None:
+        return 0.0
+
+    points = 0.0
+    if _result_key(home, away) == _result_key(actual_home, actual_away):
+        points += MATCH_RESULT_POINTS
+    if int(home) == actual_home and int(away) == actual_away:
+        points += EXACT_SCORE_POINTS
+    return points
+
+
+def _score_from_user_sheet(
+    wb: openpyxl.Workbook,
+    ws_summary: openpyxl.worksheet.worksheet.Worksheet,
+    row: int,
+    matches: list[dict[str, Any]],
+) -> float | None:
+    """Compute group-stage points from user picks when cached formulas are missing."""
+    uid = ws_summary[f"C{row}"].value
+    name = ws_summary[f"D{row}"].value
+    if not uid or not name:
+        return None
+
+    sheet_name = _user_sheet_name(uid, str(name))
+    if sheet_name not in wb.sheetnames:
+        return None
+
+    ws_user = wb[sheet_name]
+    pick_rows: dict[int, int] = {}
+    for user_row in range(SCHEDULE_ROW_START, 200):
+        match_id = ws_user.cell(user_row, SCHEDULE_MATCH_ID_COL).value
+        try:
+            pick_rows[int(match_id)] = user_row
+        except (TypeError, ValueError):
+            continue
+
+    total = 0.0
+    for match in matches:
+        if not match["played"]:
+            continue
+        pick_row = pick_rows.get(int(match["id"]))
+        if pick_row is None:
+            continue
+        total += _score_prediction(
+            int(match["homeScore"]),
+            int(match["awayScore"]),
+            ws_user.cell(pick_row, PICK_HOME_COL).value,
+            ws_user.cell(pick_row, PICK_AWAY_COL).value,
+        )
+    return round(total, 2)
+
+
 def _read_user_points(
     wb_data: openpyxl.Workbook,
     wb_formulas: openpyxl.Workbook,
     ws_data: openpyxl.worksheet.worksheet.Worksheet,
     row: int,
+    matches: list[dict[str, Any]] | None = None,
 ) -> float:
     """Read cached Summary points, falling back to Calc when Summary F is empty."""
     cached = _cell_number(ws_data[f"F{row}"].value)
@@ -199,6 +272,10 @@ def _read_user_points(
         calc_val = _cell_number(wb_data["Calc"][calc_ref].value)
         if calc_val is not None:
             return round(calc_val, 2)
+    if matches is not None:
+        computed = _score_from_user_sheet(wb_formulas, ws_data, row, matches)
+        if computed is not None:
+            return computed
     return 0.0
 
 
@@ -250,13 +327,14 @@ def _read_leaderboard(
     wb_data: openpyxl.Workbook,
     ws_data: openpyxl.worksheet.worksheet.Worksheet,
     wb_formulas: openpyxl.Workbook,
+    matches: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for row in range(USER_ROW_START, USER_ROW_END):
         name = ws_data[f"D{row}"].value
         if not name or name == "Name":
             continue
-        points = _read_user_points(wb_data, wb_formulas, ws_data, row)
+        points = _read_user_points(wb_data, wb_formulas, ws_data, row, matches)
         rank = _cell_int(ws_data[f"G{row}"].value)
         champion = _read_champion(wb_data, ws_data, row)
         rows.append(
@@ -318,7 +396,7 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
     ws = wb_data[SUMMARY]
     kickoffs = _read_match_kickoffs(wb_data)
     matches = _read_matches(ws, kickoffs)
-    raw_leaderboard = _read_leaderboard(wb_data, ws, wb_formulas)
+    raw_leaderboard = _read_leaderboard(wb_data, ws, wb_formulas, matches)
     leaderboard = _public_leaderboard(raw_leaderboard, previous)
     version = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     played_count = sum(1 for m in matches if m["played"])

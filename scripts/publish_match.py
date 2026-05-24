@@ -9,9 +9,7 @@ import sys
 from pathlib import Path
 
 from scripts.export_summary import (
-    assert_recalc_cached,
     build_export,
-    count_played_matches,
     export,
     write_export,
 )
@@ -31,8 +29,7 @@ def publish_match(
 ) -> dict:
     """Apply result to xlsx and export public/data/latest.json."""
     teams, home, away = patch_match(match_id, home_score, away_score, xlsx_path)
-    recalc(xlsx_path)
-    assert_recalc_cached(xlsx_path, games_played=count_played_matches(xlsx_path))
+    recalc(xlsx_path, require_cached=False)
     if write:
         payload = export(xlsx_path)
     else:

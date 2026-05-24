@@ -310,7 +310,7 @@ def _run_soffice_convert(
     )
 
 
-def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
+def recalc(xlsx_path: Path = DEFAULT_XLSX, *, require_cached: bool = True) -> None:
     """Open xlsx in LibreOffice, recalculate formulas, and save in place."""
     xlsx_path = xlsx_path.resolve()
     if not xlsx_path.exists():
@@ -331,6 +331,8 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
             ok, err = _recalc_via_uno(source, profile_dir)
             if ok:
                 shutil.copy2(source, xlsx_path)
+                if not require_cached:
+                    return
                 if _verify_recalc_cached(xlsx_path):
                     return
                 last_error = "LibreOffice UNO saved the file but formula results were not cached"
@@ -346,6 +348,8 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
             stdout = result.stdout or ""
             if _conversion_succeeded(result, converted):
                 shutil.copy2(converted, xlsx_path)
+                if not require_cached:
+                    return
                 if _verify_recalc_cached(xlsx_path):
                     return
                 last_error = "LibreOffice saved the file but formula results were not cached"
