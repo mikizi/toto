@@ -56,13 +56,18 @@ def _conversion_succeeded(result: subprocess.CompletedProcess[str], output_path:
     return "error:" not in combined and "failed:" not in combined
 
 
+def _vcl_plugin() -> str:
+    """Use the X11 plugin with xvfb on CI; svp-only headless can leave formulas as #N/A."""
+    return "gen" if shutil.which("xvfb-run") else "svp"
+
+
 def _run_soffice(
     source: Path, out_dir: Path, profile_dir: Path
 ) -> subprocess.CompletedProcess[str]:
     profile_uri = profile_dir.resolve().as_uri()
     env = os.environ.copy()
     env.setdefault("HOME", str(Path(tempfile.gettempdir())))
-    env.setdefault("SAL_USE_VCLPLUGIN", "svp")
+    env.setdefault("SAL_USE_VCLPLUGIN", _vcl_plugin())
     env.setdefault("SAL_DISABLE_OPENCL", "1")
     env.setdefault("LANG", "C.UTF-8")
 

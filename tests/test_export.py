@@ -8,13 +8,27 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.export_summary import build_export, write_export
+from scripts.export_summary import _cell_int, _cell_number, build_export, write_export
 from scripts.patch_match import find_match_row, patch_match
 from scripts.validate_export import validate
 
 from scripts.paths import BACKUP_PATH, XLSX_PATH
 
 REAL_USERS = {"MikiZiso3", "MikiZiso2", "Miki_Ziso", "Nir1", "Nir2", "Nir3"}
+
+
+class TestCellParsing(unittest.TestCase):
+    """Spreadsheet cached-value parsing."""
+
+    def test_cell_number_ignores_excel_errors(self) -> None:
+        self.assertIsNone(_cell_number("#N/A"))
+        self.assertIsNone(_cell_number("#REF!"))
+        self.assertEqual(_cell_number("5"), 5.0)
+        self.assertEqual(_cell_number(3), 3.0)
+
+    def test_cell_int_ignores_excel_errors(self) -> None:
+        self.assertIsNone(_cell_int("#N/A"))
+        self.assertEqual(_cell_int(2.0), 2)
 
 
 class TestExportFromXlsx(unittest.TestCase):

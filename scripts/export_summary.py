@@ -157,6 +157,31 @@ def _public_leaderboard(
     return _movement(ranked, previous)
 
 
+def _cell_number(value: object) -> float | None:
+    """Parse a cached spreadsheet cell value, ignoring Excel error strings."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        text = value.strip()
+        if not text or text.startswith("#"):
+            return None
+        try:
+            return float(text)
+        except ValueError:
+            return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def _cell_int(value: object) -> int | None:
+    """Parse a cached spreadsheet cell as an integer rank."""
+    number = _cell_number(value)
+    if number is None:
+        return None
+    return int(round(number))
+
+
 def _read_user_points(
     wb_data: openpyxl.Workbook,
     wb_formulas: openpyxl.Workbook,
@@ -164,16 +189,16 @@ def _read_user_points(
     row: int,
 ) -> float:
     """Read cached Summary points, falling back to Calc when Summary F is empty."""
-    cached = ws_data[f"F{row}"].value
+    cached = _cell_number(ws_data[f"F{row}"].value)
     if cached is not None:
-        return round(float(cached), 2)
+        return round(cached, 2)
 
     formula = wb_formulas[SUMMARY][f"F{row}"].value
     if isinstance(formula, str) and formula.upper().startswith("=CALC!"):
         calc_ref = formula.split("!", 1)[1].strip()
-        calc_val = wb_data["Calc"][calc_ref].value
+        calc_val = _cell_number(wb_data["Calc"][calc_ref].value)
         if calc_val is not None:
-            return round(float(calc_val), 2)
+            return round(calc_val, 2)
     return 0.0
 
 
@@ -203,7 +228,11 @@ def assert_recalc_cached(xlsx_path: Path, *, games_played: int) -> None:
         name = ws[f"D{row}"].value
         if not name or name == "Name" or _is_test_user(str(name)):
             continue
-        if ws[f"F{row}"].value is None and _read_user_points(
+        raw = ws[f"F{row}"].value
+        if isinstance(raw, str) and raw.strip().startswith("#"):
+            missing.append(str(name))
+            continue
+        if _cell_number(raw) is None and _read_user_points(
             wb_data, wb_formulas, ws, row
         ) == 0.0:
             missing.append(str(name))
@@ -228,14 +257,14 @@ def _read_leaderboard(
         if not name or name == "Name":
             continue
         points = _read_user_points(wb_data, wb_formulas, ws_data, row)
-        rank = ws_data[f"G{row}"].value
+        rank = _cell_int(ws_data[f"G{row}"].value)
         champion = _read_champion(wb_data, ws_data, row)
         rows.append(
             {
                 "id": str(ws_data[f"C{row}"].value or ""),
                 "name": str(name),
                 "points": points,
-                "rank": int(rank) if rank is not None else None,
+                "rank": rank,
                 "champion": champion,
             }
         )

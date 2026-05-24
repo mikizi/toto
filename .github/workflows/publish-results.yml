@@ -67,7 +67,7 @@ jobs:
       - name: Smoke test LibreOffice recalc
         env:
           HOME: /tmp
-          SAL_USE_VCLPLUGIN: svp
+          SAL_USE_VCLPLUGIN: gen
         run: |
           cp "xlsx/Master WorldCup26.xlsx" /tmp/wc26-smoke.xlsx
           PYTHONPATH=. python scripts/libreoffice_recalc.py /tmp/wc26-smoke.xlsx
@@ -75,7 +75,7 @@ jobs:
       - name: Patch match score
         env:
           HOME: /tmp
-          SAL_USE_VCLPLUGIN: svp
+          SAL_USE_VCLPLUGIN: gen
         run: |
           PYTHONPATH=. python -u scripts/publish_match.py \
             "${{ steps.inputs.outputs.match_id }}" \
