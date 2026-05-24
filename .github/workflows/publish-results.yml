@@ -40,7 +40,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install LibreOffice
-        run: sudo apt-get update && sudo apt-get install -y libreoffice-calc libreoffice-core
+        run: sudo apt-get update && sudo apt-get install -y libreoffice-calc libreoffice-core-nogui dbus-x11 xvfb
 
       - name: Resolve inputs
         id: inputs
@@ -60,11 +60,20 @@ jobs:
           fi
           echo "Publishing match ${DISPATCH_MATCH:-${{ inputs.match_id }}} as ${DISPATCH_HOME:-${{ inputs.home_score }}}-${DISPATCH_AWAY:-${{ inputs.away_score }}}"
 
+      - name: Smoke test LibreOffice recalc
+        env:
+          HOME: /tmp
+          SAL_USE_VCLPLUGIN: svp
+        run: |
+          cp "xlsx/Master WorldCup26.xlsx" /tmp/wc26-smoke.xlsx
+          PYTHONPATH=. python scripts/libreoffice_recalc.py /tmp/wc26-smoke.xlsx
+
       - name: Patch match score
         env:
           HOME: /tmp
+          SAL_USE_VCLPLUGIN: svp
         run: |
-          PYTHONPATH=. python scripts/publish_match.py \
+          PYTHONPATH=. python -u scripts/publish_match.py \
             "${{ steps.inputs.outputs.match_id }}" \
             "${{ steps.inputs.outputs.home_score }}" \
             "${{ steps.inputs.outputs.away_score }}"

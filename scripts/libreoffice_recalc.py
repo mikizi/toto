@@ -31,20 +31,30 @@ def _run_soffice(source: Path, profile_dir: Path) -> subprocess.CompletedProcess
     profile_uri = profile_dir.resolve().as_uri()
     env = os.environ.copy()
     env.setdefault("HOME", str(Path(tempfile.gettempdir())))
+    env.setdefault("SAL_USE_VCLPLUGIN", "svp")
+    env.setdefault("SAL_DISABLE_OPENCL", "1")
+    env.setdefault("LANG", "C.UTF-8")
+
+    command = [
+        _soffice_binary(),
+        "--headless",
+        "--invisible",
+        "--norestore",
+        "--nologo",
+        "--nodefault",
+        "--nofirststartwizard",
+        f"-env:UserInstallation={profile_uri}",
+        "--convert-to",
+        "xlsx",
+        "--outdir",
+        str(source.parent),
+        str(source),
+    ]
+    xvfb = shutil.which("xvfb-run")
+    if xvfb:
+        command = [xvfb, "-a", *command]
     return subprocess.run(
-        [
-            _soffice_binary(),
-            "--headless",
-            "--invisible",
-            "--norestore",
-            "--nologo",
-            f"-env:UserInstallation={profile_uri}",
-            "--convert-to",
-            "xlsx",
-            "--outdir",
-            str(source.parent),
-            str(source),
-        ],
+        command,
         capture_output=True,
         text=True,
         timeout=600,
@@ -72,7 +82,10 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
             if result.returncode == 0 and "failed:" not in stderr.lower():
                 shutil.copy2(temp_path, xlsx_path)
                 return
-            last_error = stderr or stdout or f"exit {result.returncode}"
+            last_error = "\n".join(
+                part for part in [stderr.strip(), stdout.strip(), f"exit {result.returncode}"] if part
+            )
+            print(last_error, file=sys.stderr)
             if attempt < _MAX_ATTEMPTS:
                 time.sleep(1.5)
     finally:
