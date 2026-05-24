@@ -14,6 +14,28 @@ from pathlib import Path
 
 from scripts.paths import XLSX_PATH
 
+# Lazy import — avoid circular import at module load
+_assert_recalc_cached = None
+
+
+def _verify_recalc_cached(xlsx_path: Path) -> bool:
+    global _assert_recalc_cached
+    if _assert_recalc_cached is None:
+        from scripts.export_summary import assert_recalc_cached
+
+        _assert_recalc_cached = assert_recalc_cached
+
+    try:
+        from scripts.export_summary import count_played_matches
+
+        played = count_played_matches(xlsx_path)
+        if played == 0:
+            return True
+        _assert_recalc_cached(xlsx_path, games_played=played)
+        return True
+    except RuntimeError:
+        return False
+
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_XLSX = XLSX_PATH
 _MAX_ATTEMPTS = 3
@@ -81,7 +103,9 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
             stdout = result.stdout or ""
             if result.returncode == 0 and "failed:" not in stderr.lower():
                 shutil.copy2(temp_path, xlsx_path)
-                return
+                if _verify_recalc_cached(xlsx_path):
+                    return
+                last_error = "LibreOffice saved the file but formula results were not cached"
             last_error = "\n".join(
                 part for part in [stderr.strip(), stdout.strip(), f"exit {result.returncode}"] if part
             )

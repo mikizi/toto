@@ -1,6 +1,6 @@
 {
-  "version": "2026-05-24T213832Z",
-  "generatedAt": "2026-05-24T21:38:32.103925+00:00",
+  "version": "2026-05-24T214002Z",
+  "generatedAt": "2026-05-24T21:40:02.621285+00:00",
   "gamesPlayed": 1,
   "lastResult": {
     "matchId": 1,
@@ -41,7 +41,7 @@
       "points": 3.0,
       "rank": 4,
       "champion": "Uzbekistan",
-      "movement": "up"
+      "movement": "same"
     },
     {
       "id": "004",
@@ -49,7 +49,7 @@
       "points": 0.0,
       "rank": 5,
       "champion": "Senegal",
-      "movement": "down"
+      "movement": "same"
     },
     {
       "id": "005",
@@ -57,7 +57,7 @@
       "points": 0.0,
       "rank": 6,
       "champion": "Belgium",
-      "movement": "down"
+      "movement": "same"
     }
   ],
   "matches": [

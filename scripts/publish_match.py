@@ -8,7 +8,13 @@ import json
 import sys
 from pathlib import Path
 
-from scripts.export_summary import build_export, export, write_export
+from scripts.export_summary import (
+    assert_recalc_cached,
+    build_export,
+    count_played_matches,
+    export,
+    write_export,
+)
 from scripts.libreoffice_recalc import recalc
 from scripts.patch_match import patch_match
 from scripts.paths import LATEST_PATH, XLSX_PATH
@@ -26,6 +32,7 @@ def publish_match(
     """Apply result to xlsx and export public/data/latest.json."""
     teams, home, away = patch_match(match_id, home_score, away_score, xlsx_path)
     recalc(xlsx_path)
+    assert_recalc_cached(xlsx_path, games_played=count_played_matches(xlsx_path))
     if write:
         payload = export(xlsx_path)
     else:

@@ -157,22 +157,84 @@ def _public_leaderboard(
     return _movement(ranked, previous)
 
 
+def _read_user_points(
+    wb_data: openpyxl.Workbook,
+    wb_formulas: openpyxl.Workbook,
+    ws_data: openpyxl.worksheet.worksheet.Worksheet,
+    row: int,
+) -> float:
+    """Read cached Summary points, falling back to Calc when Summary F is empty."""
+    cached = ws_data[f"F{row}"].value
+    if cached is not None:
+        return round(float(cached), 2)
+
+    formula = wb_formulas[SUMMARY][f"F{row}"].value
+    if isinstance(formula, str) and formula.upper().startswith("=CALC!"):
+        calc_ref = formula.split("!", 1)[1].strip()
+        calc_val = wb_data["Calc"][calc_ref].value
+        if calc_val is not None:
+            return round(float(calc_val), 2)
+    return 0.0
+
+
+def count_played_matches(xlsx_path: Path) -> int:
+    """Count Summary rows with both home and away scores filled in."""
+    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    ws = wb[SUMMARY]
+    return sum(
+        1
+        for row in range(MATCH_ROW_START, MATCH_ROW_END)
+        if _is_match_row(ws, row)
+        and ws[f"L{row}"].value is not None
+        and ws[f"M{row}"].value is not None
+    )
+
+
+def assert_recalc_cached(xlsx_path: Path, *, games_played: int) -> None:
+    """Fail fast when LibreOffice did not cache formula results."""
+    if games_played <= 0:
+        return
+
+    wb_data = openpyxl.load_workbook(xlsx_path, data_only=True)
+    wb_formulas = openpyxl.load_workbook(xlsx_path, data_only=False)
+    ws = wb_data[SUMMARY]
+    missing: list[str] = []
+    for row in range(USER_ROW_START, USER_ROW_END):
+        name = ws[f"D{row}"].value
+        if not name or name == "Name" or _is_test_user(str(name)):
+            continue
+        if ws[f"F{row}"].value is None and _read_user_points(
+            wb_data, wb_formulas, ws, row
+        ) == 0.0:
+            missing.append(str(name))
+
+    if missing:
+        names = ", ".join(missing[:5])
+        extra = f" (+{len(missing) - 5} more)" if len(missing) > 5 else ""
+        raise RuntimeError(
+            f"Leaderboard points not cached after recalc ({names}{extra}). "
+            "LibreOffice did not refresh the workbook."
+        )
+
+
 def _read_leaderboard(
-    wb: openpyxl.Workbook, ws: openpyxl.worksheet.worksheet.Worksheet
+    wb_data: openpyxl.Workbook,
+    ws_data: openpyxl.worksheet.worksheet.Worksheet,
+    wb_formulas: openpyxl.Workbook,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for row in range(USER_ROW_START, USER_ROW_END):
-        name = ws[f"D{row}"].value
+        name = ws_data[f"D{row}"].value
         if not name or name == "Name":
             continue
-        points = ws[f"F{row}"].value
-        rank = ws[f"G{row}"].value
-        champion = _read_champion(wb, ws, row)
+        points = _read_user_points(wb_data, wb_formulas, ws_data, row)
+        rank = ws_data[f"G{row}"].value
+        champion = _read_champion(wb_data, ws_data, row)
         rows.append(
             {
-                "id": str(ws[f"C{row}"].value or ""),
+                "id": str(ws_data[f"C{row}"].value or ""),
                 "name": str(name),
-                "points": round(float(points), 2) if points is not None else 0.0,
+                "points": points,
                 "rank": int(rank) if rank is not None else None,
                 "champion": champion,
             }
@@ -222,11 +284,12 @@ def _last_result(matches: list[dict[str, Any]]) -> dict[str, Any] | None:
 
 def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dict[str, Any]:
     """Read recalculated xlsx and build export payload."""
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-    ws = wb[SUMMARY]
-    kickoffs = _read_match_kickoffs(wb)
+    wb_data = openpyxl.load_workbook(xlsx_path, data_only=True)
+    wb_formulas = openpyxl.load_workbook(xlsx_path, data_only=False)
+    ws = wb_data[SUMMARY]
+    kickoffs = _read_match_kickoffs(wb_data)
     matches = _read_matches(ws, kickoffs)
-    raw_leaderboard = _read_leaderboard(wb, ws)
+    raw_leaderboard = _read_leaderboard(wb_data, ws, wb_formulas)
     leaderboard = _public_leaderboard(raw_leaderboard, previous)
     version = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     played_count = sum(1 for m in matches if m["played"])
