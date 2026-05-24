@@ -9,6 +9,7 @@ from pathlib import Path
 import openpyxl
 
 from scripts.paths import BACKUP_PATH, XLSX_PATH
+from scripts.cleanup_calc import cleanup_calc
 
 SUMMARY = "Summary"
 KNOCKOUT_HEADERS = {"Quarterfinals", "Semi", "Final", "Winner", "Round of 16", "Round of 32"}
@@ -49,8 +50,10 @@ def reset_scores(xlsx_path: Path = XLSX_PATH, backup: bool = True) -> None:
 
     wb = openpyxl.load_workbook(xlsx_path)
     summary_cleared = _clear_summary(wb[SUMMARY])
+    sheet_users, test_rows = cleanup_calc(wb)
     wb.save(xlsx_path)
     print(f"Cleared {summary_cleared} Summary match scores (L/M)")
+    print(f"Calc cleanup: {sheet_users} sheet users, {test_rows} test rows zeroed")
     print("Predictions on user sheets were NOT touched (F/G are picks, not results).")
     print("Run: python scripts/libreoffice_recalc.py && python scripts/export_summary.py")
 
