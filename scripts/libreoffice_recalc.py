@@ -49,7 +49,16 @@ def _soffice_binary() -> str:
     raise RuntimeError("LibreOffice not found (install soffice or libreoffice)")
 
 
-def _run_soffice(source: Path, profile_dir: Path) -> subprocess.CompletedProcess[str]:
+def _conversion_succeeded(result: subprocess.CompletedProcess[str], output_path: Path) -> bool:
+    if result.returncode != 0 or not output_path.exists():
+        return False
+    combined = f"{result.stdout or ''}\n{result.stderr or ''}".lower()
+    return "error:" not in combined and "failed:" not in combined
+
+
+def _run_soffice(
+    source: Path, out_dir: Path, profile_dir: Path
+) -> subprocess.CompletedProcess[str]:
     profile_uri = profile_dir.resolve().as_uri()
     env = os.environ.copy()
     env.setdefault("HOME", str(Path(tempfile.gettempdir())))
@@ -69,7 +78,7 @@ def _run_soffice(source: Path, profile_dir: Path) -> subprocess.CompletedProcess
         "--convert-to",
         "xlsx",
         "--outdir",
-        str(source.parent),
+        str(out_dir),
         str(source),
     ]
     xvfb = shutil.which("xvfb-run")
@@ -91,29 +100,38 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
         raise FileNotFoundError(xlsx_path)
 
     temp_path = Path(tempfile.gettempdir()) / f"wc26_recalc_{uuid.uuid4().hex}.xlsx"
+    out_dir = Path(tempfile.gettempdir()) / f"lo_out_{uuid.uuid4().hex}"
     profile_dir = Path(tempfile.gettempdir()) / f"lo_profile_{uuid.uuid4().hex}"
     profile_dir.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(xlsx_path, temp_path)
 
     last_error = ""
     try:
         for attempt in range(1, _MAX_ATTEMPTS + 1):
-            result = _run_soffice(temp_path, profile_dir)
+            shutil.rmtree(out_dir, ignore_errors=True)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            result = _run_soffice(temp_path, out_dir, profile_dir)
+            converted = out_dir / temp_path.name
             stderr = result.stderr or ""
             stdout = result.stdout or ""
-            if result.returncode == 0 and "failed:" not in stderr.lower():
-                shutil.copy2(temp_path, xlsx_path)
+            if _conversion_succeeded(result, converted):
+                shutil.copy2(converted, xlsx_path)
                 if _verify_recalc_cached(xlsx_path):
                     return
                 last_error = "LibreOffice saved the file but formula results were not cached"
-            last_error = "\n".join(
-                part for part in [stderr.strip(), stdout.strip(), f"exit {result.returncode}"] if part
-            )
+            else:
+                last_error = "\n".join(
+                    part
+                    for part in [stderr.strip(), stdout.strip(), f"exit {result.returncode}"]
+                    if part
+                )
             print(last_error, file=sys.stderr)
             if attempt < _MAX_ATTEMPTS:
                 time.sleep(1.5)
     finally:
         temp_path.unlink(missing_ok=True)
+        shutil.rmtree(out_dir, ignore_errors=True)
         shutil.rmtree(profile_dir, ignore_errors=True)
 
     raise RuntimeError(f"LibreOffice recalc failed after {_MAX_ATTEMPTS} attempts: {last_error}")
