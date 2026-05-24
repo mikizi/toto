@@ -3,92 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0e14">
     <title>WC26 Admin</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
     <link rel="stylesheet" href="../css/styles.css">
-    <style>
-        .admin-page { max-width: 1100px; }
-        .hidden { display: none !important; }
-        .mode-box { font-size: 0.85rem; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 1rem; }
-        .mode-local { background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); color: #bbf7d0; }
-        .mode-prod { background: rgba(232, 185, 35, 0.1); border: 1px solid rgba(232, 185, 35, 0.3); color: #fde68a; }
-    </style>
 </head>
 <body>
-<div class="container my-4 loaded admin-page">
-    <div class="d-flex justify-content-between align-items-center mb-3 w-100 px-2">
-        <h4 class="mb-0">WC26 Admin</h4>
-        <div>
-            <a href="../index.html" class="btn btn-sm btn-outline-light mr-2">Scoreboard</a>
-            <button id="refreshBtn" type="button" class="btn btn-sm btn-outline-warning">Refresh</button>
-        </div>
-    </div>
-    <p id="statusMsg" class="text-muted small px-2"></p>
-
-    <div class="row w-100">
-        <div class="col-lg-7 mb-4">
-            <div class="card bg-dark text-white">
-                <div class="card-header">Publish result</div>
-                <div class="card-body">
-                    <div id="localModeBox" class="mode-box mode-local hidden">
-                        <strong>Local mode.</strong>
-                        Publish updates <code>xlsx</code> and <code>public/data/latest.json</code> on this machine.
-                        Use <code>make dev</code> so the admin API is running.
-                    </div>
-                    <div id="prodModeBox" class="mode-box mode-prod hidden">
-                        <strong>Production mode.</strong>
-                        Sends a private admin proxy request, then GitHub Actions updates <code>main</code>.
-                        <a class="text-warning" href="https://github.com/mikizi/toto/actions/workflows/publish-results.yml" target="_blank" rel="noopener">Open workflow</a>
-                    </div>
-                    <form id="publishForm">
-                        <div class="form-group">
-                            <label for="matchSelect">Match</label>
-                            <select id="matchSelect" class="form-control bg-secondary text-white" required></select>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group col-6">
-                                <label for="homeScore">Home score</label>
-                                <input id="homeScore" type="number" min="0" class="form-control" required>
-                            </div>
-                            <div class="form-group col-6">
-                                <label for="awayScore">Away score</label>
-                                <input id="awayScore" type="number" min="0" class="form-control" required>
-                            </div>
-                        </div>
-                        <div id="adminPasswordGroup" class="form-group">
-                            <label for="adminPassword">Admin password</label>
-                            <input id="adminPassword" type="password" class="form-control" autocomplete="current-password"
-                                   placeholder="Shared admin password">
-                        </div>
-                        <button id="publishBtn" type="submit" class="btn btn-warning">Publish</button>
-                        <p id="publishMsg" class="small mt-2 mb-0 text-info"></p>
-                    </form>
-                </div>
+<div id="loginScreen" class="admin-login hidden" aria-labelledby="loginTitle">
+    <div class="admin-login-card scoreboard-card">
+        <div class="hero-body admin-login-hero">
+            <div class="hero-body-inner">
+                <h1 id="loginTitle" class="admin-login-title">World Cup <span class="gold">2026</span> Admin</h1>
+                <p class="admin-login-tag">Sign in with the shared admin password</p>
             </div>
         </div>
-        <div class="col-lg-5 mb-4">
-            <div class="card bg-dark text-white mb-4">
-                <div class="card-header">Leaderboard</div>
-                <div class="card-body p-0">
-                    <table class="table table-dark table-sm mb-0">
-                        <thead><tr><th>#</th><th>Player</th><th>Pts</th></tr></thead>
-                        <tbody id="leaderboardBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card bg-dark text-white w-100">
-        <div class="card-header">All matches</div>
-        <div class="card-body p-0 table-responsive">
-            <table class="table table-dark table-sm mb-0">
-                <thead><tr><th>#</th><th>Teams</th><th>Score</th></tr></thead>
-                <tbody id="matchesBody"></tbody>
-            </table>
-        </div>
+        <form id="loginForm" class="admin-login-form">
+            <label class="admin-label" for="loginPassword">Password</label>
+            <input id="loginPassword" type="password" class="admin-input" autocomplete="current-password" required>
+            <p id="loginMsg" class="admin-msg" role="status" aria-live="polite"></p>
+            <button type="submit" class="btn-gold">Sign in</button>
+        </form>
     </div>
 </div>
+
+<div id="adminApp" class="app admin-app hidden">
+    <header class="admin-header">
+        <div>
+            <h1 class="page-title">World Cup <span class="gold">2026</span> Admin</h1>
+            <p id="statusMsg" class="admin-status" aria-live="polite"></p>
+        </div>
+        <div class="admin-header-actions">
+            <a href="../index.html" class="btn-refresh admin-nav-link">Scoreboard</a>
+            <button id="refreshBtn" type="button" class="btn-refresh" aria-label="Refresh data">
+                <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+                    <polyline points="21 3 21 9 15 9"/>
+                </svg>
+                Refresh
+            </button>
+            <button id="logoutBtn" type="button" class="btn-refresh hidden">Sign out</button>
+        </div>
+    </header>
+
+    <section class="scoreboard-card admin-publish-card">
+        <header class="top-bar">
+            <div class="last-updated">
+                <span class="update-label">Publish result</span>
+                <span class="status-dot" aria-hidden="true"></span>
+            </div>
+            <div class="top-bar-actions">
+                <span id="modeBadge" class="games-badge hidden"></span>
+            </div>
+        </header>
+
+        <div id="localModeBox" class="admin-mode-banner mode-local hidden">
+            <strong>Local mode.</strong>
+            Updates <code>xlsx</code> and <code>public/data/latest.json</code> on this machine. Run <code>make dev</code> for the admin API.
+        </div>
+        <div id="prodModeBox" class="admin-mode-banner mode-prod hidden">
+            <strong>Production.</strong>
+            Queues GitHub Actions to update <code>main</code>.
+            <a href="https://github.com/mikizi/toto/actions/workflows/publish-results.yml" target="_blank" rel="noopener">Workflow</a>
+        </div>
+
+        <form id="publishForm">
+            <div id="publishHero" class="hero-body" aria-live="polite">
+                <div class="hero-empty">Loading match…</div>
+            </div>
+            <div class="admin-publish-panel">
+                <div class="admin-field">
+                    <label class="admin-label" for="matchSelect">Match</label>
+                    <select id="matchSelect" class="admin-select" required></select>
+                </div>
+                <div class="admin-score-row">
+                    <div class="admin-field">
+                        <label class="admin-label" for="homeScore">Home</label>
+                        <input id="homeScore" type="number" min="0" class="admin-score-input" inputmode="numeric" required>
+                    </div>
+                    <span class="admin-score-sep" aria-hidden="true">—</span>
+                    <div class="admin-field">
+                        <label class="admin-label" for="awayScore">Away</label>
+                        <input id="awayScore" type="number" min="0" class="admin-score-input" inputmode="numeric" required>
+                    </div>
+                </div>
+                <p id="publishMsg" class="admin-msg" role="status" aria-live="polite"></p>
+                <button id="publishBtn" type="submit" class="btn-gold">Publish</button>
+            </div>
+        </form>
+    </section>
+
+    <div class="admin-grid">
+        <section class="admin-panel" aria-label="Leaderboard preview">
+            <h2 class="admin-panel-title">Leaderboard</h2>
+            <div id="leaderboardList" class="admin-lb-list"></div>
+        </section>
+        <section class="admin-panel admin-panel-wide" aria-label="All matches">
+            <h2 class="admin-panel-title">All matches</h2>
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr><th>#</th><th>Match</th><th>Score</th></tr>
+                    </thead>
+                    <tbody id="matchesBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="../js/flags.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

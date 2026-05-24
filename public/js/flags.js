@@ -52,9 +52,37 @@ const TEAM_FLAGS = {
   Uzbekistan: "uz",
 };
 
+/** ASCII / alternate spellings from spreadsheets */
+/** @type {Readonly<Record<string, string>>} */
+const TEAM_ALIASES = {
+  Curacao: "Curaçao",
+};
+
+/** @param {string} teamName */
+function normalizeTeamName(teamName) {
+  const trimmed = teamName.trim();
+  if (TEAM_FLAGS[trimmed]) {
+    return trimmed;
+  }
+  if (TEAM_ALIASES[trimmed]) {
+    return TEAM_ALIASES[trimmed];
+  }
+  const aliasKey = Object.keys(TEAM_ALIASES).find(
+    (key) => key.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (aliasKey) {
+    return TEAM_ALIASES[aliasKey];
+  }
+  const flagKey = Object.keys(TEAM_FLAGS).find(
+    (key) => key.toLowerCase() === trimmed.toLowerCase()
+  );
+  return flagKey ?? trimmed;
+}
+
 /** @param {string} teamName */
 function getFlagCode(teamName) {
-  return TEAM_FLAGS[teamName] ?? "";
+  const normalized = normalizeTeamName(teamName);
+  return TEAM_FLAGS[normalized] ?? "";
 }
 
 /**

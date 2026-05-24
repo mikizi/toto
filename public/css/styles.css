@@ -248,9 +248,9 @@ body {
     align-items: center;
     justify-content: center;
     width: 3.25rem;
-    height: 4.5rem;
+    height: 3.25rem;
     padding: 0.3rem;
-    border-radius: 999px;
+    border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(0, 0, 0, 0.45) 100%);
     box-shadow:
@@ -261,8 +261,8 @@ body {
 
 .hero-flag-frame .team-flag--hero {
     width: 2.35rem;
-    height: 3.5rem;
-    border-radius: 999px;
+    height: 2.35rem;
+    border-radius: 50%;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
@@ -888,17 +888,20 @@ body {
 
 .team-flag {
     display: inline-block;
+    aspect-ratio: 1;
     border-radius: 50%;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
     overflow: hidden;
-    background-size: cover;
-    background-position: center;
+    /* Keep flag-icons contain/center — cover crops Saltire & similar flags into an “X” */
+    background-size: contain !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .team-flag--hero {
     width: 2.35rem;
-    height: 3.5rem;
+    height: 2.35rem;
 }
 
 .team-flag--sm {
@@ -964,12 +967,12 @@ body {
 
     .hero-flag-frame {
         width: 2.75rem;
-        height: 3.75rem;
+        height: 2.75rem;
     }
 
     .hero-flag-frame .team-flag--hero {
         width: 2rem;
-        height: 3rem;
+        height: 2rem;
     }
 
     .trend-badge {
@@ -980,5 +983,367 @@ body {
     .trend-badge-same::after {
         width: 3.5px;
         height: 3.5px;
+    }
+}
+
+/* ── Admin ── */
+
+.admin-app {
+    --max-width: 960px;
+    padding-top: 1.5rem;
+}
+
+.admin-login {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+}
+
+.admin-login-card {
+    width: 100%;
+    max-width: 420px;
+}
+
+.admin-login-hero {
+    padding: 2rem 1.5rem 1.25rem;
+}
+
+.admin-login-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.admin-login-tag {
+    margin: 0;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.admin-login-form {
+    padding: 1.25rem 1.5rem 1.5rem;
+    border-top: 1px solid rgba(232, 185, 35, 0.12);
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.admin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.admin-header .page-title {
+    margin-bottom: 0.35rem;
+}
+
+.admin-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.admin-nav-link {
+    text-decoration: none;
+}
+
+.admin-status {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+}
+
+.admin-mode-banner {
+    margin: 0;
+    padding: 0.65rem 1.25rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-mode-banner.mode-local {
+    background: rgba(34, 197, 94, 0.1);
+    color: #bbf7d0;
+}
+
+.admin-mode-banner.mode-prod {
+    background: rgba(232, 185, 35, 0.08);
+    color: #fde68a;
+}
+
+.admin-mode-banner a {
+    color: var(--gold);
+}
+
+.admin-mode-banner code {
+    font-size: 0.85em;
+}
+
+.admin-publish-card .hero-body {
+    padding-bottom: 1.25rem;
+}
+
+.admin-publish-panel {
+    padding: 1rem 1.25rem 1.35rem;
+    border-top: 1px solid rgba(232, 185, 35, 0.12);
+    background: rgba(0, 0, 0, 0.22);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.admin-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.admin-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.admin-select,
+.admin-input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.admin-select:focus,
+.admin-input:focus,
+.admin-score-input:focus {
+    outline: none;
+    border-color: rgba(232, 185, 35, 0.45);
+    box-shadow: 0 0 0 2px rgba(232, 185, 35, 0.12);
+}
+
+.admin-score-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 0.75rem;
+}
+
+.admin-score-sep {
+    padding-bottom: 0.65rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.admin-score-input {
+    width: 100%;
+    padding: 0.65rem;
+    font-family: inherit;
+    font-size: 1.75rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid rgba(232, 185, 35, 0.2);
+    border-radius: 8px;
+}
+
+.admin-msg {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    min-height: 1.2em;
+}
+
+.admin-msg.is-error {
+    color: #fca5a5;
+}
+
+.admin-msg.is-success {
+    color: #86efac;
+}
+
+.btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #0a0e14;
+    background: linear-gradient(180deg, #f0cc4a 0%, var(--gold) 55%, #c99a12 100%);
+    border: 1px solid rgba(232, 185, 35, 0.6);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: filter 0.2s, transform 0.15s;
+}
+
+.btn-gold:hover {
+    filter: brightness(1.06);
+}
+
+.btn-gold:active {
+    transform: scale(0.99);
+}
+
+.btn-gold:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.admin-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.admin-panel-title {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.admin-lb-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-lb-row {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+}
+
+.admin-lb-row:last-child {
+    border-bottom: none;
+}
+
+.admin-lb-rank {
+    font-weight: 700;
+    color: var(--gold);
+    text-align: center;
+}
+
+.admin-lb-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-lb-pts {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.admin-table-wrap {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.admin-table th {
+    padding: 0.5rem 1rem;
+    text-align: left;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-table td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-table tr.is-unplayed td {
+    color: var(--text-muted);
+}
+
+.admin-match-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+}
+
+.admin-match-side {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.admin-match-side--away {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.admin-match-side .team-flag--sm {
+    flex-shrink: 0;
+}
+
+.admin-match-vs {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+@media (max-width: 720px) {
+    .admin-grid {
+        grid-template-columns: 1fr;
     }
 }
