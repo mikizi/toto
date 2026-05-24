@@ -194,6 +194,9 @@ async function publishViaProxy(matchId, homeScore, awayScore, msg) {
       }),
     });
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Wrong admin password.");
+      }
       const text = await response.text();
       throw new Error(`${response.status}: ${text}`);
     }
@@ -203,7 +206,13 @@ async function publishViaProxy(matchId, homeScore, awayScore, msg) {
   } catch (err) {
     console.error(err);
     if (msg) {
-      msg.textContent = `Failed: ${err instanceof Error ? err.message : "unknown error"}`;
+      const message = err instanceof Error ? err.message : "unknown error";
+      if (message === "Failed to fetch") {
+        msg.textContent =
+          "Could not reach the admin proxy. Wait 2–3 min after deploy, refresh, and try again.";
+      } else {
+        msg.textContent = `Failed: ${message}`;
+      }
     }
   }
 }
