@@ -90,14 +90,100 @@ def _system_python_with_uno() -> str | None:
     return None
 
 
-def _ensure_uno_python() -> None:
-    """Re-exec with system python when the active interpreter lacks python3-uno."""
-    if _uno_available():
-        return
+def _recalc_via_system_uno(source: Path, profile_dir: Path) -> tuple[bool, str]:
+    """Run only the UNO recalc worker under system python, keeping openpyxl in this process."""
     system_python = _system_python_with_uno()
     if system_python is None:
-        return
-    os.execve(system_python, [system_python, *sys.argv], os.environ)
+        return False, "python3-uno is not available"
+
+    worker = r"""
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import uno
+from com.sun.star.beans import PropertyValue
+
+
+def wrap_xvfb(command):
+    xvfb = "/usr/bin/xvfb-run"
+    if Path(xvfb).is_file():
+        return [xvfb, "-a", *command]
+    return command
+
+
+source = Path(sys.argv[1]).resolve()
+profile_dir = Path(sys.argv[2]).resolve()
+port = int(sys.argv[3])
+soffice = "/usr/bin/soffice" if Path("/usr/bin/soffice").is_file() else "soffice"
+env = os.environ.copy()
+env["UserInstallation"] = profile_dir.as_uri()
+command = wrap_xvfb(
+    [
+        soffice,
+        "--headless",
+        "--invisible",
+        "--norestore",
+        "--nologo",
+        "--nodefault",
+        f"-env:UserInstallation={profile_dir.as_uri()}",
+        f"--accept=socket,host=127.0.0.1,port={port};urp;StarOffice.ComponentContext",
+    ]
+)
+proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+try:
+    time.sleep(3)
+    local_context = uno.getComponentContext()
+    resolver = local_context.ServiceManager.createInstanceWithContext(
+        "com.sun.star.bridge.UnoUrlResolver", local_context
+    )
+    ctx = None
+    for _ in range(40):
+        try:
+            ctx = resolver.resolve(
+                f"uno:socket,host=127.0.0.1,port={port};urp;StarOffice.ComponentContext"
+            )
+            break
+        except Exception:
+            time.sleep(0.25)
+    if ctx is None:
+        raise RuntimeError("UNO connect timeout")
+
+    desktop = ctx.ServiceManager.createInstanceWithContext("com.sun.star.frame.Desktop", ctx)
+    doc = desktop.loadComponentFromURL(
+        uno.systemPathToFileUrl(str(source)), "_blank", 0, (PropertyValue("Hidden", 0, True, 0),)
+    )
+    if doc is None:
+        raise RuntimeError("loadComponentFromURL returned None")
+    try:
+        doc.calculateAll()
+        doc.store()
+    finally:
+        doc.close(True)
+finally:
+    proc.terminate()
+    try:
+        proc.wait(timeout=15)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+"""
+    port = 3000 + (os.getpid() % 60000)
+    result = subprocess.run(
+        [system_python, "-c", worker, str(source), str(profile_dir), str(port)],
+        capture_output=True,
+        text=True,
+        timeout=600,
+        env=_lo_env(profile_dir),
+    )
+    if result.returncode == 0:
+        return True, ""
+    return False, "\n".join(
+        part
+        for part in [result.stderr.strip(), result.stdout.strip(), f"exit {result.returncode}"]
+        if part
+    )
 
 
 def _wrap_xvfb(command: list[str]) -> list[str]:
@@ -130,6 +216,9 @@ def _start_soffice_listener(profile_dir: Path, port: int, env: dict[str, str]) -
 
 def _recalc_via_uno(source: Path, profile_dir: Path) -> tuple[bool, str]:
     """Force a full formula recalc via LibreOffice UNO (works reliably on Ubuntu CI)."""
+    if not _uno_available():
+        return _recalc_via_system_uno(source, profile_dir)
+
     try:
         import uno
         from com.sun.star.beans import PropertyValue
@@ -276,7 +365,6 @@ def recalc(xlsx_path: Path = DEFAULT_XLSX) -> None:
 
 
 def main() -> None:
-    _ensure_uno_python()
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_XLSX
     recalc(path)
     print(f"Recalculated → {path}")
