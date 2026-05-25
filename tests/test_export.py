@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.export_summary import _cell_int, _cell_number, build_export, write_export
+from scripts.export_summary import _cell_int, _cell_number, _cell_text, build_export, write_export
 from scripts.patch_match import find_match_row, patch_match
 from scripts.validate_export import validate
 
@@ -29,6 +29,11 @@ class TestCellParsing(unittest.TestCase):
     def test_cell_int_ignores_excel_errors(self) -> None:
         self.assertIsNone(_cell_int("#N/A"))
         self.assertEqual(_cell_int(2.0), 2)
+
+    def test_cell_text_ignores_excel_errors(self) -> None:
+        self.assertIsNone(_cell_text("#N/A"))
+        self.assertIsNone(_cell_text("#REF!"))
+        self.assertEqual(_cell_text("France"), "France")
 
 
 class TestExportFromXlsx(unittest.TestCase):
@@ -125,12 +130,14 @@ class TestPatchMatch(unittest.TestCase):
             wb = openpyxl.load_workbook(path)
             ws = wb["Summary"]
             for row in range(79, 85):
+                ws[f"E{row}"].value = "#N/A"
                 ws[f"F{row}"].value = "#N/A"
                 ws[f"G{row}"].value = "#N/A"
             wb.save(path)
 
             payload = build_export(path)
             by_name = {entry["name"]: entry for entry in payload["leaderboard"]}
+            self.assertEqual(by_name["MikiZiso3"]["champion"], "France")
             self.assertEqual(by_name["MikiZiso3"]["points"], 5.0)
             self.assertEqual(by_name["Nir2"]["points"], 0.0)
             self.assertEqual(by_name["Nir3"]["points"], 3.0)

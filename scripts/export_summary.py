@@ -80,15 +80,25 @@ def _user_sheet_name(uid: object, name: str) -> str:
     return f"{uid_text}_{name}"
 
 
+def _cell_text(value: object) -> str | None:
+    """Parse a cached spreadsheet cell as text, ignoring Excel error strings."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.startswith("#"):
+        return None
+    return text
+
+
 def _read_champion(
     wb: openpyxl.Workbook,
     ws: openpyxl.worksheet.worksheet.Worksheet,
     row: int,
 ) -> str | None:
     """Read champion pick from Summary E, falling back to user sheet CM47."""
-    champion = ws[f"E{row}"].value
+    champion = _cell_text(ws[f"E{row}"].value)
     if champion:
-        return str(champion)
+        return champion
 
     uid = ws[f"C{row}"].value
     name = ws[f"D{row}"].value
@@ -99,8 +109,7 @@ def _read_champion(
     if sheet_name not in wb.sheetnames:
         return None
 
-    pick = wb[sheet_name][CHAMPION_CELL].value
-    return str(pick) if pick else None
+    return _cell_text(wb[sheet_name][CHAMPION_CELL].value)
 
 
 def _split_teams(teams: str) -> tuple[str, str]:
