@@ -71,7 +71,7 @@ jobs:
               if raw:
                   open_ids = [int(v) for v in raw.split(",") if v.strip()]
 
-          suppress = os.environ.get("SUPPRESS")
+          suppress = os.environ.get("SUPPRESS", "").strip()
           suppress_auto = None
           if suppress != "":
               suppress_auto = suppress.lower() in ("1", "true", "yes")
