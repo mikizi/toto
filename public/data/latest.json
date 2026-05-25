@@ -1,55 +1,48 @@
 {
-  "version": "2026-05-25T185506Z",
-  "generatedAt": "2026-05-25T18:55:06.301829+00:00",
-  "gamesPlayed": 3,
-  "lastResult": {
-    "matchId": 3,
-    "teams": "Canada-Bosnia and Herzegovina",
-    "home": "Canada",
-    "away": "Bosnia and Herzegovina",
-    "homeScore": 0,
-    "awayScore": 1
-  },
+  "version": "2026-05-25T220011Z",
+  "generatedAt": "2026-05-25T22:00:11.749808+00:00",
+  "gamesPlayed": 0,
+  "lastResult": null,
   "leaderboard": [
-    {
-      "id": "005",
-      "name": "Nir2",
-      "points": 13.0,
-      "rank": 1,
-      "champion": "Belgium",
-      "movement": "same"
-    },
-    {
-      "id": "004",
-      "name": "Nir1",
-      "points": 10.0,
-      "rank": 2,
-      "champion": "Senegal",
-      "movement": "same"
-    },
     {
       "id": "003",
       "name": "Miki_Ziso",
-      "points": 5.0,
-      "rank": 3,
+      "points": 0.0,
+      "rank": 1,
       "champion": "Brazil",
-      "movement": "same"
+      "movement": "up"
     },
     {
       "id": "002",
       "name": "MikiZiso2",
-      "points": 5.0,
-      "rank": 4,
+      "points": 0.0,
+      "rank": 2,
       "champion": "Germany",
-      "movement": "same"
+      "movement": "up"
     },
     {
       "id": "001",
       "name": "MikiZiso3",
       "points": 0.0,
-      "rank": 5,
+      "rank": 3,
       "champion": "France",
-      "movement": "same"
+      "movement": "up"
+    },
+    {
+      "id": "004",
+      "name": "Nir1",
+      "points": 0.0,
+      "rank": 4,
+      "champion": "Senegal",
+      "movement": "down"
+    },
+    {
+      "id": "005",
+      "name": "Nir2",
+      "points": 0.0,
+      "rank": 5,
+      "champion": "Belgium",
+      "movement": "down"
     },
     {
       "id": "006",
@@ -66,9 +59,9 @@
       "teams": "Mexico-South Africa",
       "home": "Mexico",
       "away": "South Africa",
-      "homeScore": 1,
-      "awayScore": 2,
-      "played": true,
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
       "kickoffAt": "2026-06-11T19:00:00+00:00"
     },
     {
@@ -76,9 +69,9 @@
       "teams": "Korea Republic-Czech Republic",
       "home": "Korea Republic",
       "away": "Czech Republic",
-      "homeScore": 0,
-      "awayScore": 1,
-      "played": true,
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
       "kickoffAt": "2026-06-12T02:00:00+00:00"
     },
     {
@@ -86,9 +79,9 @@
       "teams": "Canada-Bosnia and Herzegovina",
       "home": "Canada",
       "away": "Bosnia and Herzegovina",
-      "homeScore": 0,
-      "awayScore": 1,
-      "played": true,
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
       "kickoffAt": "2026-06-12T19:00:00+00:00"
     },
     {
@@ -781,5 +774,19 @@
       "played": false,
       "kickoffAt": "2026-06-27T23:30:00+00:00"
     }
-  ]
+  ],
+  "broadcast": {
+    "mode": "auto",
+    "openMatchIds": [],
+    "suppressAuto": false
+  },
+  "registration": {
+    "users": [],
+    "count": 0,
+    "entryFee": 100,
+    "goalUsers": 100,
+    "goalPrize": 10000,
+    "prizePool": 0,
+    "closesAt": "2026-06-11T18:00:00+00:00"
+  }
 }

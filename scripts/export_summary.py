@@ -12,7 +12,9 @@ from typing import Any
 
 import openpyxl
 
+from scripts.live_state import DEFAULT_BROADCAST, normalize_broadcast
 from scripts.paths import DATA_DIR, LATEST_PATH, VERSION_PATH, VERSIONS_DIR, XLSX_PATH
+from scripts.registration import normalize_registration
 
 DEFAULT_XLSX = XLSX_PATH
 
@@ -409,6 +411,19 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
     leaderboard = _public_leaderboard(raw_leaderboard, previous)
     version = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     played_count = sum(1 for m in matches if m["played"])
+    broadcast = normalize_broadcast(
+        previous.get("broadcast") if previous else DEFAULT_BROADCAST
+    )
+    played_ids = {m["id"] for m in matches if m["played"]}
+    broadcast["openMatchIds"] = [
+        mid for mid in broadcast["openMatchIds"] if mid not in played_ids
+    ]
+    previous_registration = (previous or {}).get("registration")
+    if not isinstance(previous_registration, dict):
+        previous_registration = {
+            "users": [entry["name"] for entry in leaderboard if entry.get("name")]
+        }
+    registration = normalize_registration(previous_registration, matches)
     return {
         "version": version,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -416,6 +431,8 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
         "lastResult": _last_result(matches),
         "leaderboard": leaderboard,
         "matches": matches,
+        "broadcast": broadcast,
+        "registration": registration,
     }
 
 

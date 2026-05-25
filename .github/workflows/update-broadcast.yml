@@ -1,0 +1,99 @@
+name: Update live broadcast
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: set | suppress_auto | resume_auto | clear_manual
+        required: true
+        default: set
+      open_match_ids:
+        description: Comma-separated match ids (max 2)
+        required: false
+        default: ""
+  repository_dispatch:
+    types: [update-broadcast]
+
+concurrency:
+  group: update-broadcast
+  cancel-in-progress: false
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve inputs
+        id: inputs
+        env:
+          DISPATCH_ACTION: ${{ github.event.client_payload.action }}
+          DISPATCH_OPEN: ${{ toJson(github.event.client_payload.openMatchIds) }}
+          DISPATCH_SUPPRESS: ${{ github.event.client_payload.suppressAuto }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "action=${{ inputs.action }}" >> "$GITHUB_OUTPUT"
+            echo "open_match_ids=${{ inputs.open_match_ids }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "action=${DISPATCH_ACTION:-set}" >> "$GITHUB_OUTPUT"
+            echo "open_match_ids=" >> "$GITHUB_OUTPUT"
+            echo "open_json=${DISPATCH_OPEN}" >> "$GITHUB_OUTPUT"
+            echo "suppress=${DISPATCH_SUPPRESS}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update broadcast in latest.json
+        env:
+          ACTION: ${{ steps.inputs.outputs.action }}
+          OPEN_IDS: ${{ steps.inputs.outputs.open_match_ids }}
+          OPEN_JSON: ${{ steps.inputs.outputs.open_json }}
+          SUPPRESS: ${{ steps.inputs.outputs.suppress }}
+        run: |
+          PYTHONPATH=. python3 <<'PY'
+          import json
+          import os
+          from scripts.update_broadcast import update_broadcast
+
+          action = os.environ.get("ACTION", "set").strip().lower()
+          open_json = os.environ.get("OPEN_JSON", "").strip()
+          open_ids = None
+          if open_json:
+              open_ids = [int(v) for v in json.loads(open_json)]
+          else:
+              raw = os.environ.get("OPEN_IDS", "").strip()
+              if raw:
+                  open_ids = [int(v) for v in raw.split(",") if v.strip()]
+
+          suppress = os.environ.get("SUPPRESS")
+          suppress_auto = None
+          if suppress != "":
+              suppress_auto = suppress.lower() in ("1", "true", "yes")
+
+          if action == "resume_auto":
+              update_broadcast(open_match_ids=[], suppress_auto=False, mode="auto", clear_manual=True)
+          elif action == "suppress_auto":
+              update_broadcast(suppress_auto=True)
+          elif action == "clear_manual":
+              update_broadcast(clear_manual=True)
+          else:
+              update_broadcast(open_match_ids=open_ids, suppress_auto=suppress_auto)
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Broadcast: ${{ steps.inputs.outputs.action }}"
+          git push

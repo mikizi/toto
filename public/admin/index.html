@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0a0e14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>WC26 Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css?v=5">
 </head>
-<body>
+<body class="admin-body">
 <div id="loginScreen" class="admin-login hidden" aria-labelledby="loginTitle">
     <div class="admin-login-card scoreboard-card">
         <div class="hero-body admin-login-hero">
@@ -31,90 +32,153 @@
 
 <div id="adminApp" class="app admin-app hidden">
     <header class="admin-header">
-        <div>
-            <h1 class="page-title">World Cup <span class="gold">2026</span> Admin</h1>
+        <div class="admin-header-brand">
+            <h1 class="page-title">WC26 <span class="gold">Admin</span></h1>
             <p id="statusMsg" class="admin-status" aria-live="polite"></p>
         </div>
         <div class="admin-header-actions">
-            <a href="../index.html" class="btn-refresh admin-nav-link">Scoreboard</a>
-            <button id="refreshBtn" type="button" class="btn-refresh" aria-label="Refresh data">
+            <a href="../index.html" class="btn-refresh admin-nav-link" title="Open scoreboard">Board</a>
+            <button id="downloadXlsxBtn" type="button" class="btn-refresh" aria-label="Download Excel workbook" title="Download xlsx">
+                <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M12 3v12"/>
+                    <path d="m7 10 5 5 5-5"/>
+                    <path d="M5 21h14"/>
+                </svg>
+                <span class="admin-header-btn-label">XLSX</span>
+            </button>
+            <button id="refreshBtn" type="button" class="btn-refresh" aria-label="Refresh data" title="Refresh">
                 <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
                     <polyline points="21 3 21 9 15 9"/>
                 </svg>
-                Refresh
+                <span class="admin-header-btn-label">Refresh</span>
             </button>
-            <button id="logoutBtn" type="button" class="btn-refresh hidden">Sign out</button>
+            <button id="logoutBtn" type="button" class="btn-refresh hidden">Out</button>
         </div>
     </header>
 
-    <section class="scoreboard-card admin-publish-card">
-        <header class="top-bar">
-            <div class="last-updated">
-                <span class="update-label">Publish result</span>
-                <span class="status-dot" aria-hidden="true"></span>
-            </div>
-            <div class="top-bar-actions">
-                <span id="modeBadge" class="games-badge hidden"></span>
-            </div>
-        </header>
+    <div id="adminDashboard" class="admin-dashboard">
+        <nav class="admin-tabs" role="tablist" aria-label="Admin sections">
+            <button type="button" class="admin-tab is-active" role="tab" id="tabBtnMatch" aria-selected="true" aria-controls="tabPanelMatch" data-tab="match">Match</button>
+            <button type="button" class="admin-tab" role="tab" id="tabBtnPlayers" aria-selected="false" aria-controls="tabPanelPlayers" data-tab="players">Players</button>
+            <button type="button" class="admin-tab" role="tab" id="tabBtnStandings" aria-selected="false" aria-controls="tabPanelStandings" data-tab="standings">Standings</button>
+        </nav>
 
-        <div id="localModeBox" class="admin-mode-banner mode-local hidden">
-            <strong>Local mode.</strong>
-            Updates <code>xlsx</code> and <code>public/data/latest.json</code> on this machine. Run <code>make dev</code> for the admin API.
-        </div>
-        <div id="prodModeBox" class="admin-mode-banner mode-prod hidden">
-            <strong>Production.</strong>
-            Queues GitHub Actions to update <code>main</code>.
-            <a href="https://github.com/mikizi/toto/actions/workflows/publish-results.yml" target="_blank" rel="noopener">Workflow</a>
-        </div>
-
-        <form id="publishForm">
-            <div id="publishHero" class="hero-body" aria-live="polite">
-                <div class="hero-empty">Loading match…</div>
-            </div>
-            <div class="admin-publish-panel">
-                <div class="admin-field">
-                    <label class="admin-label" for="matchSelect">Match</label>
-                    <select id="matchSelect" class="admin-select" required></select>
+        <div class="admin-tab-panels">
+            <section id="tabPanelMatch" class="admin-tab-panel is-active" role="tabpanel" aria-labelledby="tabBtnMatch">
+                <div class="admin-publish-sticky">
+                    <section class="admin-publish-card">
+                        <form id="publishForm" class="admin-publish-form">
+                            <div class="admin-publish-bar">
+                                <div class="admin-publish-meta">
+                                    <div class="admin-publish-bar-label">
+                                        <span class="admin-publish-label">Publish</span>
+                                        <span id="modeBadge" class="admin-mode-chip hidden"></span>
+                                        <span id="publishNum" class="admin-publish-num" aria-live="polite">—</span>
+                                    </div>
+                                    <button id="modeBannerToggle" type="button" class="admin-mode-toggle hidden" aria-expanded="false" aria-controls="modeBannerDetail">Info</button>
+                                </div>
+                                <div id="publishRow" class="admin-publish-match is-empty">
+                                    <div id="publishHome" class="admin-publish-team admin-publish-team--home"></div>
+                                    <div class="admin-publish-scores">
+                                        <label class="admin-sr-only" for="homeScore">Home score</label>
+                                        <input id="homeScore" type="number" min="0" max="99" class="admin-score-input admin-score-input--inline" inputmode="numeric" placeholder="0" required>
+                                        <span class="admin-score-sep" aria-hidden="true">–</span>
+                                        <label class="admin-sr-only" for="awayScore">Away score</label>
+                                        <input id="awayScore" type="number" min="0" max="99" class="admin-score-input admin-score-input--inline" inputmode="numeric" placeholder="0" required>
+                                    </div>
+                                    <div id="publishAway" class="admin-publish-team admin-publish-team--away"></div>
+                                </div>
+                                <button id="publishBtn" type="submit" class="btn-gold btn-gold--publish">Publish</button>
+                            </div>
+                            <div id="modeBannerDetail" class="admin-mode-detail hidden">
+                                <div id="localModeBox" class="admin-mode-banner mode-local hidden">
+                                    Updates <code>xlsx</code> and <code>public/data/latest.json</code> on this machine. Run <code>make dev</code> for the admin API.
+                                </div>
+                                <div id="prodModeBox" class="admin-mode-banner mode-prod hidden">
+                                    Queues GitHub Actions to update <code>main</code>.
+                                    <a href="https://github.com/mikizi/toto/actions/workflows/publish-results.yml" target="_blank" rel="noopener">Workflow</a>
+                                </div>
+                            </div>
+                            <p id="publishEmpty" class="admin-publish-hint">Pick a match below</p>
+                            <p id="publishMsg" class="admin-msg" role="status" aria-live="polite"></p>
+                        </form>
+                    </section>
                 </div>
-                <div class="admin-score-row">
-                    <div class="admin-field">
-                        <label class="admin-label" for="homeScore">Home</label>
-                        <input id="homeScore" type="number" min="0" class="admin-score-input" inputmode="numeric" required>
+
+                <section class="admin-panel admin-matches-panel" aria-label="All matches">
+                    <div class="admin-panel-head">
+                        <h2 class="admin-panel-title">Matches</h2>
+                        <p class="admin-panel-sub">Tap to publish · ▶ to go live</p>
                     </div>
-                    <span class="admin-score-sep" aria-hidden="true">—</span>
-                    <div class="admin-field">
-                        <label class="admin-label" for="awayScore">Away</label>
-                        <input id="awayScore" type="number" min="0" class="admin-score-input" inputmode="numeric" required>
+                    <p id="liveMsg" class="admin-msg admin-panel-msg" role="status" aria-live="polite"></p>
+                    <div id="matchesList" class="admin-match-list" role="list"></div>
+                </section>
+            </section>
+
+            <section id="tabPanelPlayers" class="admin-tab-panel hidden" role="tabpanel" aria-labelledby="tabBtnPlayers" hidden>
+                <div id="registrationSection" class="admin-panel admin-registration hidden" aria-label="Registration">
+                    <div class="admin-panel-head">
+                        <h2 class="admin-panel-title">Registration</h2>
+                        <p class="admin-panel-sub admin-reg-intro">100₪/player · goal 10,000₪ · closes 1h before kickoff</p>
+                    </div>
+                    <div class="admin-reg-stats">
+                        <div class="admin-reg-stat">
+                            <div class="admin-reg-stat-head">
+                                <span id="regPlayerCount" class="admin-reg-value">0</span>
+                                <span id="regPlayerGoal" class="admin-reg-goal">/ 100</span>
+                            </div>
+                            <div class="admin-reg-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="regPlayerBarWrap">
+                                <div id="regPlayerBar" class="admin-reg-bar-fill"></div>
+                            </div>
+                        </div>
+                        <div class="admin-reg-stat">
+                            <div class="admin-reg-stat-head">
+                                <span id="regPrizePool" class="admin-reg-value">0₪</span>
+                                <span id="regPrizeGoal" class="admin-reg-goal">/ 10k₪</span>
+                            </div>
+                            <div class="admin-reg-bar admin-reg-bar--prize" role="progressbar" aria-valuemin="0" aria-valuemax="10000" aria-valuenow="0" id="regPrizeBarWrap">
+                                <div id="regPrizeBar" class="admin-reg-bar-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="regDeadline" class="admin-reg-deadline"></p>
+                    <div class="admin-reg-editor">
+                        <div class="admin-reg-editor-head">
+                            <div>
+                                <label class="admin-label" for="regPlayerNameInput">Player List</label>
+                                <p id="regUsersHelp" class="admin-field-help">Type a name and press Enter, or paste a list to add many players at once.</p>
+                            </div>
+                            <span id="regDraftCount" class="admin-reg-count-pill" aria-live="polite">0 players</span>
+                        </div>
+                        <div id="regPlayerChips" class="admin-player-chips" role="list" aria-label="Registered players"></div>
+                        <div class="admin-player-add-row">
+                            <label class="admin-sr-only" for="regPlayerNameInput">Add player name</label>
+                            <input id="regPlayerNameInput" type="text" class="admin-input admin-player-input" autocomplete="off" spellcheck="false" aria-describedby="regUsersHelp regDraftCount" placeholder="Add player name">
+                            <button id="addRegPlayerBtn" type="button" class="btn-gold btn-gold--compact admin-add-player-btn">Add</button>
+                        </div>
+                        <p id="regMsg" class="admin-msg" role="status" aria-live="polite"></p>
+                        <button id="saveRegBtn" type="button" class="btn-gold">Save player list</button>
                     </div>
                 </div>
-                <p id="publishMsg" class="admin-msg" role="status" aria-live="polite"></p>
-                <button id="publishBtn" type="submit" class="btn-gold">Publish</button>
-            </div>
-        </form>
-    </section>
+                <p id="registrationClosedMsg" class="admin-empty-state hidden">Registration is closed.</p>
+            </section>
 
-    <div class="admin-grid">
-        <section class="admin-panel" aria-label="Leaderboard preview">
-            <h2 class="admin-panel-title">Leaderboard</h2>
-            <div id="leaderboardList" class="admin-lb-list"></div>
-        </section>
-        <section class="admin-panel admin-panel-wide" aria-label="All matches">
-            <h2 class="admin-panel-title">All matches</h2>
-            <div class="admin-table-wrap">
-                <table class="admin-table">
-                    <thead>
-                        <tr><th>#</th><th>Match</th><th>Score</th></tr>
-                    </thead>
-                    <tbody id="matchesBody"></tbody>
-                </table>
-            </div>
-        </section>
+            <section id="tabPanelStandings" class="admin-tab-panel hidden" role="tabpanel" aria-labelledby="tabBtnStandings" hidden>
+                <section class="admin-panel admin-lb-panel" aria-label="Leaderboard">
+                    <div class="admin-panel-head">
+                        <h2 class="admin-panel-title">Leaderboard</h2>
+                        <p class="admin-panel-sub">Preview after results are published</p>
+                    </div>
+                    <div id="leaderboardList" class="admin-lb-list"></div>
+                </section>
+            </section>
+        </div>
     </div>
 </div>
 
 <script src="../js/flags.js"></script>
-<script src="admin.js"></script>
+<script src="../js/live.js?v=3"></script>
+<script src="admin.js?v=5"></script>
 </body>
 </html>

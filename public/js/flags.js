@@ -154,7 +154,7 @@ function heroTeamBlock(teamName, side) {
   const label = side === "home" ? "Home" : "Away";
   const flag = flagHtml(teamName, "hero");
   return `
-    <div class="hero-team">
+    <div class="hero-team hero-team--${side}">
       <div class="hero-flag-frame">${flag}</div>
       <div class="hero-team-name">${escapeHtml(teamName.toUpperCase())}</div>
       <div class="hero-team-side">${label}</div>

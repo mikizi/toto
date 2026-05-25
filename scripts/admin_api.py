@@ -14,9 +14,13 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.paths import XLSX_PATH
 from scripts.publish_match import publish_match
+from scripts.update_broadcast import update_broadcast
+from scripts.update_registration import update_registration
 
 DEFAULT_PORT = 8090
+XLSX_DOWNLOAD_NAME = "Master WorldCup26.xlsx"
 ALLOWED_ORIGINS = {
     "http://localhost:8080",
     "http://127.0.0.1:8080",
@@ -51,13 +55,43 @@ class AdminApiHandler(BaseHTTPRequestHandler):
             return
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", origin)
-        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Admin-Password")
         self.send_header("Vary", "Origin")
         self.end_headers()
 
+    def do_GET(self) -> None:
+        path = urlparse(self.path).path
+        if path != "/xlsx":
+            self._send_json(404, {"ok": False, "error": "Not found"})
+            return
+
+        origin = self.headers.get("Origin", "")
+        if origin and origin not in ALLOWED_ORIGINS:
+            self._send_json(403, {"ok": False, "error": "Origin not allowed"})
+            return
+
+        if not XLSX_PATH.is_file():
+            self._send_json(404, {"ok": False, "error": "Workbook not found"})
+            return
+
+        body = XLSX_PATH.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header(
+            "Content-Disposition",
+            f'attachment; filename="{XLSX_DOWNLOAD_NAME}"',
+        )
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_POST(self) -> None:
-        if urlparse(self.path).path != "/publish":
+        path = urlparse(self.path).path
+        if path not in ("/publish", "/broadcast", "/registration"):
             self._send_json(404, {"ok": False, "error": "Not found"})
             return
 
@@ -70,10 +104,66 @@ class AdminApiHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
             raw = self.rfile.read(length).decode("utf-8")
             data = json.loads(raw)
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            self._send_json(400, {"ok": False, "error": f"Invalid request: {exc}"})
+            return
+
+        if path == "/broadcast":
+            try:
+                action = str(data.get("action", "set")).strip().lower()
+                open_ids = data.get("openMatchIds")
+                if open_ids is not None:
+                    open_ids = [int(value) for value in open_ids]
+                suppress_auto = data.get("suppressAuto")
+                if suppress_auto is not None:
+                    suppress_auto = bool(suppress_auto)
+            except (KeyError, TypeError, ValueError) as exc:
+                self._send_json(400, {"ok": False, "error": f"Invalid broadcast request: {exc}"})
+                return
+
+            try:
+                if action == "resume_auto":
+                    payload = update_broadcast(
+                        open_match_ids=[],
+                        suppress_auto=False,
+                        mode="auto",
+                        clear_manual=True,
+                    )
+                elif action == "suppress_auto":
+                    payload = update_broadcast(suppress_auto=True)
+                elif action == "clear_manual":
+                    payload = update_broadcast(clear_manual=True)
+                else:
+                    payload = update_broadcast(
+                        open_match_ids=open_ids,
+                        suppress_auto=suppress_auto,
+                    )
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+
+            self._send_json(200, {"ok": True, "broadcast": payload.get("broadcast")})
+            return
+
+        if path == "/registration":
+            users_raw = data.get("users")
+            if not isinstance(users_raw, list):
+                self._send_json(400, {"ok": False, "error": "users must be a list of names"})
+                return
+            users = [str(name).strip() for name in users_raw if str(name).strip()]
+            try:
+                payload = update_registration(users)
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            self._send_json(200, {"ok": True, "registration": payload.get("registration")})
+            return
+
+        try:
             match_id = int(data["match_id"])
             home_score = int(data["home_score"])
             away_score = int(data["away_score"])
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        except (KeyError, TypeError, ValueError) as exc:
             self._send_json(400, {"ok": False, "error": f"Invalid request: {exc}"})
             return
 
@@ -102,7 +192,7 @@ def main() -> None:
     port = int(os.environ.get("ADMIN_API_PORT", DEFAULT_PORT))
     host = "127.0.0.1"
     server = ThreadingHTTPServer((host, port), AdminApiHandler)
-    print(f"Admin API listening on http://{host}:{port}/publish")
+    print(f"Admin API listening on http://{host}:{port} (publish, /xlsx)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

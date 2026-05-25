@@ -1,37 +1,14 @@
 {
-  "version": "2026-05-24T201538Z",
-  "generatedAt": "2026-05-24T20:15:38.037160+00:00",
-  "gamesPlayed": 1,
-  "lastResult": {
-    "matchId": 1,
-    "teams": "Mexico-South Africa",
-    "home": "Mexico",
-    "away": "South Africa",
-    "homeScore": 0,
-    "awayScore": 1
-  },
+  "version": "2026-05-25T204518Z",
+  "generatedAt": "2026-05-25T20:45:18.302895+00:00",
+  "gamesPlayed": 0,
+  "lastResult": null,
   "leaderboard": [
-    {
-      "id": "005",
-      "name": "Nir2",
-      "points": 5.0,
-      "rank": 1,
-      "champion": "Belgium",
-      "movement": "up"
-    },
-    {
-      "id": "004",
-      "name": "Nir1",
-      "points": 3.0,
-      "rank": 2,
-      "champion": "Senegal",
-      "movement": "up"
-    },
     {
       "id": "003",
       "name": "Miki_Ziso",
       "points": 0.0,
-      "rank": 3,
+      "rank": 1,
       "champion": "Brazil",
       "movement": "up"
     },
@@ -39,7 +16,7 @@
       "id": "002",
       "name": "MikiZiso2",
       "points": 0.0,
-      "rank": 4,
+      "rank": 2,
       "champion": "Germany",
       "movement": "up"
     },
@@ -47,9 +24,25 @@
       "id": "001",
       "name": "MikiZiso3",
       "points": 0.0,
-      "rank": 5,
+      "rank": 3,
       "champion": "France",
       "movement": "up"
+    },
+    {
+      "id": "004",
+      "name": "Nir1",
+      "points": 0.0,
+      "rank": 4,
+      "champion": "Senegal",
+      "movement": "down"
+    },
+    {
+      "id": "005",
+      "name": "Nir2",
+      "points": 0.0,
+      "rank": 5,
+      "champion": "Belgium",
+      "movement": "down"
     },
     {
       "id": "006",
@@ -57,7 +50,7 @@
       "points": 0.0,
       "rank": 6,
       "champion": "Uzbekistan",
-      "movement": "up"
+      "movement": "same"
     }
   ],
   "matches": [
@@ -66,9 +59,9 @@
       "teams": "Mexico-South Africa",
       "home": "Mexico",
       "away": "South Africa",
-      "homeScore": 0,
-      "awayScore": 1,
-      "played": true,
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
       "kickoffAt": "2026-06-11T19:00:00+00:00"
     },
     {
@@ -781,5 +774,26 @@
       "played": false,
       "kickoffAt": "2026-06-27T23:30:00+00:00"
     }
-  ]
+  ],
+  "broadcast": {
+    "mode": "auto",
+    "openMatchIds": [],
+    "suppressAuto": false
+  },
+  "registration": {
+    "users": [
+      "Miki_Ziso",
+      "MikiZiso2",
+      "MikiZiso3",
+      "Nir1",
+      "Nir2",
+      "Nir3"
+    ],
+    "count": 6,
+    "entryFee": 100,
+    "goalUsers": 100,
+    "goalPrize": 10000,
+    "prizePool": 600,
+    "closesAt": "2026-06-11T18:00:00+00:00"
+  }
 }

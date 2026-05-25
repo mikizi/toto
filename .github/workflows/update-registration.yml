@@ -1,0 +1,74 @@
+name: Update registration
+
+on:
+  workflow_dispatch:
+    inputs:
+      users:
+        description: Comma-separated player names
+        required: true
+        default: ""
+  repository_dispatch:
+    types: [update-registration]
+
+concurrency:
+  group: update-registration
+  cancel-in-progress: false
+
+jobs:
+  registration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve users
+        id: inputs
+        env:
+          DISPATCH_USERS: ${{ toJson(github.event.client_payload.users) }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "users=${{ inputs.users }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "users_json=${DISPATCH_USERS}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update registration in latest.json
+        env:
+          USERS_CSV: ${{ steps.inputs.outputs.users }}
+          USERS_JSON: ${{ steps.inputs.outputs.users_json }}
+        run: |
+          PYTHONPATH=. python3 <<'PY'
+          import json
+          import os
+          from scripts.update_registration import update_registration
+
+          users_json = os.environ.get("USERS_JSON", "").strip()
+          if users_json:
+              users = [str(name).strip() for name in json.loads(users_json) if str(name).strip()]
+          else:
+              raw = os.environ.get("USERS_CSV", "").strip()
+              users = [part.strip() for part in raw.split(",") if part.strip()]
+
+          payload = update_registration(users)
+          reg = payload["registration"]
+          print(f"Saved {reg['count']} player(s), prize pool ${reg['prizePool']:,}")
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Registration: update player list"
+          git push

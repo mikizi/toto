@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://flagcdn.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="css/styles.css?v=6">
+    <link rel="stylesheet" href="css/styles.css?v=31">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
     <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png">
@@ -57,6 +57,39 @@
     </section>
 
     <section id="comingSoon" class="coming-soon glass-panel hidden" aria-label="Coming soon">
+        <div id="regCounter" class="reg-counter hidden" aria-label="Registration progress">
+            <div class="reg-counter-layout">
+                <div class="reg-counter-ring-wrap" role="progressbar" id="regProgressWrap" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <svg class="reg-counter-svg" viewBox="0 0 200 200" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="regProgressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#15803d"/>
+                                <stop offset="100%" stop-color="#4ade80"/>
+                            </linearGradient>
+                            <filter id="regProgressGlow" x="-40%" y="-40%" width="180%" height="180%">
+                                <feGaussianBlur stdDeviation="3" result="blur"/>
+                                <feMerge>
+                                    <feMergeNode in="blur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        <circle class="reg-ring-track" cx="100" cy="100" r="78"/>
+                        <circle id="regPublicProgressRing" class="reg-ring-fill" cx="100" cy="100" r="78"/>
+                    </svg>
+                    <div class="reg-counter-ring-center">
+                        <span id="regPublicPct" class="reg-counter-pct">0%</span>
+                        <span class="reg-counter-pct-label">Complete</span>
+                    </div>
+                </div>
+                <div class="reg-counter-copy">
+                    <h3 id="regPublicGoalTitle" class="reg-counter-goal-title">10,000₪ Goal</h3>
+                    <p id="regPublicSummary" class="reg-counter-summary"></p>
+                    <p id="regPublicParticipants" class="reg-counter-participants"></p>
+                    <p id="regPublicDeadline" class="reg-counter-deadline"></p>
+                </div>
+            </div>
+        </div>
         <div class="coming-soon-footer">
             <h2 class="coming-soon-title">World Cup <span class="gold">2026</span> Toto</h2>
             <p class="coming-soon-tag">Full scoreboard opens at kickoff</p>
@@ -77,21 +110,93 @@
                     <span class="lb-col lb-col-player"><span class="lb-h-long">Player</span><span class="lb-h-short">Player</span></span>
                     <span class="lb-col lb-col-pts"><span class="lb-h-long">Pts</span><span class="lb-h-short">Pts</span></span>
                 </div>
-                <div id="betsTable" class="lb-body"></div>
+                <div id="betsTable" class="lb-body" aria-label="Standings list"></div>
+                <button id="viewStandingsBtn" type="button" class="btn-standings hidden" aria-expanded="false" aria-controls="betsTable">
+                    View full standings
+                </button>
             </section>
 
             <aside class="next-games-panel glass-panel" aria-label="Next games">
                 <h2 class="panel-title">Next Games</h2>
-                <div id="nextGamesList" class="next-games-list" aria-live="polite"></div>
-                <button id="viewFixturesBtn" type="button" class="btn-fixtures" aria-expanded="false" aria-controls="fixturesPanel">
+                <div class="next-games-scroll-wrap">
+                    <div id="nextGamesScrollHint" class="next-games-scroll-hint hidden" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="18 15 12 9 6 15"/>
+                        </svg>
+                    </div>
+                    <div id="nextGamesScroll" class="next-games-scroll" aria-label="Fixtures and results">
+                        <div id="nextGamesList" class="next-games-list" aria-live="polite"></div>
+                    </div>
+                </div>
+                <button id="viewFixturesBtn" type="button" class="btn-fixtures hidden" aria-expanded="false" aria-controls="nextGamesScroll">
                     View all fixtures
                 </button>
-                <div id="fixturesPanel" class="fixtures-panel hidden" aria-label="All upcoming fixtures"></div>
             </aside>
         </div>
     </div>
 </div>
-<script src="js/flags.js?v=5"></script>
-<script src="js/app.js?v=7"></script>
+
+<div id="musicPlayerWrap" class="music-player-wrap">
+    <button id="musicPlayerClose" type="button" class="music-player-close" aria-label="Close player">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+    </button>
+<aside id="musicPlayer" class="music-player glass-panel" aria-label="Background music">
+    <div class="music-player-art">
+        <video id="musicVideo" class="music-player-video" playsinline preload="metadata" aria-hidden="true"></video>
+    </div>
+    <div class="music-player-body">
+        <div class="music-player-info">
+            <span class="music-player-label">Now playing</span>
+            <div id="musicPlayerMarquee" class="music-player-marquee">
+                <span id="musicPlayerTitleTrack" class="music-player-title-track">
+                    <span class="music-player-title-text">—</span>
+                    <span class="music-player-title-text music-player-title-copy" aria-hidden="true">—</span>
+                </span>
+            </div>
+        </div>
+        <div class="music-player-controls">
+            <button id="musicPrev" type="button" class="music-btn" aria-label="Previous track">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2v12H6V6zm3.5 6 8.5 6V6l-8.5 6z"/></svg>
+            </button>
+            <button id="musicPlayPause" type="button" class="music-btn music-btn--main" aria-label="Play">
+                <svg class="music-icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7L8 5z"/></svg>
+                <svg class="music-icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button id="musicNext" type="button" class="music-btn" aria-label="Next track">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12zm10 0V6h-2v12h2v-6z"/></svg>
+            </button>
+        </div>
+    </div>
+</aside>
+</div>
+
+<button id="musicPlayerReopen" type="button" class="music-player-reopen hidden" aria-label="Open music player">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+    </svg>
+</button>
+
+<div id="updateToast" class="update-toast glass-panel hidden" role="status" aria-live="polite" aria-atomic="true">
+    <svg class="update-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    <div class="update-toast-body">
+        <p id="updateToastTitle" class="update-toast-title">Updated</p>
+        <p id="updateToastMessage" class="update-toast-message"></p>
+    </div>
+    <button id="updateToastDismiss" type="button" class="update-toast-dismiss" aria-label="Dismiss update">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+    </button>
+</div>
+
+<script src="js/flags.js?v=6"></script>
+<script src="js/live.js?v=3"></script>
+<script src="js/app.js?v=24"></script>
+<script src="js/player.js?v=13"></script>
 </body>
 </html>
