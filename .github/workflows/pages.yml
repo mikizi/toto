@@ -5,7 +5,7 @@ on:
     branches: [main]
   workflow_dispatch:
   workflow_run:
-    workflows: ["Publish match result"]
+    workflows: ["Publish match result", "Update live broadcast"]
     types: [completed]
 
 permissions:

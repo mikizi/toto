@@ -35,19 +35,34 @@ jobs:
       - name: Resolve inputs
         id: inputs
         env:
-          DISPATCH_ACTION: ${{ github.event.client_payload.action }}
-          DISPATCH_OPEN: ${{ toJson(github.event.client_payload.openMatchIds) }}
-          DISPATCH_SUPPRESS: ${{ github.event.client_payload.suppressAuto }}
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+          INPUT_ACTION: ${{ inputs.action }}
+          INPUT_OPEN_IDS: ${{ inputs.open_match_ids }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "action=${{ inputs.action }}" >> "$GITHUB_OUTPUT"
-            echo "open_match_ids=${{ inputs.open_match_ids }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "action=${DISPATCH_ACTION:-set}" >> "$GITHUB_OUTPUT"
-            echo "open_match_ids=" >> "$GITHUB_OUTPUT"
-            echo "open_json=${DISPATCH_OPEN}" >> "$GITHUB_OUTPUT"
-            echo "suppress=${DISPATCH_SUPPRESS}" >> "$GITHUB_OUTPUT"
-          fi
+          python3 <<'PY'
+          import json
+          import os
+
+          def write_output(name, value):
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+                  output.write(f"{name}={value}\n")
+
+          if os.environ["EVENT_NAME"] == "workflow_dispatch":
+              write_output("action", os.environ.get("INPUT_ACTION", "set"))
+              write_output("open_match_ids", os.environ.get("INPUT_OPEN_IDS", ""))
+              write_output("open_json", "")
+              write_output("suppress", "")
+          else:
+              payload = json.loads(os.environ.get("DISPATCH_PAYLOAD") or "{}")
+              open_ids = payload.get("openMatchIds")
+              suppress = payload.get("suppressAuto")
+
+              write_output("action", str(payload.get("action") or "set"))
+              write_output("open_match_ids", "")
+              write_output("open_json", json.dumps(open_ids) if isinstance(open_ids, list) else "")
+              write_output("suppress", "" if suppress is None else str(bool(suppress)).lower())
+          PY
 
       - name: Update broadcast in latest.json
         env:
