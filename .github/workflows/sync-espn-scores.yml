@@ -20,29 +20,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Install LibreOffice
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libreoffice-calc dbus-x11 xvfb
-          soffice --version || libreoffice --version
-
       - name: Refresh latest state
         run: |
           git fetch origin main
           git checkout main
           git pull --ff-only origin main
 
+      - name: Detect LibreOffice need
+        id: lo
+        run: |
+          needed=$(PYTHONPATH=. python3 scripts/ci_needs_libreoffice.py espn-schedule)
+          echo "needed=$needed" >> "$GITHUB_OUTPUT"
+          echo "LibreOffice needed: $needed"
+
+      - name: Setup Python and LibreOffice
+        if: steps.lo.outputs.needed == 'true'
+        uses: ./.github/actions/setup-toto-ci
+        with:
+          libreoffice: "true"
+
       - name: Sync scores from ESPN
+        if: steps.lo.outputs.needed == 'true'
         run: PYTHONPATH=. python3 scripts/sync_scores_espn.py
 
       - name: Commit and push
+        if: steps.lo.outputs.needed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

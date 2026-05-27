@@ -134,8 +134,19 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                                     current_open_ids.add(int(value))
                                 except (TypeError, ValueError):
                                     continue
+                    latest_matches: dict[int, dict] = {}
+                    if latest_path.exists():
+                        for row in json.loads(latest_path.read_text(encoding="utf-8")).get(
+                            "matches"
+                        ) or []:
+                            if isinstance(row, dict) and row.get("id") is not None:
+                                latest_matches[int(row["id"])] = row
                     for match_id in open_ids:
-                        if match_id not in current_open_ids:
+                        row = latest_matches.get(match_id)
+                        needs_kickoff = match_id not in current_open_ids or (
+                            isinstance(row, dict) and not row.get("played")
+                        )
+                        if needs_kickoff:
                             publish_match(match_id, 0, 0, close_live=False)
                 if action == "resume_auto":
                     payload = update_broadcast(

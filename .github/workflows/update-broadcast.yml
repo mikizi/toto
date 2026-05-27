@@ -28,19 +28,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Install LibreOffice
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libreoffice-calc dbus-x11 xvfb
-          soffice --version || libreoffice --version
-
       - name: Resolve inputs
         id: inputs
         env:
@@ -84,6 +71,25 @@ jobs:
           git fetch origin main
           git checkout main
           git pull --ff-only origin main
+
+      - name: Detect LibreOffice need
+        id: lo
+        env:
+          ACTION: ${{ steps.inputs.outputs.action }}
+          OPEN_IDS: ${{ steps.inputs.outputs.open_match_ids }}
+          OPEN_JSON: ${{ steps.inputs.outputs.open_json }}
+        run: |
+          needed=$(PYTHONPATH=. python3 scripts/ci_needs_libreoffice.py broadcast \
+            --action "$ACTION" \
+            --open-json "$OPEN_JSON" \
+            --open-ids "$OPEN_IDS")
+          echo "needed=$needed" >> "$GITHUB_OUTPUT"
+          echo "LibreOffice needed: $needed"
+
+      - name: Setup Python and LibreOffice
+        uses: ./.github/actions/setup-toto-ci
+        with:
+          libreoffice: ${{ steps.lo.outputs.needed }}
 
       - name: Update broadcast in latest.json
         env:
@@ -133,8 +139,19 @@ jobs:
                           continue
 
           if action == "set" and open_ids is not None:
+              latest_matches = {}
+              if latest_path.exists():
+                  latest_matches = {
+                      int(m["id"]): m
+                      for m in json.loads(latest_path.read_text(encoding="utf-8")).get("matches") or []
+                      if isinstance(m, dict) and m.get("id") is not None
+                  }
               for match_id in open_ids:
-                  if match_id not in current_open_ids:
+                  row = latest_matches.get(match_id)
+                  needs_kickoff = match_id not in current_open_ids or (
+                      isinstance(row, dict) and not row.get("played")
+                  )
+                  if needs_kickoff:
                       publish_match(match_id, 0, 0, close_live=False)
 
           if action == "resume_auto":

@@ -32,20 +32,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Install LibreOffice
-        run: |
-          sudo apt-get update
-          # ubuntu-24.04 runners ship libreoffice-core; core-nogui conflicts with it
-          sudo apt-get install -y libreoffice-calc dbus-x11 xvfb
-          soffice --version || libreoffice --version
-
       - name: Resolve inputs
         id: inputs
         env:
@@ -77,25 +63,10 @@ jobs:
           git checkout main
           git pull --ff-only origin main
 
-      - name: Smoke test LibreOffice recalc
-        env:
-          HOME: /tmp
-          SAL_USE_VCLPLUGIN: gen
-        run: |
-          cp "xlsx/Master WorldCup26.xlsx" /tmp/wc26-smoke.xlsx
-          PYTHONPATH=. python3 -c "
-          import openpyxl
-          from pathlib import Path
-          path = Path('/tmp/wc26-smoke.xlsx')
-          wb = openpyxl.load_workbook(path)
-          ws = wb['Summary']
-          for row in range(4, 120):
-              if ws[f'J{row}'].value and ws[f'K{row}'].value and '-' in str(ws[f'K{row}'].value):
-                  ws[f'L{row}'].value = None
-                  ws[f'M{row}'].value = None
-          wb.save(path)
-          "
-          PYTHONPATH=. python3 scripts/libreoffice_recalc.py /tmp/wc26-smoke.xlsx
+      - name: Setup Python and LibreOffice
+        uses: ./.github/actions/setup-toto-ci
+        with:
+          libreoffice: "true"
 
       - name: Patch match score
         env:
@@ -108,7 +79,6 @@ jobs:
               --restore
             exit 0
           fi
-          # close_live defaults to false — live ends only via admin Stop
           PYTHONPATH=. python3 -u scripts/publish_match.py \
             "${{ steps.inputs.outputs.match_id }}" \
             "${{ steps.inputs.outputs.home_score }}" \

@@ -23,18 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python and LibreOffice
+        uses: ./.github/actions/setup-toto-ci
         with:
-          python-version: "3.11"
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Install LibreOffice
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libreoffice-calc dbus-x11 xvfb
-          soffice --version || libreoffice --version
+          libreoffice: "true"
 
       - name: Reset all match scores and export
         env:

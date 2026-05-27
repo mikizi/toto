@@ -1,0 +1,33 @@
+name: Setup Toto CI
+description: Cached pip deps and optional cached LibreOffice Calc for data workflows
+
+inputs:
+  libreoffice:
+    description: Install LibreOffice (set false to skip apt when only JSON changes)
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: pip
+
+    - name: Install Python dependencies
+      shell: bash
+      run: pip install -r requirements.txt
+
+    - name: Cache and install LibreOffice
+      if: inputs.libreoffice == 'true'
+      uses: awalsh128/cache-apt-packages@v2.1.2
+      with:
+        packages: libreoffice-calc dbus-x11 xvfb
+        version: "1.0"
+
+    - name: Verify LibreOffice
+      if: inputs.libreoffice == 'true'
+      shell: bash
+      run: soffice --version || libreoffice --version
