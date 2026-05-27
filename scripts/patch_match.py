@@ -48,6 +48,19 @@ def patch_match(
     return teams, home_score, away_score
 
 
+def clear_match_score(match_id: int, xlsx_path: Path = DEFAULT_XLSX) -> str:
+    """Clear Summary L/M for match_id and return the teams label."""
+    xlsx_path = xlsx_path.resolve()
+    wb = openpyxl.load_workbook(xlsx_path)
+    ws = wb[SUMMARY]
+    row = find_match_row(ws, match_id)
+    teams = str(ws[f"K{row}"].value)
+    ws[f"L{row}"].value = None
+    ws[f"M{row}"].value = None
+    wb.save(xlsx_path)
+    return teams
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Patch match score in xlsx Summary L/M")
     parser.add_argument("match_id", type=int, help="Match number (Summary column J)")

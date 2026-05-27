@@ -1,6 +1,7 @@
 const DEFAULT_ALLOWED_ORIGIN = "https://mikizi.github.io";
 const DEFAULT_REPO = "mikizi/toto";
 const DISPATCH_EVENT_TYPE = "update-score";
+const RESTORE_EVENT_TYPE = "restore-score";
 const BROADCAST_EVENT_TYPE = "update-broadcast";
 const REGISTRATION_EVENT_TYPE = "update-registration";
 const XLSX_REPO_PATH = "xlsx/Master WorldCup26.xlsx";
@@ -21,7 +22,7 @@ export default {
     }
 
     const url = new URL(request.url);
-    const allowedPaths = ["/publish", "/broadcast", "/registration", "/xlsx"];
+    const allowedPaths = ["/publish", "/restore", "/broadcast", "/registration", "/xlsx"];
     if (!allowedPaths.includes(url.pathname)) {
       return jsonResponse({ ok: false, error: "Not found" }, 404, corsHeaders);
     }
@@ -115,6 +116,39 @@ export default {
       }
 
       return jsonResponse({ ok: true, message: "Queued registration update" }, 202, corsHeaders);
+    }
+
+    if (url.pathname === "/restore") {
+      const matchId = toNonNegativeInteger(payload.matchId);
+      if (matchId === null) {
+        return jsonResponse({ ok: false, error: "Invalid matchId" }, 400, corsHeaders);
+      }
+
+      const githubResponse = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+        method: "POST",
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+          "Content-Type": "application/json",
+          "User-Agent": "wc26-toto-admin-worker",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+        body: JSON.stringify({
+          event_type: RESTORE_EVENT_TYPE,
+          client_payload: { matchId },
+        }),
+      });
+
+      if (!githubResponse.ok) {
+        const errorText = await githubResponse.text();
+        return jsonResponse(
+          { ok: false, error: `GitHub dispatch failed: ${githubResponse.status} ${errorText}` },
+          502,
+          corsHeaders
+        );
+      }
+
+      return jsonResponse({ ok: true, message: `Queued match ${matchId} restore` }, 202, corsHeaders);
     }
 
     const matchId = toNonNegativeInteger(payload.matchId);

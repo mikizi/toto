@@ -15,7 +15,7 @@ on:
     types: [update-broadcast]
 
 concurrency:
-  group: update-broadcast
+  group: toto-data-writes
   cancel-in-progress: false
 
 jobs:
@@ -31,6 +31,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install LibreOffice
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice-calc dbus-x11 xvfb
+          soffice --version || libreoffice --version
 
       - name: Resolve inputs
         id: inputs
@@ -64,6 +73,12 @@ jobs:
               write_output("suppress", "" if suppress is None else str(bool(suppress)).lower())
           PY
 
+      - name: Refresh latest state
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+
       - name: Update broadcast in latest.json
         env:
           ACTION: ${{ steps.inputs.outputs.action }}
@@ -74,6 +89,8 @@ jobs:
           PYTHONPATH=. python3 <<'PY'
           import json
           import os
+          from pathlib import Path
+          from scripts.publish_match import publish_match
           from scripts.update_broadcast import update_broadcast
 
           action = os.environ.get("ACTION", "set").strip().lower()
@@ -91,6 +108,23 @@ jobs:
           if suppress != "":
               suppress_auto = suppress.lower() in ("1", "true", "yes")
 
+          current_open_ids = set()
+          latest_path = Path("public/data/latest.json")
+          if latest_path.exists():
+              latest = json.loads(latest_path.read_text(encoding="utf-8"))
+              broadcast = latest.get("broadcast")
+              if isinstance(broadcast, dict):
+                  for value in broadcast.get("openMatchIds") or []:
+                      try:
+                          current_open_ids.add(int(value))
+                      except (TypeError, ValueError):
+                          continue
+
+          if action == "set" and open_ids is not None:
+              for match_id in open_ids:
+                  if match_id not in current_open_ids:
+                      publish_match(match_id, 0, 0, close_live=False)
+
           if action == "resume_auto":
               update_broadcast(open_match_ids=[], suppress_auto=False, mode="auto", clear_manual=True)
           elif action == "suppress_auto":
@@ -105,7 +139,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data/
+          git add xlsx/Master\ WorldCup26.xlsx public/data/
           if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0

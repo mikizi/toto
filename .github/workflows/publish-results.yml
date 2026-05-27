@@ -16,10 +16,10 @@ on:
         required: true
         type: number
   repository_dispatch:
-    types: [update-score]
+    types: [update-score, restore-score]
 
 concurrency:
-  group: publish-results
+  group: toto-data-writes
   cancel-in-progress: false
 
 jobs:
@@ -49,20 +49,33 @@ jobs:
       - name: Resolve inputs
         id: inputs
         env:
+          EVENT_ACTION: ${{ github.event.action }}
           DISPATCH_MATCH: ${{ github.event.client_payload.matchId }}
           DISPATCH_HOME: ${{ github.event.client_payload.home }}
           DISPATCH_AWAY: ${{ github.event.client_payload.away }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "action=publish" >> "$GITHUB_OUTPUT"
             echo "match_id=${{ inputs.match_id }}" >> "$GITHUB_OUTPUT"
             echo "home_score=${{ inputs.home_score }}" >> "$GITHUB_OUTPUT"
             echo "away_score=${{ inputs.away_score }}" >> "$GITHUB_OUTPUT"
           else
+            if [ "$EVENT_ACTION" = "restore-score" ]; then
+              echo "action=restore" >> "$GITHUB_OUTPUT"
+            else
+              echo "action=publish" >> "$GITHUB_OUTPUT"
+            fi
             echo "match_id=${DISPATCH_MATCH}" >> "$GITHUB_OUTPUT"
             echo "home_score=${DISPATCH_HOME}" >> "$GITHUB_OUTPUT"
             echo "away_score=${DISPATCH_AWAY}" >> "$GITHUB_OUTPUT"
           fi
           echo "Publishing match ${DISPATCH_MATCH:-${{ inputs.match_id }}} as ${DISPATCH_HOME:-${{ inputs.home_score }}}-${DISPATCH_AWAY:-${{ inputs.away_score }}}"
+
+      - name: Refresh latest state
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
 
       - name: Smoke test LibreOffice recalc
         env:
@@ -89,6 +102,12 @@ jobs:
           HOME: /tmp
           SAL_USE_VCLPLUGIN: gen
         run: |
+          if [ "${{ steps.inputs.outputs.action }}" = "restore" ]; then
+            PYTHONPATH=. python3 -u scripts/publish_match.py \
+              "${{ steps.inputs.outputs.match_id }}" \
+              --restore
+            exit 0
+          fi
           PYTHONPATH=. python3 -u scripts/publish_match.py \
             "${{ steps.inputs.outputs.match_id }}" \
             "${{ steps.inputs.outputs.home_score }}" \
@@ -103,5 +122,9 @@ jobs:
             echo "No changes to commit"
             exit 0
           fi
-          git commit -m "Results: Match ${{ steps.inputs.outputs.match_id }} — ${{ steps.inputs.outputs.home_score }}-${{ steps.inputs.outputs.away_score }}"
+          if [ "${{ steps.inputs.outputs.action }}" = "restore" ]; then
+            git commit -m "Results: Restore match ${{ steps.inputs.outputs.match_id }}"
+          else
+            git commit -m "Results: Match ${{ steps.inputs.outputs.match_id }} — ${{ steps.inputs.outputs.home_score }}-${{ steps.inputs.outputs.away_score }}"
+          fi
           git push

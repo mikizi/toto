@@ -10,13 +10,30 @@ from pathlib import Path
 
 from scripts.export_summary import (
     build_export,
-    export,
     write_export,
 )
 from scripts.libreoffice_recalc import recalc
-from scripts.patch_match import patch_match
+from scripts.patch_match import clear_match_score, patch_match
 from scripts.paths import LATEST_PATH, XLSX_PATH
 from scripts.validate_export import validate
+
+
+def close_live_match(payload: dict, match_id: int) -> None:
+    """Remove a finalized match from the live broadcast list."""
+    broadcast = payload.get("broadcast")
+    if not isinstance(broadcast, dict):
+        return
+    open_ids = broadcast.get("openMatchIds")
+    if not isinstance(open_ids, list):
+        return
+    kept_ids = []
+    for mid in open_ids:
+        try:
+            if int(mid) != match_id:
+                kept_ids.append(mid)
+        except (TypeError, ValueError):
+            continue
+    broadcast["openMatchIds"] = kept_ids
 
 
 def publish_match(
@@ -26,17 +43,18 @@ def publish_match(
     xlsx_path: Path = XLSX_PATH,
     *,
     write: bool = True,
+    close_live: bool = True,
 ) -> dict:
     """Apply result to xlsx and export public/data/latest.json."""
     teams, home, away = patch_match(match_id, home_score, away_score, xlsx_path)
     recalc(xlsx_path, require_cached=False)
+    previous = None
+    if LATEST_PATH.exists():
+        previous = json.loads(LATEST_PATH.read_text(encoding="utf-8"))
+    payload = build_export(xlsx_path, previous)
+    if close_live:
+        close_live_match(payload, match_id)
     if write:
-        payload = export(xlsx_path)
-    else:
-        previous = None
-        if LATEST_PATH.exists():
-            previous = json.loads(LATEST_PATH.read_text(encoding="utf-8"))
-        payload = build_export(xlsx_path, previous)
         write_export(payload)
     errors = validate(payload)
     if errors:
@@ -51,32 +69,76 @@ def publish_match(
     }
 
 
+def restore_match(
+    match_id: int,
+    xlsx_path: Path = XLSX_PATH,
+    *,
+    write: bool = True,
+) -> dict:
+    """Clear a match score from xlsx and export public/data/latest.json."""
+    teams = clear_match_score(match_id, xlsx_path)
+    recalc(xlsx_path, require_cached=False)
+    previous = None
+    if LATEST_PATH.exists():
+        previous = json.loads(LATEST_PATH.read_text(encoding="utf-8"))
+    payload = build_export(xlsx_path, previous)
+    close_live_match(payload, match_id)
+    if write:
+        write_export(payload)
+    errors = validate(payload)
+    if errors:
+        raise RuntimeError(f"Export validation failed: {errors}")
+    return {
+        "matchId": match_id,
+        "teams": teams,
+        "gamesPlayed": payload["gamesPlayed"],
+        "version": payload["version"],
+        "leaderboard": payload["leaderboard"],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Publish match result to xlsx + latest.json")
     parser.add_argument("match_id", type=int, help="Match number (Summary column J)")
-    parser.add_argument("home_score", type=int, help="Home team score")
-    parser.add_argument("away_score", type=int, help="Away team score")
+    parser.add_argument("home_score", type=int, nargs="?", help="Home team score")
+    parser.add_argument("away_score", type=int, nargs="?", help="Away team score")
     parser.add_argument(
         "--xlsx",
         type=Path,
         default=XLSX_PATH,
         help="Path to Master WorldCup26.xlsx",
     )
+    parser.add_argument(
+        "--restore",
+        action="store_true",
+        help="Clear the match score instead of publishing a score",
+    )
     args = parser.parse_args()
     try:
-        result = publish_match(
-            args.match_id,
-            args.home_score,
-            args.away_score,
-            args.xlsx,
-        )
+        if args.restore:
+            result = restore_match(args.match_id, args.xlsx)
+        else:
+            if args.home_score is None or args.away_score is None:
+                raise ValueError("home_score and away_score are required unless --restore is used")
+            result = publish_match(
+                args.match_id,
+                args.home_score,
+                args.away_score,
+                args.xlsx,
+            )
     except Exception as exc:
         print(exc, file=sys.stderr)
         return 1
-    print(
-        f"Published match {result['matchId']}: {result['teams']} → {result['score']} "
-        f"({result['gamesPlayed']} games, version {result['version']})"
-    )
+    if args.restore:
+        print(
+            f"Restored match {result['matchId']}: {result['teams']} "
+            f"({result['gamesPlayed']} games, version {result['version']})"
+        )
+    else:
+        print(
+            f"Published match {result['matchId']}: {result['teams']} → {result['score']} "
+            f"({result['gamesPlayed']} games, version {result['version']})"
+        )
     top = sorted(result["leaderboard"], key=lambda e: e.get("rank") or 999)[:3]
     for entry in top:
         print(f"  #{entry.get('rank')} {entry['name']}: {entry['points']:.0f} pts")

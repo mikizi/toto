@@ -414,10 +414,6 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
     broadcast = normalize_broadcast(
         previous.get("broadcast") if previous else DEFAULT_BROADCAST
     )
-    played_ids = {m["id"] for m in matches if m["played"]}
-    broadcast["openMatchIds"] = [
-        mid for mid in broadcast["openMatchIds"] if mid not in played_ids
-    ]
     previous_registration = (previous or {}).get("registration")
     if not isinstance(previous_registration, dict):
         previous_registration = {

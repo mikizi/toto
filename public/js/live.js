@@ -125,8 +125,7 @@ function manualLiveMatchIds(data) {
   const byId = matchesById(data);
   const ids = [];
   for (const matchId of broadcast.openMatchIds) {
-    const match = byId.get(matchId);
-    if (!match || match.played) {
+    if (!byId.has(matchId)) {
       continue;
     }
     ids.push(matchId);

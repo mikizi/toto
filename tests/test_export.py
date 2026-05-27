@@ -9,7 +9,8 @@ import unittest
 from pathlib import Path
 
 from scripts.export_summary import _cell_int, _cell_number, _cell_text, build_export, write_export
-from scripts.patch_match import find_match_row, patch_match
+from scripts.patch_match import clear_match_score, find_match_row, patch_match
+from scripts.publish_match import close_live_match
 from scripts.validate_export import validate
 
 from scripts.paths import BACKUP_PATH, XLSX_PATH
@@ -75,6 +76,27 @@ class TestExportFromXlsx(unittest.TestCase):
         errors = validate(payload)
         self.assertEqual(errors, [], msg="; ".join(errors))
 
+    def test_export_keeps_open_live_matches_even_after_start_score(self) -> None:
+        base = build_export(XLSX_PATH)
+        played = next(match for match in base["matches"] if match["played"])
+        unplayed = next(match for match in base["matches"] if not match["played"])
+        payload = build_export(
+            XLSX_PATH,
+            {
+                "broadcast": {
+                    "mode": "manual",
+                    "openMatchIds": [played["id"], unplayed["id"]],
+                    "suppressAuto": False,
+                }
+            },
+        )
+        self.assertEqual(payload["broadcast"]["openMatchIds"], [played["id"], unplayed["id"]])
+
+    def test_close_live_match_removes_only_finalized_match(self) -> None:
+        payload = {"broadcast": {"openMatchIds": [4, 5], "mode": "manual", "suppressAuto": False}}
+        close_live_match(payload, 4)
+        self.assertEqual(payload["broadcast"]["openMatchIds"], [5])
+
     def test_write_export_roundtrip(self) -> None:
         payload = build_export(XLSX_PATH)
         with tempfile.TemporaryDirectory() as tmp:
@@ -117,6 +139,20 @@ class TestPatchMatch(unittest.TestCase):
             row = find_match_row(wb["Summary"], 1)
             self.assertEqual(wb["Summary"][f"L{row}"].value, 2)
             self.assertEqual(wb["Summary"][f"M{row}"].value, 1)
+
+    def test_clear_match_score_clears_lm_cells(self) -> None:
+        import openpyxl
+        import shutil
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "test.xlsx"
+            shutil.copy2(BACKUP_PATH, path)
+            patch_match(1, 2, 1, path)
+            clear_match_score(1, path)
+            wb = openpyxl.load_workbook(path, data_only=True)
+            row = find_match_row(wb["Summary"], 1)
+            self.assertIsNone(wb["Summary"][f"L{row}"].value)
+            self.assertIsNone(wb["Summary"][f"M{row}"].value)
 
     def test_export_scores_from_picks_without_cached_formulas(self) -> None:
         import openpyxl

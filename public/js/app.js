@@ -334,8 +334,8 @@ function allFixturesMatches(data) {
   });
 }
 
-/** @param {MatchEntry} match @param {number} [index] @param {boolean} [animate] @param {boolean} [isNext] */
-function fixtureItemHtml(match, index = 0, animate = false, isNext = false) {
+/** @param {MatchEntry} match @param {number} [index] @param {boolean} [animate] @param {boolean} [isNext] @param {boolean} [isLive] */
+function fixtureItemHtml(match, index = 0, animate = false, isNext = false, isLive = false) {
   const home = shortTeamName(match.home);
   const away = shortTeamName(match.away);
   const enterClass = animate ? " next-game-item--enter" : "";
@@ -350,6 +350,9 @@ function fixtureItemHtml(match, index = 0, animate = false, isNext = false) {
     const awayScore = match.awayScore ?? 0;
     centerBadge = `${homeScore}&nbsp;–&nbsp;${awayScore}`;
     meta = match.kickoffAt ? formatNextGameKickoff(match.kickoffAt) : `Match ${match.id}`;
+  } else if (isLive) {
+    centerBadge = `${match.homeScore ?? 0}&nbsp;–&nbsp;${match.awayScore ?? 0}`;
+    meta = "Live";
   } else {
     centerBadge = "vs";
     meta = match.kickoffAt
@@ -357,7 +360,7 @@ function fixtureItemHtml(match, index = 0, animate = false, isNext = false) {
       : `Match ${match.id} · TBD`;
   }
 
-  const badgeClass = match.played
+  const badgeClass = match.played || isLive
     ? "next-game-vs-badge next-game-score-badge"
     : "next-game-vs-badge";
 
@@ -523,6 +526,7 @@ function renderNextGames(listEl, scrollEl, data, animate = false) {
   const upcoming = allUpcomingMatches(data);
   const hasPast = fixtures.some((m) => m.played);
   const nextId = upcoming[0]?.id;
+  const liveIds = new Set(heroLiveMatchIds(data));
   const fixturesBtn = document.getElementById("viewFixturesBtn");
 
   if (listEl) {
@@ -530,11 +534,11 @@ function renderNextGames(listEl, scrollEl, data, animate = false) {
       listEl.innerHTML = '<p class="next-games-empty">No matches</p>';
     } else if (upcoming.length === 0) {
       listEl.innerHTML = fixtures
-        .map((m, index) => fixtureItemHtml(m, index, animate, false))
+        .map((m, index) => fixtureItemHtml(m, index, animate, false, liveIds.has(m.id)))
         .join("");
     } else {
       listEl.innerHTML = fixtures
-        .map((m, index) => fixtureItemHtml(m, index, animate, m.id === nextId))
+        .map((m, index) => fixtureItemHtml(m, index, animate, m.id === nextId, liveIds.has(m.id)))
         .join("");
     }
   }
@@ -1018,13 +1022,17 @@ function renderLeaderboard(container, leaderboard, animate = false) {
  */
 /**
  * @param {MatchEntry} match
+ * @param {boolean} [showScore]
  */
-function singleHeroMatchHtml(match) {
+function singleHeroMatchHtml(match, showScore = false) {
+  const center = showScore
+    ? `${match.homeScore ?? 0}&nbsp;—&nbsp;${match.awayScore ?? 0}`
+    : "VS";
   return `
     <div class="hero-match-slot">
       <div class="hero-grid">
         ${heroTeamBlock(match.home, "home")}
-        ${heroCenterBlock("VS", match.id, true)}
+        ${heroCenterBlock(center, match.id, !showScore)}
         ${heroTeamBlock(match.away, "away")}
       </div>
     </div>`;
@@ -1047,7 +1055,7 @@ function renderHeroMatch(el, data, previewNext = false, showLive = false, animat
     el.innerHTML = `
       <div class="hero-body-inner${dual ? " hero-body-inner--dual" : ""}">
         <div class="hero-dual-grid">
-          ${liveMatches.map((match) => singleHeroMatchHtml(match)).join("")}
+          ${liveMatches.map((match) => singleHeroMatchHtml(match, true)).join("")}
         </div>
       </div>`;
     el.classList.toggle("hero-animate", animate);

@@ -2,12 +2,15 @@
 
 const DATA_URL = "../data/latest.json";
 const LOCAL_API = "http://127.0.0.1:8090/publish";
+const LOCAL_RESTORE_API = "http://127.0.0.1:8090/restore";
 const LOCAL_BROADCAST_API = "http://127.0.0.1:8090/broadcast";
 const LOCAL_REGISTRATION_API = "http://127.0.0.1:8090/registration";
 const LOCAL_XLSX_API = "http://127.0.0.1:8090/xlsx";
 const XLSX_FILENAME = "Master WorldCup26.xlsx";
 const PUBLISH_PROXY_URL =
   "https://toto-admin-publish.mikizi-toto.workers.dev/publish";
+const RESTORE_PROXY_URL =
+  "https://toto-admin-publish.mikizi-toto.workers.dev/restore";
 const BROADCAST_PROXY_URL =
   "https://toto-admin-publish.mikizi-toto.workers.dev/broadcast";
 const REGISTRATION_PROXY_URL =
@@ -310,6 +313,16 @@ function onMatchesListClick(event) {
     }
     return;
   }
+  const restoreBtn = event.target instanceof Element ? event.target.closest(".admin-restore-btn") : null;
+  if (restoreBtn) {
+    event.preventDefault();
+    event.stopPropagation();
+    const matchId = Number(restoreBtn.getAttribute("data-match-id"));
+    if (!Number.isNaN(matchId)) {
+      void restoreMatchScore(matchId);
+    }
+    return;
+  }
   onMatchCardClick(event);
 }
 
@@ -335,6 +348,15 @@ function onMatchesListKeydown(event) {
     const matchId = Number(liveBtn.getAttribute("data-match-id"));
     if (!Number.isNaN(matchId)) {
       void toggleMatchLive(matchId);
+    }
+    return;
+  }
+  const restoreBtn = event.target instanceof Element ? event.target.closest(".admin-restore-btn") : null;
+  if (restoreBtn && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    const matchId = Number(restoreBtn.getAttribute("data-match-id"));
+    if (!Number.isNaN(matchId)) {
+      void restoreMatchScore(matchId);
     }
     return;
   }
@@ -393,7 +415,7 @@ function getNextUnplayedMatch(matches) {
 function getFocusedMatch(matches, broadcast) {
   const sorted = [...matches].sort((a, b) => a.id - b.id);
   const openIds = new Set(broadcast.openMatchIds || []);
-  return sorted.find((m) => openIds.has(m.id) && !m.played) || sorted.find((m) => !m.played) || sorted[sorted.length - 1];
+  return sorted.find((m) => openIds.has(m.id)) || sorted.find((m) => !m.played) || sorted[sorted.length - 1];
 }
 
 /** @param {string} teamName */
@@ -447,6 +469,7 @@ function renderPublishMatch(match) {
 
 const LIVE_PLAY_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7L8 5z"/></svg>`;
 const LIVE_STOP_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h12v12H6V6z"/></svg>`;
+const RESTORE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>`;
 
 /**
  * @param {number} matchId
@@ -454,16 +477,30 @@ const LIVE_STOP_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden=
  * @param {boolean} isPlayed
  */
 function adminLiveButtonHtml(matchId, isLive, isPlayed) {
-  if (isPlayed) {
-    return "";
-  }
   if (isLive) {
     return `<button type="button" class="admin-live-btn admin-live-btn--stop" data-match-id="${matchId}" aria-label="Stop live — match ${matchId}">
       ${LIVE_STOP_SVG}
     </button>`;
   }
+  if (isPlayed) {
+    return "";
+  }
   return `<button type="button" class="admin-live-btn admin-live-btn--play" data-match-id="${matchId}" aria-label="Go live — match ${matchId}">
     ${LIVE_PLAY_SVG}
+  </button>`;
+}
+
+/**
+ * @param {number} matchId
+ * @param {boolean} isLive
+ * @param {boolean} isPlayed
+ */
+function adminRestoreButtonHtml(matchId, isLive, isPlayed) {
+  if (!isPlayed || isLive) {
+    return "";
+  }
+  return `<button type="button" class="admin-restore-btn" data-match-id="${matchId}" aria-label="Restore match ${matchId}">
+    ${RESTORE_SVG}
   </button>`;
 }
 
@@ -501,6 +538,7 @@ function renderMatches(matches, broadcast) {
         cardClasses.push("is-live");
       }
       const liveBtn = adminLiveButtonHtml(m.id, isLive, m.played);
+      const restoreBtn = adminRestoreButtonHtml(m.id, isLive, m.played);
       const liveBadge = isLive ? '<span class="admin-match-live-badge">LIVE</span>' : "";
       return `<article class="${cardClasses.join(" ")}" data-match-id="${m.id}" role="listitem" tabindex="0" aria-label="Match ${m.id}: ${escapeHtml(m.home)} vs ${escapeHtml(m.away)}">
         <span class="admin-match-num">#${m.id}</span>
@@ -516,7 +554,7 @@ function renderMatches(matches, broadcast) {
           <span class="admin-match-flag">${flagHtml(m.away, "sm")}</span>
           ${adminMatchNameHtml(m.away)}
         </span>
-        ${liveBtn ? `<span class="admin-match-live">${liveBtn}</span>` : '<span class="admin-match-live" aria-hidden="true"></span>'}
+        ${liveBtn || restoreBtn ? `<span class="admin-match-live">${liveBtn || restoreBtn}</span>` : '<span class="admin-match-live" aria-hidden="true"></span>'}
       </article>`;
     })
     .join("");
@@ -638,6 +676,108 @@ async function publishViaProxy(matchId, homeScore, awayScore, msg) {
       publishBtn.disabled = false;
     }
   }
+}
+
+/** @param {number} matchId */
+async function restoreMatchScore(matchId) {
+  const match = cachedMatches.find((m) => m.id === matchId);
+  const msg = document.getElementById("liveMsg");
+  if (!match) {
+    setMessage(msg, "Match not found.", "error");
+    return;
+  }
+  if (!window.confirm(`Restore match ${matchId} and clear ${match.home} vs ${match.away} score?`)) {
+    return;
+  }
+  if (IS_LOCAL) {
+    await restoreMatchLocally(matchId, msg);
+    return;
+  }
+  await restoreMatchViaProxy(matchId, msg);
+}
+
+/**
+ * @param {number} matchId
+ * @param {HTMLElement | null} msg
+ */
+async function restoreMatchLocally(matchId, msg) {
+  setMessage(msg, "Restoring…", "");
+  try {
+    const response = await fetch(LOCAL_RESTORE_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ match_id: matchId }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    await loadData();
+    setMessage(msg, "Restored.", "success");
+  } catch (err) {
+    console.error(err);
+    setMessage(
+      msg,
+      `Restore failed. Run "make dev". ${err instanceof Error ? err.message : ""}`,
+      "error"
+    );
+  }
+}
+
+/**
+ * @param {number} matchId
+ * @param {HTMLElement | null} msg
+ */
+async function restoreMatchViaProxy(matchId, msg) {
+  if (!isProxyConfigured()) {
+    setMessage(msg, "Admin proxy is not configured yet.", "error");
+    return;
+  }
+  const password = getSavedAdminPassword();
+  if (!password) {
+    showLoginScreen("Sign in to restore a match.");
+    return;
+  }
+  setMessage(msg, "Restoring…", "");
+  try {
+    const response = await fetch(RESTORE_PROXY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Password": password,
+      },
+      body: JSON.stringify({ matchId }),
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearSavedAdminPassword();
+        showLoginScreen("Wrong password. Try again.");
+        return;
+      }
+      const text = await response.text();
+      throw new Error(`${response.status}: ${text}`);
+    }
+    applyRestoredMatch(matchId);
+    setMessage(msg, "Restore queued. Refresh scoreboard in ~1 min.", "success");
+  } catch (err) {
+    console.error(err);
+    setMessage(msg, `Restore failed: ${err instanceof Error ? err.message : "unknown error"}`, "error");
+  }
+}
+
+/** @param {number} matchId */
+function applyRestoredMatch(matchId) {
+  cachedMatches = cachedMatches.map((match) =>
+    match.id === matchId
+      ? { ...match, homeScore: null, awayScore: null, played: false }
+      : match
+  );
+  cachedBroadcast = normalizeBroadcast({
+    ...(cachedBroadcast || {}),
+    openMatchIds: (cachedBroadcast?.openMatchIds || []).filter((id) => id !== matchId),
+  });
+  renderMatches(cachedMatches, cachedBroadcast);
+  applySelectedMatch();
 }
 
 function isProxyConfigured() {
@@ -799,6 +939,12 @@ async function setMatchLive(openMatchIds, msg) {
 
 /** @param {number[]} openMatchIds */
 function applyQueuedBroadcast(openMatchIds) {
+  const openIdSet = new Set(openMatchIds);
+  cachedMatches = cachedMatches.map((match) =>
+    openIdSet.has(match.id) && !match.played
+      ? { ...match, homeScore: 0, awayScore: 0, played: true }
+      : match
+  );
   cachedBroadcast = normalizeBroadcast({
     ...(cachedBroadcast || {}),
     openMatchIds,

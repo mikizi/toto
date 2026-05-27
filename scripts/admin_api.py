@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.paths import XLSX_PATH
-from scripts.publish_match import publish_match
+from scripts.publish_match import publish_match, restore_match
 from scripts.update_broadcast import update_broadcast
 from scripts.update_registration import update_registration
 
@@ -91,7 +91,7 @@ class AdminApiHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path not in ("/publish", "/broadcast", "/registration"):
+        if path not in ("/publish", "/broadcast", "/registration", "/restore"):
             self._send_json(404, {"ok": False, "error": "Not found"})
             return
 
@@ -122,6 +122,21 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                 return
 
             try:
+                if action == "set" and open_ids is not None:
+                    current_open_ids: set[int] = set()
+                    latest_path = ROOT / "public" / "data" / "latest.json"
+                    if latest_path.exists():
+                        latest = json.loads(latest_path.read_text(encoding="utf-8"))
+                        broadcast = latest.get("broadcast")
+                        if isinstance(broadcast, dict):
+                            for value in broadcast.get("openMatchIds") or []:
+                                try:
+                                    current_open_ids.add(int(value))
+                                except (TypeError, ValueError):
+                                    continue
+                    for match_id in open_ids:
+                        if match_id not in current_open_ids:
+                            publish_match(match_id, 0, 0, close_live=False)
                 if action == "resume_auto":
                     payload = update_broadcast(
                         open_match_ids=[],
@@ -157,6 +172,31 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                 self._send_json(500, {"ok": False, "error": str(exc)})
                 return
             self._send_json(200, {"ok": True, "registration": payload.get("registration")})
+            return
+
+        if path == "/restore":
+            try:
+                match_id = int(data["match_id"])
+            except (KeyError, TypeError, ValueError) as exc:
+                self._send_json(400, {"ok": False, "error": f"Invalid request: {exc}"})
+                return
+
+            try:
+                result = restore_match(match_id)
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "matchId": result["matchId"],
+                    "teams": result["teams"],
+                    "gamesPlayed": result["gamesPlayed"],
+                    "version": result["version"],
+                },
+            )
             return
 
         try:

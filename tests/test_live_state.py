@@ -107,6 +107,15 @@ class TestLiveState(unittest.TestCase):
         )
         self.assertEqual(hero_live_match_ids(data), [1, 2])
 
+    def test_manual_open_can_show_started_score_match(self) -> None:
+        future = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+        data = _payload(
+            [_match(1, played=True, kickoff_at=future), _match(2, kickoff_at=future)],
+            games_played=1,
+            broadcast={"openMatchIds": [1, 2], "suppressAuto": False, "mode": "manual"},
+        )
+        self.assertEqual(hero_live_match_ids(data), [1, 2])
+
 
 if __name__ == "__main__":
     unittest.main()

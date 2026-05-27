@@ -136,8 +136,7 @@ def manual_live_match_ids(data: dict[str, Any]) -> list[int]:
     by_id = _matches_by_id(data)
     ids: list[int] = []
     for match_id in broadcast["openMatchIds"]:
-        match = by_id.get(match_id)
-        if not match or match.get("played"):
+        if match_id not in by_id:
             continue
         ids.append(match_id)
         if len(ids) >= MAX_HERO_MATCHES:
