@@ -28,33 +28,26 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Resolve users
-        id: inputs
-        env:
-          DISPATCH_USERS: ${{ toJson(github.event.client_payload.users) }}
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "users=${{ inputs.users }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "users_json=${DISPATCH_USERS}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Update registration in latest.json
         env:
-          USERS_CSV: ${{ steps.inputs.outputs.users }}
-          USERS_JSON: ${{ steps.inputs.outputs.users_json }}
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+          INPUT_USERS: ${{ inputs.users }}
         run: |
           PYTHONPATH=. python3 <<'PY'
           import json
           import os
           from scripts.update_registration import update_registration
 
-          users_json = os.environ.get("USERS_JSON", "").strip()
-          if users_json:
-              users = [str(name).strip() for name in json.loads(users_json) if str(name).strip()]
-          else:
-              raw = os.environ.get("USERS_CSV", "").strip()
+          if os.environ.get("EVENT_NAME") == "workflow_dispatch":
+              raw = os.environ.get("INPUT_USERS", "").strip()
               users = [part.strip() for part in raw.split(",") if part.strip()]
+          else:
+              payload = json.loads(os.environ.get("DISPATCH_PAYLOAD") or "{}")
+              users_raw = payload.get("users")
+              if not isinstance(users_raw, list):
+                  raise SystemExit("repository_dispatch payload must include a users list")
+              users = [str(name).strip() for name in users_raw if str(name).strip()]
 
           payload = update_registration(users)
           reg = payload["registration"]
