@@ -791,7 +791,21 @@ async function setMatchLive(openMatchIds, msg) {
     await postBroadcastLocally(payload, msg);
     return;
   }
-  await postBroadcastViaProxy(payload, msg);
+  const queued = await postBroadcastViaProxy(payload, msg);
+  if (queued) {
+    applyQueuedBroadcast(openMatchIds);
+  }
+}
+
+/** @param {number[]} openMatchIds */
+function applyQueuedBroadcast(openMatchIds) {
+  cachedBroadcast = normalizeBroadcast({
+    ...(cachedBroadcast || {}),
+    openMatchIds,
+    suppressAuto: false,
+  });
+  renderMatches(cachedMatches, cachedBroadcast);
+  applySelectedMatch();
 }
 
 /**
@@ -829,12 +843,12 @@ async function postBroadcastLocally(payload, msg) {
 async function postBroadcastViaProxy(payload, msg) {
   if (!isProxyConfigured()) {
     setMessage(msg, "Admin proxy is not configured yet.", "error");
-    return;
+    return false;
   }
   const password = getSavedAdminPassword();
   if (!password) {
     showLoginScreen("Sign in to go live.");
-    return;
+    return false;
   }
   setMessage(msg, "Updating…", "");
   try {
@@ -850,15 +864,17 @@ async function postBroadcastViaProxy(payload, msg) {
       if (response.status === 401) {
         clearSavedAdminPassword();
         showLoginScreen("Wrong password. Try again.");
-        return;
+        return false;
       }
       const text = await response.text();
       throw new Error(`${response.status}: ${text}`);
     }
     setMessage(msg, "Queued. Refresh scoreboard in ~1 min.", "success");
+    return true;
   } catch (err) {
     console.error(err);
     setMessage(msg, `Failed: ${err instanceof Error ? err.message : "unknown error"}`, "error");
+    return false;
   }
 }
 

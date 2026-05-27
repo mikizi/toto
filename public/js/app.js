@@ -1018,14 +1018,13 @@ function renderLeaderboard(container, leaderboard, animate = false) {
  */
 /**
  * @param {MatchEntry} match
- * @param {boolean} showLive
  */
-function singleHeroMatchHtml(match, showLive) {
+function singleHeroMatchHtml(match) {
   return `
     <div class="hero-match-slot">
       <div class="hero-grid">
         ${heroTeamBlock(match.home, "home")}
-        ${heroCenterBlock("VS", match.id, true, showLive)}
+        ${heroCenterBlock("VS", match.id, true)}
         ${heroTeamBlock(match.away, "away")}
       </div>
     </div>`;
@@ -1048,7 +1047,7 @@ function renderHeroMatch(el, data, previewNext = false, showLive = false, animat
     el.innerHTML = `
       <div class="hero-body-inner${dual ? " hero-body-inner--dual" : ""}">
         <div class="hero-dual-grid">
-          ${liveMatches.map((match) => singleHeroMatchHtml(match, true)).join("")}
+          ${liveMatches.map((match) => singleHeroMatchHtml(match)).join("")}
         </div>
       </div>`;
     el.classList.toggle("hero-animate", animate);
@@ -1073,7 +1072,7 @@ function renderHeroMatch(el, data, previewNext = false, showLive = false, animat
   if (next) {
     el.innerHTML = `
       <div class="hero-body-inner">
-        ${singleHeroMatchHtml(next, false)}
+        ${singleHeroMatchHtml(next)}
       </div>`;
     el.classList.toggle("hero-animate", animate);
     return;
@@ -1087,15 +1086,10 @@ function renderHeroMatch(el, data, previewNext = false, showLive = false, animat
  * @param {string} main
  * @param {number} matchId
  * @param {boolean} isVs
- * @param {boolean} [showLive]
  */
-function heroCenterBlock(main, matchId, isVs, showLive = false) {
-  const livePill = showLive
-    ? '<div class="hero-live-pill"><span class="hero-live-dot" aria-hidden="true"></span>Live</div>'
-    : "";
+function heroCenterBlock(main, matchId, isVs) {
   return `
     <div class="hero-center">
-      ${livePill}
       <div class="hero-score${isVs ? " hero-vs" : ""}">${main}</div>
       <div class="hero-meta">Match ${matchId}</div>
     </div>`;
