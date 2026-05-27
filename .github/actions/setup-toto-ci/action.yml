@@ -1,5 +1,5 @@
 name: Setup Toto CI
-description: Cached pip deps and optional cached LibreOffice Calc for data workflows
+description: Cached pip deps and optional LibreOffice Calc for data workflows
 
 inputs:
   libreoffice:
@@ -20,14 +20,25 @@ runs:
       shell: bash
       run: pip install -r requirements.txt
 
-    - name: Cache and install LibreOffice
+    - name: Cache apt packages
       if: inputs.libreoffice == 'true'
-      uses: awalsh128/cache-apt-packages@v2.1.2
+      uses: actions/cache@v4
       with:
-        packages: libreoffice-calc dbus-x11 xvfb
-        version: "1.0"
+        path: |
+          ~/apt-cache
+        key: ${{ runner.os }}-libreoffice-apt-v1
+        restore-keys: |
+          ${{ runner.os }}-libreoffice-apt-
 
-    - name: Verify LibreOffice
+    - name: Install LibreOffice
       if: inputs.libreoffice == 'true'
       shell: bash
-      run: soffice --version || libreoffice --version
+      run: |
+        set -euo pipefail
+        sudo mkdir -p /etc/apt/apt.conf.d
+        echo "Dir::Cache::Archives \"$HOME/apt-cache/archives\";" | sudo tee /etc/apt/apt.conf.d/99toto-apt-cache
+        mkdir -p "$HOME/apt-cache/archives/partial"
+        sudo apt-get update -qq
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+          libreoffice-calc dbus-x11 xvfb
+        soffice --version || libreoffice --version
