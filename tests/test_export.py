@@ -78,19 +78,22 @@ class TestExportFromXlsx(unittest.TestCase):
 
     def test_export_keeps_open_live_matches_even_after_start_score(self) -> None:
         base = build_export(XLSX_PATH)
-        played = next(match for match in base["matches"] if match["played"])
-        unplayed = next(match for match in base["matches"] if not match["played"])
-        payload = build_export(
-            XLSX_PATH,
-            {
-                "broadcast": {
-                    "mode": "manual",
-                    "openMatchIds": [played["id"], unplayed["id"]],
-                    "suppressAuto": False,
-                }
+        played_row = base["matches"][0]
+        unplayed_row = base["matches"][1]
+        previous = {
+            **base,
+            "broadcast": {
+                "mode": "manual",
+                "openMatchIds": [played_row["id"], unplayed_row["id"]],
+                "suppressAuto": False,
+                "autoPilot": True,
             },
+        }
+        payload = build_export(XLSX_PATH, previous)
+        self.assertEqual(
+            payload["broadcast"]["openMatchIds"],
+            [played_row["id"], unplayed_row["id"]],
         )
-        self.assertEqual(payload["broadcast"]["openMatchIds"], [played["id"], unplayed["id"]])
 
     def test_close_live_match_removes_only_finalized_match(self) -> None:
         payload = {"broadcast": {"openMatchIds": [4, 5], "mode": "manual", "suppressAuto": False}}

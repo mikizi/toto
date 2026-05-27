@@ -11,7 +11,7 @@ const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="currentColo
 
 /** @typedef {{ id: string, name: string, points: number, rank: number | null, champion: string | null, movement: string }} LeaderboardEntry */
 /** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null }} MatchEntry */
-/** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean }} BroadcastState */
+/** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ version: string, generatedAt: string, gamesPlayed: number, lastResult: object | null, leaderboard: LeaderboardEntry[], matches: MatchEntry[], broadcast?: BroadcastState, registration?: unknown }} TotoData */
 
 /** @type {number | undefined} */

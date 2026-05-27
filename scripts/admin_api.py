@@ -146,6 +146,11 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                     )
                 elif action == "suppress_auto":
                     payload = update_broadcast(suppress_auto=True)
+                elif action == "set_autopilot":
+                    auto_pilot = data.get("autoPilot")
+                    if auto_pilot is None:
+                        raise ValueError("autoPilot is required for set_autopilot")
+                    payload = update_broadcast(auto_pilot=bool(auto_pilot), mode="auto")
                 elif action == "clear_manual":
                     payload = update_broadcast(clear_manual=True)
                 else:

@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="../css/styles.css?v=6">
+    <link rel="stylesheet" href="../css/styles.css?v=7">
 </head>
 <body class="admin-body">
 <div id="loginScreen" class="admin-login hidden" aria-labelledby="loginTitle">
@@ -107,9 +107,30 @@
                 </div>
 
                 <section class="admin-panel admin-matches-panel" aria-label="All matches">
-                    <div class="admin-panel-head">
-                        <h2 class="admin-panel-title">Matches</h2>
-                        <p class="admin-panel-sub">Tap to publish · ▶ to go live</p>
+                    <div class="admin-panel-head admin-panel-head--autopilot">
+                        <div>
+                            <h2 class="admin-panel-title">Matches</h2>
+                            <p class="admin-panel-sub">Tap to publish · ▶ to go live</p>
+                        </div>
+                        <div class="admin-autopilot">
+                            <div class="admin-autopilot-copy">
+                                <span class="admin-autopilot-label">Autopilot</span>
+                                <span class="admin-autopilot-hint">Kickoff 0-0 &amp; API scores</span>
+                            </div>
+                            <button
+                                id="autopilotToggle"
+                                type="button"
+                                class="admin-autopilot-switch"
+                                role="switch"
+                                aria-checked="true"
+                                aria-label="Autopilot for live and API updates"
+                            >
+                                <span class="admin-autopilot-switch-track" aria-hidden="true">
+                                    <span class="admin-autopilot-switch-thumb"></span>
+                                </span>
+                                <span id="autopilotToggleText" class="admin-autopilot-state">On</span>
+                            </button>
+                        </div>
                     </div>
                     <p id="liveMsg" class="admin-msg admin-panel-msg" role="status" aria-live="polite"></p>
                     <div id="matchesList" class="admin-match-list" role="list"></div>
@@ -179,6 +200,6 @@
 
 <script src="../js/flags.js"></script>
 <script src="../js/live.js?v=4"></script>
-<script src="admin.js?v=7"></script>
+<script src="admin.js?v=8"></script>
 </body>
 </html>

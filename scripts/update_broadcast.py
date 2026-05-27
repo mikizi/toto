@@ -18,6 +18,7 @@ def apply_broadcast_update(
     *,
     open_match_ids: list[int] | None = None,
     suppress_auto: bool | None = None,
+    auto_pilot: bool | None = None,
     mode: str | None = None,
     clear_manual: bool = False,
 ) -> dict[str, Any]:
@@ -27,8 +28,12 @@ def apply_broadcast_update(
         broadcast["openMatchIds"] = []
     if open_match_ids is not None:
         broadcast["openMatchIds"] = open_match_ids[:2]
-    if suppress_auto is not None:
+    if auto_pilot is not None:
+        broadcast["autoPilot"] = auto_pilot
+        broadcast["suppressAuto"] = not auto_pilot
+    elif suppress_auto is not None:
         broadcast["suppressAuto"] = suppress_auto
+        broadcast["autoPilot"] = not suppress_auto
     if mode is not None and mode in ("auto", "manual"):
         broadcast["mode"] = mode
     payload["broadcast"] = broadcast
@@ -52,6 +57,7 @@ def update_broadcast(
     *,
     open_match_ids: list[int] | None = None,
     suppress_auto: bool | None = None,
+    auto_pilot: bool | None = None,
     mode: str | None = None,
     clear_manual: bool = False,
     latest_path: Path = LATEST_PATH,
@@ -64,6 +70,7 @@ def update_broadcast(
         payload,
         open_match_ids=open_match_ids,
         suppress_auto=suppress_auto,
+        auto_pilot=auto_pilot,
         mode=mode,
         clear_manual=clear_manual,
     )
@@ -133,7 +140,7 @@ def main() -> int:
     print(
         "Broadcast updated:",
         f"open={broadcast['openMatchIds']}",
-        f"suppressAuto={broadcast['suppressAuto']}",
+        f"autoPilot={broadcast['autoPilot']}",
         f"mode={broadcast['mode']}",
     )
     return 0

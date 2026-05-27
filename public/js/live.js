@@ -1,6 +1,6 @@
 /** Live match + scoreboard visibility (mirrors scripts/live_state.py). */
 
-/** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean }} BroadcastState */
+/** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null }} MatchEntry */
 /** @typedef {{ version: string, generatedAt: string, gamesPlayed: number, lastResult: object | null, leaderboard: object[], matches: MatchEntry[], broadcast?: BroadcastState }} TotoData */
 
@@ -8,6 +8,7 @@ const DEFAULT_BROADCAST = /** @type {BroadcastState} */ ({
   mode: "auto",
   openMatchIds: [],
   suppressAuto: false,
+  autoPilot: true,
 });
 
 const MAX_HERO_MATCHES = 2;
@@ -31,10 +32,13 @@ function normalizeBroadcast(raw) {
     }
   }
   const mode = obj.mode === "manual" ? "manual" : "auto";
+  const autoPilot =
+    typeof obj.autoPilot === "boolean" ? obj.autoPilot : !Boolean(obj.suppressAuto);
   return {
     mode,
     openMatchIds: openMatchIds.slice(0, MAX_HERO_MATCHES),
-    suppressAuto: Boolean(obj.suppressAuto),
+    suppressAuto: !autoPilot,
+    autoPilot,
   };
 }
 
@@ -100,7 +104,7 @@ function matchQualifiesForAutoLive(match, matches, nowMs = Date.now()) {
  */
 function autoLiveMatchIds(data, nowMs = Date.now()) {
   const broadcast = normalizeBroadcast(data.broadcast);
-  if (broadcast.suppressAuto) {
+  if (!broadcast.autoPilot) {
     return [];
   }
   const ids = [];
@@ -210,7 +214,7 @@ function isScoreboardLive(data, debug = false, nowMs = Date.now()) {
   if (!previousMatchesAllPlayed(matches, next.id)) {
     return false;
   }
-  if (broadcast.suppressAuto && data.gamesPlayed === 0) {
+  if (!broadcast.autoPilot && data.gamesPlayed === 0) {
     return false;
   }
   return true;

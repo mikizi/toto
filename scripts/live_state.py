@@ -10,6 +10,7 @@ DEFAULT_BROADCAST: dict[str, Any] = {
     "mode": "auto",
     "openMatchIds": [],
     "suppressAuto": False,
+    "autoPilot": True,
 }
 
 MAX_HERO_MATCHES = 2
@@ -50,11 +51,21 @@ def normalize_broadcast(raw: object | None) -> dict[str, Any]:
     mode = raw.get("mode")
     if mode not in ("auto", "manual"):
         mode = "auto"
+    if "autoPilot" in raw:
+        auto_pilot = bool(raw.get("autoPilot"))
+    else:
+        auto_pilot = not bool(raw.get("suppressAuto"))
     return {
         "mode": mode,
         "openMatchIds": open_ids[:MAX_HERO_MATCHES],
-        "suppressAuto": bool(raw.get("suppressAuto")),
+        "suppressAuto": not auto_pilot,
+        "autoPilot": auto_pilot,
     }
+
+
+def is_autopilot_enabled(data: dict[str, Any]) -> bool:
+    """Whether automatic kickoff 0-0 and future API score updates are allowed."""
+    return bool(normalize_broadcast(data.get("broadcast")).get("autoPilot"))
 
 
 def _matches_by_id(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
@@ -113,7 +124,7 @@ def auto_live_match_ids(
 ) -> list[int]:
     """Match ids that should be live under automatic kickoff rules."""
     broadcast = normalize_broadcast(data.get("broadcast"))
-    if broadcast["suppressAuto"]:
+    if not broadcast["autoPilot"]:
         return []
     moment = now or datetime.now(timezone.utc)
     matches = data.get("matches") or []
@@ -128,6 +139,15 @@ def auto_live_match_ids(
         if len(ids) >= MAX_HERO_MATCHES:
             break
     return ids
+
+
+def matches_needing_auto_kickoff_start(
+    data: dict[str, Any],
+    *,
+    now: datetime | None = None,
+) -> list[int]:
+    """Unplayed matches at kickoff that should get 0-0 written to the xlsx."""
+    return auto_live_match_ids(data, now=now)
 
 
 def manual_live_match_ids(data: dict[str, Any]) -> list[int]:
@@ -207,6 +227,6 @@ def is_scoreboard_live(
         return False
     if not previous_matches_all_played(matches, match_id):
         return False
-    if broadcast["suppressAuto"] and int(data.get("gamesPlayed") or 0) == 0:
+    if not broadcast["autoPilot"] and int(data.get("gamesPlayed") or 0) == 0:
         return False
     return True

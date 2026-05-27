@@ -1,0 +1,64 @@
+name: Reset tournament
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type RESET to clear all match scores and live state
+        required: true
+        type: string
+
+concurrency:
+  group: toto-data-writes
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    if: inputs.confirm == 'RESET'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install LibreOffice
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice-calc dbus-x11 xvfb
+          soffice --version || libreoffice --version
+
+      - name: Reset all match scores and export
+        env:
+          HOME: /tmp
+          SAL_USE_VCLPLUGIN: gen
+        run: PYTHONPATH=. python3 -u scripts/reset_scores.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add xlsx/Master\ WorldCup26.xlsx public/data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Reset tournament: clear all match scores"
+          git push
+
+  skipped:
+    if: inputs.confirm != 'RESET'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirmation required
+        run: |
+          echo "Skipped: workflow_dispatch confirm input must be exactly RESET"
+          exit 1

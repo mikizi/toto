@@ -67,6 +67,7 @@ export default {
             action,
             openMatchIds: Array.isArray(payload.openMatchIds) ? payload.openMatchIds : undefined,
             suppressAuto: payload.suppressAuto,
+            autoPilot: payload.autoPilot,
           },
         }),
       });

@@ -62,15 +62,21 @@ jobs:
               write_output("open_match_ids", os.environ.get("INPUT_OPEN_IDS", ""))
               write_output("open_json", "")
               write_output("suppress", "")
+              write_output("auto_pilot", "")
           else:
               payload = json.loads(os.environ.get("DISPATCH_PAYLOAD") or "{}")
               open_ids = payload.get("openMatchIds")
               suppress = payload.get("suppressAuto")
+              auto_pilot = payload.get("autoPilot")
 
               write_output("action", str(payload.get("action") or "set"))
               write_output("open_match_ids", "")
               write_output("open_json", json.dumps(open_ids) if isinstance(open_ids, list) else "")
               write_output("suppress", "" if suppress is None else str(bool(suppress)).lower())
+              write_output(
+                  "auto_pilot",
+                  "" if auto_pilot is None else str(bool(auto_pilot)).lower(),
+              )
           PY
 
       - name: Refresh latest state
@@ -85,6 +91,7 @@ jobs:
           OPEN_IDS: ${{ steps.inputs.outputs.open_match_ids }}
           OPEN_JSON: ${{ steps.inputs.outputs.open_json }}
           SUPPRESS: ${{ steps.inputs.outputs.suppress }}
+          AUTO_PILOT: ${{ steps.inputs.outputs.auto_pilot }}
         run: |
           PYTHONPATH=. python3 <<'PY'
           import json
@@ -108,6 +115,11 @@ jobs:
           if suppress != "":
               suppress_auto = suppress.lower() in ("1", "true", "yes")
 
+          auto_pilot_raw = os.environ.get("AUTO_PILOT", "").strip()
+          auto_pilot = None
+          if auto_pilot_raw != "":
+              auto_pilot = auto_pilot_raw.lower() in ("1", "true", "yes")
+
           current_open_ids = set()
           latest_path = Path("public/data/latest.json")
           if latest_path.exists():
@@ -129,6 +141,10 @@ jobs:
               update_broadcast(open_match_ids=[], suppress_auto=False, mode="auto", clear_manual=True)
           elif action == "suppress_auto":
               update_broadcast(suppress_auto=True)
+          elif action == "set_autopilot":
+              if auto_pilot is None:
+                  raise SystemExit("set_autopilot requires autoPilot in payload")
+              update_broadcast(auto_pilot=auto_pilot, mode="auto")
           elif action == "clear_manual":
               update_broadcast(clear_manual=True)
           else:

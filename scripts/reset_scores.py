@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import argparse
 import shutil
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 
@@ -67,9 +69,60 @@ def reset_scores(
         print("Run: python scripts/libreoffice_recalc.py && python scripts/export_summary.py")
 
 
-def main() -> None:
-    reset_scores()
+def reset_tournament(
+    xlsx_path: Path = XLSX_PATH,
+    *,
+    backup: bool = True,
+) -> dict[str, Any]:
+    """Clear all results in xlsx, recalc, export site JSON, and clear live broadcast."""
+    from scripts.export_summary import build_export, write_export
+    from scripts.update_broadcast import apply_broadcast_update
+    from scripts.validate_export import validate
+
+    reset_scores(xlsx_path=xlsx_path, backup=backup, recalc_after=True)
+    payload = build_export(xlsx_path, previous=None)
+    payload = apply_broadcast_update(
+        payload,
+        open_match_ids=[],
+        suppress_auto=False,
+        mode="auto",
+        clear_manual=True,
+    )
+    write_export(payload)
+    errors = validate(payload)
+    if errors:
+        raise RuntimeError(f"Export validation failed: {errors}")
+    print(
+        f"Tournament reset: {payload['gamesPlayed']} games played, "
+        f"version {payload['version']}"
+    )
+    return payload
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Reset tournament scores and site data")
+    parser.add_argument(
+        "--export-only",
+        action="store_true",
+        help="Only rebuild latest.json from current xlsx (no score clear)",
+    )
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="Skip copying xlsx to simulation-backup before clearing",
+    )
+    args = parser.parse_args()
+    backup = not args.no_backup
+    if args.export_only:
+        from scripts.export_summary import build_export, write_export
+
+        payload = build_export(XLSX_PATH)
+        write_export(payload)
+        print(f"Exported version {payload['version']}")
+        return 0
+    reset_tournament(backup=backup)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

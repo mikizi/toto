@@ -13,6 +13,7 @@ from scripts.live_state import (
     is_scoreboard_live,
     manual_live_match_ids,
     match_qualifies_for_auto_live,
+    normalize_broadcast,
     previous_matches_all_played,
 )
 
@@ -45,6 +46,14 @@ def _payload(
 
 
 class TestLiveState(unittest.TestCase):
+    def test_normalize_broadcast_syncs_autopilot(self) -> None:
+        off = normalize_broadcast({"autoPilot": False, "openMatchIds": []})
+        self.assertFalse(off["autoPilot"])
+        self.assertTrue(off["suppressAuto"])
+        on = normalize_broadcast({"suppressAuto": False})
+        self.assertTrue(on["autoPilot"])
+        self.assertFalse(on["suppressAuto"])
+
     def test_previous_matches_all_played(self) -> None:
         matches = [_match(1, played=True), _match(2), _match(3)]
         self.assertTrue(previous_matches_all_played(matches, 2))
@@ -90,11 +99,11 @@ class TestLiveState(unittest.TestCase):
         self.assertEqual(manual_live_match_ids(data), [1])
         self.assertEqual(hero_live_match_ids(data), [1])
 
-    def test_suppress_auto_blocks_first_kickoff(self) -> None:
+    def test_autopilot_off_blocks_first_kickoff(self) -> None:
         past = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
         data = _payload(
             [_match(1, kickoff_at=past)],
-            broadcast={"openMatchIds": [], "suppressAuto": True, "mode": "auto"},
+            broadcast={"openMatchIds": [], "autoPilot": False, "mode": "auto"},
         )
         self.assertFalse(is_scoreboard_live(data))
         self.assertEqual(hero_live_match_ids(data), [])

@@ -12,6 +12,7 @@ on:
         "Update registration",
         "Reset tournament",
         "Auto-start kickoff matches",
+        "Sync ESPN scores",
       ]
     types: [completed]
 

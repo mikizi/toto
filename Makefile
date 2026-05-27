@@ -1,4 +1,4 @@
-.PHONY: test serve dev export simulate simulate-restore simulate-ci simulate-scores
+.PHONY: test serve dev export reset-tournament auto-start-kickoff sync-espn-scores simulate simulate-restore simulate-ci simulate-scores
 
 test:
 	python3 scripts/run_local_tests.py
@@ -12,6 +12,21 @@ serve:
 
 dev:
 	./scripts/serve_local.sh
+
+reset-tournament:
+	PYTHONPATH=. python3 scripts/reset_scores.py
+
+auto-start-kickoff:
+	PYTHONPATH=. python3 scripts/auto_start_kickoff.py
+
+auto-start-kickoff-dry:
+	PYTHONPATH=. python3 scripts/auto_start_kickoff.py --dry-run
+
+sync-espn-scores:
+	PYTHONPATH=. python3 scripts/sync_scores_espn.py
+
+sync-espn-scores-dry:
+	PYTHONPATH=. python3 scripts/sync_scores_espn.py --dry-run
 
 simulate:
 	python3 scripts/simulate_kickoff.py --minutes 5

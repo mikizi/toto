@@ -22,7 +22,7 @@ const IS_LOCAL =
   location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
 /** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt?: string | null }} AdminMatch */
-/** @typedef {{ mode: string, openMatchIds: number[], suppressAuto: boolean }} BroadcastState */
+/** @typedef {{ mode: string, openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ users: string[], count: number, entryFee: number, goalUsers: number, goalPrize: number, prizePool: number, closesAt: string | null }} RegistrationState */
 
 /** @type {AdminMatch[]} */
@@ -59,6 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("regPlayerChips")?.addEventListener("click", onRegistrationChipClick);
   document.querySelectorAll(".admin-tab").forEach((btn) => {
     btn.addEventListener("click", onAdminTabClick);
+  });
+  document.getElementById("autopilotToggle")?.addEventListener("click", () => {
+    void onAutopilotToggle();
   });
   setupModeBanner();
   initAuth();
@@ -241,6 +244,7 @@ async function loadData() {
     cachedMatches = data.matches;
     cachedBroadcast = normalizeBroadcast(data.broadcast);
     cachedRegistration = normalizeRegistration(data.registration, data.matches);
+    renderAutopilotToggle(cachedBroadcast);
     renderRegistration(cachedRegistration);
     renderMatches(data.matches, cachedBroadcast);
     renderLeaderboard(data.leaderboard);
@@ -921,11 +925,81 @@ async function toggleMatchLive(matchId) {
  * @param {number[]} openMatchIds
  * @param {HTMLElement | null} msg
  */
+/**
+ * @param {BroadcastState} broadcast
+ */
+function renderAutopilotToggle(broadcast) {
+  const toggle = document.getElementById("autopilotToggle");
+  const stateText = document.getElementById("autopilotToggleText");
+  if (!toggle) {
+    return;
+  }
+  const enabled = Boolean(broadcast.autoPilot);
+  toggle.setAttribute("aria-checked", String(enabled));
+  toggle.classList.toggle("is-on", enabled);
+  toggle.classList.toggle("is-off", !enabled);
+  toggle.disabled = false;
+  if (stateText) {
+    stateText.textContent = enabled ? "On" : "Off";
+  }
+}
+
+async function onAutopilotToggle() {
+  const toggle = document.getElementById("autopilotToggle");
+  const msg = document.getElementById("liveMsg");
+  if (!toggle || toggle.disabled) {
+    return;
+  }
+  const enabled = toggle.getAttribute("aria-checked") !== "true";
+  await setAutopilot(enabled, msg);
+}
+
+/**
+ * @param {boolean} enabled
+ * @param {HTMLElement | null} msg
+ */
+async function setAutopilot(enabled, msg) {
+  const toggle = document.getElementById("autopilotToggle");
+  if (toggle) {
+    toggle.disabled = true;
+  }
+  const payload = {
+    action: "set_autopilot",
+    autoPilot: enabled,
+  };
+  if (IS_LOCAL) {
+    await postBroadcastLocally(payload, msg);
+    if (toggle) {
+      toggle.disabled = false;
+    }
+    return;
+  }
+  const queued = await postBroadcastViaProxy(payload, msg);
+  if (queued) {
+    applyQueuedAutopilot(enabled);
+  }
+  if (toggle) {
+    toggle.disabled = false;
+  }
+}
+
+/** @param {boolean} enabled */
+function applyQueuedAutopilot(enabled) {
+  cachedBroadcast = normalizeBroadcast({
+    ...(cachedBroadcast || {}),
+    autoPilot: enabled,
+    suppressAuto: !enabled,
+  });
+  renderAutopilotToggle(cachedBroadcast);
+  if (cachedMatches.length) {
+    renderMatches(cachedMatches, cachedBroadcast);
+  }
+}
+
 async function setMatchLive(openMatchIds, msg) {
   const payload = {
     action: openMatchIds.length === 0 ? "clear_manual" : "set",
     openMatchIds,
-    suppressAuto: false,
   };
   if (IS_LOCAL) {
     await postBroadcastLocally(payload, msg);
@@ -948,7 +1022,6 @@ function applyQueuedBroadcast(openMatchIds) {
   cachedBroadcast = normalizeBroadcast({
     ...(cachedBroadcast || {}),
     openMatchIds,
-    suppressAuto: false,
   });
   renderMatches(cachedMatches, cachedBroadcast);
   applySelectedMatch();
