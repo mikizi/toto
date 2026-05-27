@@ -1,14 +1,14 @@
 {
-  "version": "2026-05-27T182520Z",
-  "generatedAt": "2026-05-27T18:25:20.549335+00:00",
-  "gamesPlayed": 4,
+  "version": "2026-05-25T223008Z",
+  "generatedAt": "2026-05-25T22:30:08.197227+00:00",
+  "gamesPlayed": 3,
   "lastResult": {
-    "matchId": 4,
-    "teams": "United States-Paraguay",
-    "home": "United States",
-    "away": "Paraguay",
-    "homeScore": 0,
-    "awayScore": 0
+    "matchId": 3,
+    "teams": "Canada-Bosnia and Herzegovina",
+    "home": "Canada",
+    "away": "Bosnia and Herzegovina",
+    "homeScore": 2,
+    "awayScore": 1
   },
   "leaderboard": [
     {
@@ -96,9 +96,9 @@
       "teams": "United States-Paraguay",
       "home": "United States",
       "away": "Paraguay",
-      "homeScore": 0,
-      "awayScore": 0,
-      "played": true,
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
       "kickoffAt": "2026-06-13T01:00:00+00:00"
     },
     {
@@ -785,7 +785,7 @@
   "broadcast": {
     "mode": "auto",
     "openMatchIds": [
-      5
+      4
     ],
     "suppressAuto": false
   },
