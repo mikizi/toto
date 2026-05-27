@@ -43,9 +43,13 @@ def publish_match(
     xlsx_path: Path = XLSX_PATH,
     *,
     write: bool = True,
-    close_live: bool = True,
+    close_live: bool = False,
 ) -> dict:
-    """Apply result to xlsx and export public/data/latest.json."""
+    """Apply result to xlsx and export public/data/latest.json.
+
+    Score publish does not stop the live hero by default; use Stop in admin
+    (clear_manual) or pass close_live=True to drop this match from openMatchIds.
+    """
     teams, home, away = patch_match(match_id, home_score, away_score, xlsx_path)
     recalc(xlsx_path, require_cached=False)
     previous = None
@@ -113,6 +117,11 @@ def main() -> int:
         action="store_true",
         help="Clear the match score instead of publishing a score",
     )
+    parser.add_argument(
+        "--close-live",
+        action="store_true",
+        help="Remove this match from broadcast openMatchIds after publish",
+    )
     args = parser.parse_args()
     try:
         if args.restore:
@@ -125,6 +134,7 @@ def main() -> int:
                 args.home_score,
                 args.away_score,
                 args.xlsx,
+                close_live=args.close_live,
             )
     except Exception as exc:
         print(exc, file=sys.stderr)
