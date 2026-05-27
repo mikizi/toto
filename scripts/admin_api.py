@@ -213,7 +213,9 @@ class AdminApiHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            result = publish_match(match_id, home_score, away_score)
+            result = publish_match(
+                match_id, home_score, away_score, close_live=False
+            )
         except Exception as exc:
             self._send_json(500, {"ok": False, "error": str(exc)})
             return

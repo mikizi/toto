@@ -10,7 +10,13 @@ from pathlib import Path
 
 from scripts.export_summary import _cell_int, _cell_number, _cell_text, build_export, write_export
 from scripts.patch_match import clear_match_score, find_match_row, patch_match
-from scripts.publish_match import close_live_match
+import inspect
+
+from scripts.publish_match import (
+    _restore_open_match_ids_from_previous,
+    close_live_match,
+    publish_match,
+)
 from scripts.validate_export import validate
 
 from scripts.paths import BACKUP_PATH, XLSX_PATH
@@ -99,6 +105,27 @@ class TestExportFromXlsx(unittest.TestCase):
         payload = {"broadcast": {"openMatchIds": [4, 5], "mode": "manual", "suppressAuto": False}}
         close_live_match(payload, 4)
         self.assertEqual(payload["broadcast"]["openMatchIds"], [5])
+
+    def test_publish_match_default_keeps_live_open(self) -> None:
+        default = inspect.signature(publish_match).parameters["close_live"].default
+        self.assertIs(default, False)
+
+    def test_restore_open_match_ids_from_previous(self) -> None:
+        base = build_export(XLSX_PATH)
+        previous = {
+            **base,
+            "broadcast": {
+                "mode": "manual",
+                "openMatchIds": [2],
+                "suppressAuto": True,
+                "autoPilot": False,
+            },
+        }
+        payload = build_export(XLSX_PATH, {"broadcast": {"openMatchIds": [], "mode": "auto"}})
+        close_live_match(payload, 2)
+        self.assertEqual(payload["broadcast"]["openMatchIds"], [])
+        _restore_open_match_ids_from_previous(payload, previous)
+        self.assertEqual(payload["broadcast"]["openMatchIds"], [2])
 
     def test_write_export_roundtrip(self) -> None:
         payload = build_export(XLSX_PATH)

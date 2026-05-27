@@ -108,6 +108,7 @@ jobs:
               --restore
             exit 0
           fi
+          # close_live defaults to false — live ends only via admin Stop
           PYTHONPATH=. python3 -u scripts/publish_match.py \
             "${{ steps.inputs.outputs.match_id }}" \
             "${{ steps.inputs.outputs.home_score }}" \

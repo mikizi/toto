@@ -18,6 +18,28 @@ from scripts.paths import LATEST_PATH, XLSX_PATH
 from scripts.validate_export import validate
 
 
+def _restore_open_match_ids_from_previous(payload: dict, previous: dict) -> None:
+    """Keep live list from before publish (export already does; reinforce for races)."""
+    prev_broadcast = previous.get("broadcast")
+    if not isinstance(prev_broadcast, dict):
+        return
+    prev_open = prev_broadcast.get("openMatchIds")
+    if not isinstance(prev_open, list):
+        return
+    broadcast = payload.get("broadcast")
+    if not isinstance(broadcast, dict):
+        return
+    restored: list[int] = []
+    for value in prev_open:
+        try:
+            match_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if match_id > 0 and match_id not in restored:
+            restored.append(match_id)
+    broadcast["openMatchIds"] = restored[:2]
+
+
 def close_live_match(payload: dict, match_id: int) -> None:
     """Remove a finalized match from the live broadcast list."""
     broadcast = payload.get("broadcast")
@@ -58,6 +80,8 @@ def publish_match(
     payload = build_export(xlsx_path, previous)
     if close_live:
         close_live_match(payload, match_id)
+    elif previous:
+        _restore_open_match_ids_from_previous(payload, previous)
     if write:
         write_export(payload)
     errors = validate(payload)
