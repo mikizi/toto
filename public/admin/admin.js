@@ -449,7 +449,7 @@ function adminMatchNameHtml(teamName, withTitle = true) {
  * @param {string} teamName
  */
 function adminPublishEndHtml(teamName) {
-  return `<span class="admin-publish-flag">${flagHtml(teamName, "sm")}</span><span class="admin-publish-team-name" title="${escapeHtml(teamName)}">${escapeHtml(adminShortTeamName(teamName))}</span>`;
+  return `<span class="admin-publish-flag">${flagHtml(teamName, "sm")}</span><span class="admin-publish-team-name" title="${escapeHtml(teamName)}">${escapeHtml(teamName)}</span>`;
 }
 
 /** @param {AdminMatch | undefined} match */
