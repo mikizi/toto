@@ -1,56 +1,63 @@
 {
-  "version": "2026-05-27T190447Z",
-  "generatedAt": "2026-05-27T19:04:47.706925+00:00",
-  "gamesPlayed": 0,
-  "lastResult": null,
+  "version": "2026-05-27T185056Z",
+  "generatedAt": "2026-05-27T18:50:56.630303+00:00",
+  "gamesPlayed": 5,
+  "lastResult": {
+    "matchId": 5,
+    "teams": "Haiti-Scotland",
+    "home": "Haiti",
+    "away": "Scotland",
+    "homeScore": 0,
+    "awayScore": 0
+  },
   "leaderboard": [
+    {
+      "id": "001",
+      "name": "MikiZiso3",
+      "points": 11.0,
+      "rank": 1,
+      "champion": "France",
+      "movement": "same"
+    },
     {
       "id": "003",
       "name": "Miki_Ziso",
-      "points": 0.0,
-      "rank": 1,
+      "points": 8.0,
+      "rank": 2,
       "champion": "Brazil",
       "movement": "same"
     },
     {
       "id": "002",
       "name": "MikiZiso2",
-      "points": 0.0,
-      "rank": 2,
+      "points": 8.0,
+      "rank": 3,
       "champion": "Germany",
       "movement": "same"
     },
     {
-      "id": "001",
-      "name": "MikiZiso3",
-      "points": 0.0,
-      "rank": 3,
-      "champion": "France",
+      "id": "006",
+      "name": "Nir3",
+      "points": 8.0,
+      "rank": 4,
+      "champion": "Uzbekistan",
       "movement": "same"
     },
     {
       "id": "004",
       "name": "Nir1",
       "points": 0.0,
-      "rank": 4,
+      "rank": 5,
       "champion": "Senegal",
-      "movement": "up"
+      "movement": "same"
     },
     {
       "id": "005",
       "name": "Nir2",
       "points": 0.0,
-      "rank": 5,
-      "champion": "Belgium",
-      "movement": "up"
-    },
-    {
-      "id": "006",
-      "name": "Nir3",
-      "points": 0.0,
       "rank": 6,
-      "champion": "Uzbekistan",
-      "movement": "down"
+      "champion": "Belgium",
+      "movement": "same"
     }
   ],
   "matches": [
@@ -59,9 +66,9 @@
       "teams": "Mexico-South Africa",
       "home": "Mexico",
       "away": "South Africa",
-      "homeScore": null,
-      "awayScore": null,
-      "played": false,
+      "homeScore": 2,
+      "awayScore": 1,
+      "played": true,
       "kickoffAt": "2026-06-11T19:00:00+00:00"
     },
     {
@@ -69,9 +76,9 @@
       "teams": "Korea Republic-Czech Republic",
       "home": "Korea Republic",
       "away": "Czech Republic",
-      "homeScore": null,
-      "awayScore": null,
-      "played": false,
+      "homeScore": 1,
+      "awayScore": 0,
+      "played": true,
       "kickoffAt": "2026-06-12T02:00:00+00:00"
     },
     {
@@ -79,9 +86,9 @@
       "teams": "Canada-Bosnia and Herzegovina",
       "home": "Canada",
       "away": "Bosnia and Herzegovina",
-      "homeScore": null,
-      "awayScore": null,
-      "played": false,
+      "homeScore": 2,
+      "awayScore": 1,
+      "played": true,
       "kickoffAt": "2026-06-12T19:00:00+00:00"
     },
     {
@@ -89,9 +96,9 @@
       "teams": "United States-Paraguay",
       "home": "United States",
       "away": "Paraguay",
-      "homeScore": null,
-      "awayScore": null,
-      "played": false,
+      "homeScore": 0,
+      "awayScore": 0,
+      "played": true,
       "kickoffAt": "2026-06-13T01:00:00+00:00"
     },
     {
@@ -99,9 +106,9 @@
       "teams": "Haiti-Scotland",
       "home": "Haiti",
       "away": "Scotland",
-      "homeScore": null,
-      "awayScore": null,
-      "played": false,
+      "homeScore": 0,
+      "awayScore": 0,
+      "played": true,
       "kickoffAt": "2026-06-14T01:00:00+00:00"
     },
     {

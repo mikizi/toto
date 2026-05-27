@@ -1,56 +1,63 @@
 {
-  "version": "2026-05-27T190447Z",
-  "generatedAt": "2026-05-27T19:04:47.706925+00:00",
-  "gamesPlayed": 0,
-  "lastResult": null,
+  "version": "2026-05-27T190400Z",
+  "generatedAt": "2026-05-27T19:04:00.805058+00:00",
+  "gamesPlayed": 1,
+  "lastResult": {
+    "matchId": 3,
+    "teams": "Canada-Bosnia and Herzegovina",
+    "home": "Canada",
+    "away": "Bosnia and Herzegovina",
+    "homeScore": 2,
+    "awayScore": 1
+  },
   "leaderboard": [
     {
       "id": "003",
       "name": "Miki_Ziso",
-      "points": 0.0,
+      "points": 5.0,
       "rank": 1,
       "champion": "Brazil",
-      "movement": "same"
+      "movement": "up"
     },
     {
       "id": "002",
       "name": "MikiZiso2",
-      "points": 0.0,
+      "points": 5.0,
       "rank": 2,
       "champion": "Germany",
-      "movement": "same"
+      "movement": "up"
     },
     {
       "id": "001",
       "name": "MikiZiso3",
-      "points": 0.0,
+      "points": 5.0,
       "rank": 3,
       "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "006",
+      "name": "Nir3",
+      "points": 5.0,
+      "rank": 4,
+      "champion": "Uzbekistan",
       "movement": "same"
     },
     {
       "id": "004",
       "name": "Nir1",
       "points": 0.0,
-      "rank": 4,
+      "rank": 5,
       "champion": "Senegal",
-      "movement": "up"
+      "movement": "same"
     },
     {
       "id": "005",
       "name": "Nir2",
       "points": 0.0,
-      "rank": 5,
-      "champion": "Belgium",
-      "movement": "up"
-    },
-    {
-      "id": "006",
-      "name": "Nir3",
-      "points": 0.0,
       "rank": 6,
-      "champion": "Uzbekistan",
-      "movement": "down"
+      "champion": "Belgium",
+      "movement": "same"
     }
   ],
   "matches": [
@@ -79,9 +86,9 @@
       "teams": "Canada-Bosnia and Herzegovina",
       "home": "Canada",
       "away": "Bosnia and Herzegovina",
-      "homeScore": null,
-      "awayScore": null,
-      "played": false,
+      "homeScore": 2,
+      "awayScore": 1,
+      "played": true,
       "kickoffAt": "2026-06-12T19:00:00+00:00"
     },
     {
