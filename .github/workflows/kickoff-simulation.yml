@@ -22,6 +22,8 @@ jobs:
   simulate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      PYTHONPATH: .
 
     steps:
       - uses: actions/checkout@v4
@@ -33,25 +35,31 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      - name: Install LibreOffice
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice-calc dbus-x11 xvfb
+          soffice --version || libreoffice --version
+
       - name: Install Playwright
         run: |
           pip install playwright
           playwright install chromium
 
       - name: Score change simulation (patch → recalc → export)
-        run: python scripts/score_simulation.py
+        run: python3 scripts/score_simulation.py
 
       - name: Prepare kickoff simulation
         run: |
-          python scripts/simulate_kickoff.py \
+          python3 scripts/simulate_kickoff.py \
             --json-only \
             --seconds "${{ inputs.wait_seconds || '20' }}"
 
       - name: Verify coming soon → scoreboard transition
         run: |
-          python scripts/verify_kickoff_ui.py \
+          python3 scripts/verify_kickoff_ui.py \
             --start-server \
             --wait-seconds "${{ inputs.wait_seconds || '20' }}"
 
       - name: Run kickoff unit tests
-        run: python scripts/run_local_tests.py
+        run: python3 scripts/run_local_tests.py
