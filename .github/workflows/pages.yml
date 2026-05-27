@@ -5,7 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:
   workflow_run:
-    workflows: ["Publish match result", "Update live broadcast"]
+    workflows:
+      [
+        "Publish match result",
+        "Update live broadcast",
+        "Update registration",
+        "Reset tournament",
+        "Auto-start kickoff matches",
+      ]
     types: [completed]
 
 permissions:
