@@ -6,6 +6,8 @@ const BROADCAST_EVENT_TYPE = "update-broadcast";
 const REGISTRATION_EVENT_TYPE = "update-registration";
 const XLSX_REPO_PATH = "xlsx/Master WorldCup26.xlsx";
 const XLSX_DOWNLOAD_NAME = "Master WorldCup26.xlsx";
+const PRESENCE_TTL_SECONDS = 75;
+const PRESENCE_KEY_PREFIX = "viewer:";
 
 export default {
   async fetch(request, env) {
@@ -22,6 +24,10 @@ export default {
     }
 
     const url = new URL(request.url);
+    if (url.pathname === "/presence") {
+      return handlePresence(request, env, corsHeaders);
+    }
+
     const allowedPaths = ["/publish", "/restore", "/broadcast", "/registration", "/xlsx"];
     if (!allowedPaths.includes(url.pathname)) {
       return jsonResponse({ ok: false, error: "Not found" }, 404, corsHeaders);
@@ -198,6 +204,64 @@ export default {
     );
   },
 };
+
+async function handlePresence(request, env, corsHeaders) {
+  if (!env.VIEWER_PRESENCE) {
+    return jsonResponse(
+      { ok: false, error: "Presence storage is not configured" },
+      503,
+      corsHeaders
+    );
+  }
+
+  if (request.method !== "GET" && request.method !== "POST") {
+    return jsonResponse({ ok: false, error: "Method not allowed" }, 405, corsHeaders);
+  }
+
+  if (request.method === "POST") {
+    const payload = await readJson(request);
+    const id = sanitizePresenceId(payload.id);
+    if (!id) {
+      return jsonResponse({ ok: false, error: "Invalid viewer id" }, 400, corsHeaders);
+    }
+    await env.VIEWER_PRESENCE.put(`${PRESENCE_KEY_PREFIX}${id}`, "1", {
+      expirationTtl: PRESENCE_TTL_SECONDS,
+    });
+  }
+
+  const viewers = await countPresenceKeys(env.VIEWER_PRESENCE);
+  return jsonResponse(
+    { ok: true, viewers, ttlSeconds: PRESENCE_TTL_SECONDS },
+    200,
+    {
+      ...corsHeaders,
+      "Cache-Control": "no-store",
+    }
+  );
+}
+
+function sanitizePresenceId(value) {
+  const id = String(value || "").trim();
+  if (!/^[a-zA-Z0-9._:-]{8,80}$/.test(id)) {
+    return "";
+  }
+  return id;
+}
+
+async function countPresenceKeys(kv) {
+  let cursor;
+  let count = 0;
+  do {
+    const page = await kv.list({
+      prefix: PRESENCE_KEY_PREFIX,
+      cursor,
+      limit: 1000,
+    });
+    count += page.keys.length;
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  return count;
+}
 
 async function downloadWorkbook(env, corsHeaders) {
   const repo = env.GITHUB_REPO || DEFAULT_REPO;

@@ -6,3 +6,7 @@ workers_dev = true
 [vars]
 GITHUB_REPO = "mikizi/toto"
 ALLOWED_ORIGIN = "https://mikizi.github.io"
+
+[[kv_namespaces]]
+binding = "VIEWER_PRESENCE"
+id = "94bba43f2bea4dde8d5e00577511864f"

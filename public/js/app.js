@@ -5,7 +5,9 @@ const SHOW_LEADERBOARD_ROWS = false;
 
 const DATA_URL = "data/latest.json";
 const VERSION_URL = "data/version.json";
+const PRESENCE_URL = "https://toto-admin-publish.mikizi-toto.workers.dev/presence";
 const LIVE_POLL_MS = 20000;
+const PRESENCE_POLL_MS = 15000;
 const UPDATE_TOAST_MS = 6000;
 
 const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 19h14v2H5v-2zm1.6-9.2L12 4l5.4 5.8L19 8l1 9H4l1.6-8.2z"/></svg>`;
@@ -26,6 +28,9 @@ let knownVersion = null;
 
 /** @type {number | undefined} */
 let livePollTimerId;
+
+/** @type {number | undefined} */
+let presencePollTimerId;
 
 /** @type {number | undefined} */
 let updateToastTimerId;
@@ -284,15 +289,91 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopLivePolling();
+      stopPresencePolling();
       return;
     }
+    startPresencePolling();
     if (knownVersion) {
       void pollForUpdates();
       startLivePolling();
     }
   });
+  startPresencePolling();
   loadData(false);
 });
+
+/** @returns {string} */
+function getPresenceClientId() {
+  const key = "wc26-presence-id";
+  const existing = window.localStorage.getItem(key);
+  if (existing) {
+    return existing;
+  }
+  const id =
+    window.crypto?.randomUUID?.() ||
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  window.localStorage.setItem(key, id);
+  return id;
+}
+
+/** @param {number} viewers */
+function renderViewerCount(viewers) {
+  const el = document.getElementById("viewerCount");
+  if (!el) {
+    return;
+  }
+  const safeCount = Math.max(1, Math.round(viewers));
+  el.textContent = `${safeCount} viewing`;
+  el.classList.remove("hidden");
+}
+
+function hideViewerCount() {
+  document.getElementById("viewerCount")?.classList.add("hidden");
+}
+
+async function updatePresence() {
+  if (document.hidden) {
+    return;
+  }
+  try {
+    const response = await fetch(PRESENCE_URL, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: getPresenceClientId() }),
+    });
+    if (!response.ok) {
+      hideViewerCount();
+      return;
+    }
+    const payload = await response.json();
+    if (payload && payload.ok === true && Number.isFinite(Number(payload.viewers))) {
+      renderViewerCount(Number(payload.viewers));
+      return;
+    }
+    hideViewerCount();
+  } catch (err) {
+    hideViewerCount();
+  }
+}
+
+function startPresencePolling() {
+  void updatePresence();
+  if (presencePollTimerId !== undefined) {
+    return;
+  }
+  presencePollTimerId = window.setInterval(() => {
+    void updatePresence();
+  }, PRESENCE_POLL_MS);
+}
+
+function stopPresencePolling() {
+  if (presencePollTimerId === undefined) {
+    return;
+  }
+  window.clearInterval(presencePollTimerId);
+  presencePollTimerId = undefined;
+}
 
 /** @param {TotoData} data @param {number} [limit] */
 function upcomingMatches(data, limit = 3) {

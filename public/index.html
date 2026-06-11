@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://flagcdn.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="css/styles.css?v=32">
+    <link rel="stylesheet" href="css/styles.css?v=33">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
     <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png">
@@ -42,6 +42,7 @@
                 </div>
             </div>
             <div class="top-bar-actions">
+                <span id="viewerCount" class="viewer-count hidden" aria-live="polite"></span>
                 <span id="liveBadge" class="live-badge hidden" aria-label="Live">Live</span>
                 <button id="refreshBtn" type="button" class="btn-refresh hidden" aria-label="Refresh">
                     <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -196,7 +197,7 @@
 
 <script src="js/flags.js?v=6"></script>
 <script src="js/live.js?v=4"></script>
-<script src="js/app.js?v=28"></script>
+<script src="js/app.js?v=29"></script>
 <script src="js/player.js?v=13"></script>
 </body>
 </html>
