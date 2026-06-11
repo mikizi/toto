@@ -1147,6 +1147,34 @@ body {
     max-height: min(70vh, 52rem);
 }
 
+.lb-coming-soon {
+    grid-column: 1 / -1;
+    min-height: 13.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.lb-coming-soon-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+}
+
+.lb-coming-soon-copy {
+    max-width: 18rem;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
 .lb-row {
     grid-column: 1 / -1;
     display: grid;

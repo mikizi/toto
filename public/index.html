@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://flagcdn.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="css/styles.css?v=31">
+    <link rel="stylesheet" href="css/styles.css?v=32">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
     <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png">
@@ -103,7 +103,7 @@
         </div>
 
         <div class="desktop-dashboard">
-            <section class="leaderboard glass-panel" aria-label="Leaderboard">
+            <section id="standingsPanel" class="leaderboard glass-panel" aria-label="Leaderboard">
                 <div class="lb-header">
                     <span class="lb-col lb-col-rank"><span class="lb-h-long">Rank</span><span class="lb-h-short">Rk</span></span>
                     <span class="lb-col lb-col-trend"><span class="lb-h-long">Last</span><span class="lb-h-short">Last</span></span>
@@ -116,8 +116,8 @@
                 </button>
             </section>
 
-            <aside class="next-games-panel glass-panel" aria-label="Next games">
-                <h2 class="panel-title">Next Games</h2>
+            <aside class="next-games-panel glass-panel" aria-label="Games and results">
+                <h2 class="panel-title">Games &amp; Results</h2>
                 <div class="next-games-scroll-wrap">
                     <div id="nextGamesScrollHint" class="next-games-scroll-hint hidden" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -196,7 +196,7 @@
 
 <script src="js/flags.js?v=6"></script>
 <script src="js/live.js?v=4"></script>
-<script src="js/app.js?v=27"></script>
+<script src="js/app.js?v=28"></script>
 <script src="js/player.js?v=13"></script>
 </body>
 </html>

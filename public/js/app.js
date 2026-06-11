@@ -1,6 +1,7 @@
 /** World Cup 2026 scoreboard — reads data/latest.json */
 
 const LEADERBOARD_PREVIEW_ROWS = 10;
+const SHOW_LEADERBOARD_ROWS = false;
 
 const DATA_URL = "data/latest.json";
 const VERSION_URL = "data/version.json";
@@ -765,6 +766,7 @@ function stopLivePolling() {
  */
 async function loadData(fromUserClick, options = {}) {
   const table = document.getElementById("betsTable");
+  const standingsBtn = document.getElementById("viewStandingsBtn");
   const gamesBadge = document.getElementById("gamesBadge");
   const countdown = document.getElementById("countdown");
   if (gamesBadge && cachedData && isScoreboardLive(cachedData, isDebugMode())) {
@@ -795,7 +797,12 @@ async function loadData(fromUserClick, options = {}) {
     renderRegistrationCounter(data);
 
     if (isScoreboardLive(data, isDebugMode())) {
-      renderLeaderboard(table, data.leaderboard, animate);
+      if (SHOW_LEADERBOARD_ROWS) {
+        renderLeaderboard(table, data.leaderboard, animate);
+      } else {
+        renderLeaderboardComingSoon(table);
+        standingsBtn?.classList.add("hidden");
+      }
       renderNextGames(
         document.getElementById("nextGamesList"),
         document.getElementById("nextGamesScroll"),
@@ -937,6 +944,21 @@ function gamesBadgeHtml(count, justUpdated) {
     return '<span class="games-badge-dot">●</span> Waiting for kickoff';
   }
   return `<span class="games-badge-dot">●</span> ${count} ${label}`;
+}
+
+/** @param {HTMLElement | null} container */
+function renderLeaderboardComingSoon(container) {
+  if (!container) {
+    return;
+  }
+  container.classList.remove("is-open");
+  container.scrollTop = 0;
+  container.innerHTML = `
+    <div class="lb-coming-soon" role="status">
+      <span class="lb-coming-soon-title">Coming soon</span>
+      <span class="lb-coming-soon-copy">Leaderboard will open when the players table is ready.</span>
+    </div>`;
+  container.style.removeProperty("--lb-scroll-collapsed-h");
 }
 
 /** @param {LeaderboardEntry[]} leaderboard @param {boolean} [animate] */
