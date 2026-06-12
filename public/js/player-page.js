@@ -89,6 +89,18 @@ function formatPoints(value) {
   return Number.isInteger(num) ? String(num) : num.toFixed(1);
 }
 
+/** @param {any} player @param {any[]} leaderboard */
+function playerRankText(player, leaderboard) {
+  const index = leaderboard.findIndex((entry) => (
+    String(entry.id) === String(player.id) ||
+    (entry.name && player.name && entry.name === player.name)
+  ));
+  if (index >= 0) {
+    return String(index + 1);
+  }
+  return player.rank ? String(player.rank) : "-";
+}
+
 /** @param {any} player @param {any[]} matches */
 function renderBets(player, matches) {
   const list = document.getElementById("playerBetsList");
@@ -166,7 +178,7 @@ function renderPlayer(player, data) {
     summary.textContent = `${data.gamesPlayed} games played`;
   }
   if (rank) {
-    rank.textContent = player.rankLabel || String(player.rank || "-");
+    rank.textContent = playerRankText(player, data.leaderboard || []);
   }
   if (points) {
     points.textContent = formatPoints(player.points);

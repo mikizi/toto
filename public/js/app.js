@@ -1094,8 +1094,8 @@ function renderLeaderboard(container, data, animate = false) {
 
   container.innerHTML = sorted
     .map((entry, index) => {
-      const displayRank = entry.rank ?? index + 1;
-      const rankLabel = entry.rankLabel || String(displayRank);
+      const displayRank = index + 1;
+      const rankLabel = String(displayRank);
       const rankClass = displayRank <= 5 ? `rank-${displayRank}` : "rank-default";
       const rowClass = displayRank <= 5 ? `rank-${displayRank}` : "";
       const crown = displayRank === 1 ? CROWN_SVG : "";
