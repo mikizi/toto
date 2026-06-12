@@ -53,6 +53,19 @@ function pointsClass(points) {
   return "player-points--zero";
 }
 
+function rowResultClass(played, points) {
+  if (!played || points === null || points === undefined) {
+    return "player-bet-row--pending";
+  }
+  if (Number(points) >= 5) {
+    return "player-bet-row--full";
+  }
+  if (Number(points) > 0) {
+    return "player-bet-row--some";
+  }
+  return "player-bet-row--zero";
+}
+
 /** @param {string | null | undefined} iso */
 function matchDate(iso) {
   if (!iso) {
@@ -88,21 +101,50 @@ function renderBets(player, matches) {
       const pick = picks.get(Number(match.id)) || {};
       const points = pick.points;
       const playedClass = match.played ? " player-bet-row--played" : "";
+      const resultClass = rowResultClass(Boolean(match.played), points);
       const pointClass = pointsClass(points);
       return `
-        <div class="player-bet-row${playedClass}">
+        <div class="player-bet-row${playedClass} ${resultClass}">
           <div class="player-bet-match">
-            <span class="player-bet-match-num">Match ${match.id}</span>
-            <span class="player-bet-teams">
-              ${flagHtml(match.home, "sm")} ${escapeHtml(shortTeamName(match.home))}
+            <div class="player-bet-meta">
+              <span class="player-bet-match-num">Match ${match.id}</span>
+              <span class="player-bet-date">${escapeHtml(matchDate(match.kickoffAt))}</span>
+            </div>
+            <div class="player-bet-teams">
+              <span class="player-bet-team player-bet-team--home">
+                ${flagHtml(match.home, "sm")}
+                <span class="player-bet-team-name">${escapeHtml(shortTeamName(match.home))}</span>
+              </span>
+              <span class="player-bet-mobile-summary" aria-hidden="true">
+                <span class="player-bet-mobile-group">Match ${match.id}</span>
+                <span class="player-bet-mobile-scoreline">
+                  <span class="player-bet-mobile-pick">(${escapeHtml(formatPoints(pick.awayPick))})</span>
+                  <span class="player-bet-mobile-score">${escapeHtml(formatPoints(match.awayScore))}</span>
+                  <span class="player-bet-mobile-points ${pointClass}">${escapeHtml(formatPoints(points))}</span>
+                  <span class="player-bet-mobile-score">${escapeHtml(formatPoints(match.homeScore))}</span>
+                  <span class="player-bet-mobile-pick">(${escapeHtml(formatPoints(pick.homePick))})</span>
+                </span>
+                <span class="player-bet-mobile-label">Pts</span>
+              </span>
               <span class="player-bet-vs">vs</span>
-              ${flagHtml(match.away, "sm")} ${escapeHtml(shortTeamName(match.away))}
-            </span>
-            <span class="player-bet-date">${escapeHtml(matchDate(match.kickoffAt))}</span>
+              <span class="player-bet-team player-bet-team--away">
+                ${flagHtml(match.away, "sm")}
+                <span class="player-bet-team-name">${escapeHtml(shortTeamName(match.away))}</span>
+              </span>
+            </div>
           </div>
-          <div class="player-bet-score">${escapeHtml(scoreText(pick.homePick, pick.awayPick))}</div>
-          <div class="player-bet-score">${escapeHtml(scoreText(match.homeScore, match.awayScore))}</div>
-          <div class="player-bet-points ${pointClass}">${escapeHtml(formatPoints(points))}</div>
+          <div class="player-bet-score player-bet-score--pick">
+            <span class="player-bet-score-label">Pick</span>
+            <span class="player-bet-score-value">${escapeHtml(scoreText(pick.homePick, pick.awayPick))}</span>
+          </div>
+          <div class="player-bet-score player-bet-score--result">
+            <span class="player-bet-score-label">Result</span>
+            <span class="player-bet-score-value">${escapeHtml(scoreText(match.homeScore, match.awayScore))}</span>
+          </div>
+          <div class="player-bet-points ${pointClass}">
+            <span class="player-bet-score-label">Pts</span>
+            <span class="player-bet-score-value">${escapeHtml(formatPoints(points))}</span>
+          </div>
         </div>`;
     })
     .join("");

@@ -1406,6 +1406,27 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+.lb-pick-pill--full {
+    color: #dcfce7;
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(74, 222, 128, 0.7);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.24);
+}
+
+.lb-pick-pill--some {
+    color: #fef3c7;
+    background: rgba(232, 185, 35, 0.2);
+    border-color: rgba(232, 185, 35, 0.72);
+    box-shadow: 0 0 12px rgba(232, 185, 35, 0.2);
+}
+
+.lb-pick-pill--zero {
+    color: #fee2e2;
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(248, 113, 113, 0.68);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
 .lb-pick-pill--empty {
     min-width: 3.8rem;
     font-size: 0.58rem;
@@ -1677,6 +1698,7 @@ body {
     min-height: 4.4rem;
     padding: 0.8rem 1rem;
     border-bottom: 1px solid var(--border);
+    border-left: 3px solid transparent;
 }
 
 .player-bet-row:last-child {
@@ -1687,11 +1709,31 @@ body {
     background: rgba(232, 185, 35, 0.035);
 }
 
+.player-bet-row--full {
+    border-left-color: #4ade80;
+}
+
+.player-bet-row--some {
+    border-left-color: var(--gold);
+}
+
+.player-bet-row--zero {
+    border-left-color: var(--red);
+}
+
 .player-bet-match {
     min-width: 0;
+    display: grid;
+    grid-template-columns: 5.7rem minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: center;
+}
+
+.player-bet-meta {
     display: flex;
     flex-direction: column;
     gap: 0.28rem;
+    min-width: 0;
 }
 
 .player-bet-match-num,
@@ -1703,29 +1745,86 @@ body {
 
 .player-bet-teams {
     display: flex;
-    align-items: center;
-    gap: 0.35rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.32rem;
     min-width: 0;
     font-size: 0.86rem;
     font-weight: 800;
 }
 
 .player-bet-vs {
+    display: none;
     color: var(--text-muted);
     font-size: 0.65rem;
     text-transform: uppercase;
 }
 
+.player-bet-mobile-summary {
+    display: none;
+}
+
+.player-bet-team {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.player-bet-team-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .player-bet-score,
 .player-bet-points {
     justify-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
 }
 
+.player-bet-score {
+    width: 4.35rem;
+    min-height: 2rem;
+    flex-direction: column;
+    gap: 0.1rem;
+    border-radius: 8px;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.player-bet-row--played .player-bet-score {
+    background: rgba(7, 11, 18, 0.48);
+    border-color: rgba(232, 185, 35, 0.14);
+}
+
+.player-bet-score-label {
+    display: none;
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.player-bet-score-value {
+    line-height: 1.1;
+}
+
 .player-bet-points {
     min-width: 2.25rem;
+    min-height: 2rem;
     padding: 0.3rem 0.45rem;
+    flex-direction: column;
+    gap: 0.1rem;
     border-radius: 999px;
     text-align: center;
 }
@@ -1863,6 +1962,11 @@ body {
 
     .lb-row {
         min-height: 3.25rem;
+    }
+
+    .lb-body.is-open {
+        overflow-y: visible;
+        max-height: none;
     }
 
     .lb-col {
@@ -4242,49 +4346,6 @@ body {
     }
 }
 
-@media (max-width: 640px) {
-    .player-page {
-        width: min(100% - 1rem, 980px);
-        padding-top: 0.75rem;
-    }
-
-    .player-page-header {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .player-overview {
-        grid-template-columns: 1fr;
-    }
-
-    .player-bets-header {
-        display: none;
-    }
-
-    .player-bet-row {
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 0.65rem;
-    }
-
-    .player-bet-match {
-        grid-column: 1 / -1;
-    }
-
-    .player-bet-score:nth-child(2)::before {
-        content: "Pick ";
-        color: var(--text-muted);
-        font-size: 0.65rem;
-        text-transform: uppercase;
-    }
-
-    .player-bet-score:nth-child(3)::before {
-        content: "Result ";
-        color: var(--text-muted);
-        font-size: 0.65rem;
-        text-transform: uppercase;
-    }
-}
-
 /* Live update toast */
 .update-toast {
     position: fixed;
@@ -4365,6 +4426,308 @@ body {
 .update-toast-dismiss svg {
     width: 1rem;
     height: 1rem;
+}
+
+@media (max-width: 640px) {
+    .player-page {
+        width: 100%;
+        max-width: 980px;
+        padding: 1rem 0.75rem 2.75rem;
+        overflow: hidden;
+    }
+
+    .player-page-header,
+    .player-overview {
+        border-radius: var(--radius);
+        background: rgba(13, 20, 31, 0.9);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .player-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 1.35rem;
+        min-height: 10.9rem;
+        padding: 1.45rem 1.35rem 1.35rem;
+        margin-bottom: 1rem;
+    }
+
+    .player-back-link {
+        min-width: 6.8rem;
+        min-height: 4.1rem;
+        padding: 0 1.35rem;
+        border-color: rgba(232, 185, 35, 0.42);
+        border-radius: 9px;
+        background: rgba(7, 11, 18, 0.35);
+        font-size: 0.82rem;
+    }
+
+    .player-page-kicker {
+        margin-bottom: 0.35rem;
+        font-size: 0.78rem;
+    }
+
+    .player-page-title {
+        font-size: 2rem;
+        letter-spacing: 0;
+    }
+
+    .player-page-summary {
+        margin-top: 0.5rem;
+        font-size: 1.08rem;
+    }
+
+    .player-overview {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        margin-bottom: 1rem;
+        background: rgba(13, 20, 31, 0.9);
+    }
+
+    .player-stat {
+        min-height: 5.1rem;
+        padding: 0.9rem 0.7rem;
+        background: rgba(7, 11, 18, 0.2);
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .player-stat-label {
+        margin-bottom: 0.55rem;
+        font-size: 0.64rem;
+    }
+
+    .player-stat-value {
+        min-height: 1.4rem;
+        font-size: 1.35rem;
+    }
+
+    .player-stat-team {
+        gap: 0.28rem;
+        font-size: 0.95rem;
+    }
+
+    .player-stat-team .team-flag {
+        width: 1.15rem;
+        height: 1.15rem;
+    }
+
+    .player-stat:last-child {
+        border-right: none;
+    }
+
+    .player-bets {
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .player-bets-header {
+        display: none;
+    }
+
+    .player-bets-list {
+        display: grid;
+        gap: 2.45rem;
+    }
+
+    .player-bet-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+        align-items: stretch;
+        min-height: 0;
+        margin-top: 1.85rem;
+        padding: 1.35rem 1.2rem 1.55rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-left-color: rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius);
+        background: rgba(28, 36, 44, 0.92);
+        box-shadow:
+            0 8px 22px rgba(0, 0, 0, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .player-bet-row--full,
+    .player-bet-row--some,
+    .player-bet-row--zero {
+        border-left-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .player-bet-row--played {
+        background: rgba(28, 36, 44, 0.94);
+    }
+
+    .player-bet-match {
+        grid-column: 1;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.95rem;
+    }
+
+    .player-bet-meta {
+        display: grid;
+        justify-items: center;
+        padding: 0;
+        min-height: 0;
+    }
+
+    .player-bet-match-num,
+    .player-bet-date {
+        font-size: 0.82rem;
+        line-height: 1.2;
+    }
+
+    .player-bet-match-num {
+        display: none;
+        color: var(--text-muted);
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .player-bet-date {
+        position: absolute;
+        top: -2.45rem;
+        right: 0;
+        max-width: calc(100% - 1rem);
+        padding: 0.52rem 0.95rem;
+        overflow: hidden;
+        border-radius: 8px;
+        background: rgba(28, 36, 44, 0.95);
+        color: var(--text);
+        font-size: 0.92rem;
+        font-weight: 800;
+        text-align: right;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    }
+
+    .player-bet-teams {
+        display: grid;
+        grid-template-columns: minmax(4.5rem, 1fr) minmax(9.25rem, 10.2rem) minmax(4.5rem, 1fr);
+        gap: 0.8rem;
+        align-items: center;
+    }
+
+    .player-bet-team {
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.65rem;
+        overflow: hidden;
+        text-align: center;
+    }
+
+    .player-bet-team--home {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .player-bet-team--away {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .player-bet-team .team-flag {
+        width: 3.9rem;
+        height: 2.45rem;
+        aspect-ratio: 16 / 10;
+        border-radius: 5px;
+    }
+
+    .player-bet-team-name {
+        max-width: 100%;
+        font-size: 1rem;
+        line-height: 1.15;
+        white-space: normal;
+    }
+
+    .player-bet-mobile-summary {
+        grid-column: 2;
+        grid-row: 1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        justify-items: center;
+        align-self: center;
+        column-gap: 0.48rem;
+        row-gap: 0.42rem;
+        min-width: 0;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .player-bet-mobile-group {
+        flex: 0 0 100%;
+        color: var(--text-muted);
+        font-size: 0.84rem;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+    }
+
+    .player-bet-mobile-scoreline {
+        flex: 0 0 100%;
+        display: grid;
+        grid-template-columns: 1.7rem 1.18rem 2.5rem 1.18rem 1.7rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.34rem;
+    }
+
+    .player-bet-mobile-pick {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .player-bet-mobile-score {
+        color: var(--text);
+        font-size: 1.52rem;
+        font-weight: 850;
+        line-height: 1;
+        text-align: center;
+    }
+
+    .player-bet-mobile-label {
+        flex: 0 0 100%;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        line-height: 1;
+        text-align: center;
+        text-transform: none;
+    }
+
+    .player-bet-mobile-points {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 50%;
+        font-size: 1.12rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .player-bet-mobile-line,
+    .player-bet-mobile-value {
+        display: none;
+    }
+
+    .player-bet-row > .player-bet-score,
+    .player-bet-row > .player-bet-points {
+        display: none;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

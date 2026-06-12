@@ -1061,7 +1061,15 @@ function livePredictionHtml(entry, matchId) {
   if (!pick || pick.homePick === null || pick.awayPick === null) {
     return '<span class="lb-pick-pill lb-pick-pill--empty">No pick</span>';
   }
-  return `<span class="lb-pick-pill">${pick.homePick}&nbsp;–&nbsp;${pick.awayPick}</span>`;
+  const points = Number(pick.points);
+  const accuracyClass = Number.isFinite(points)
+    ? points >= 5
+      ? " lb-pick-pill--full"
+      : points > 0
+        ? " lb-pick-pill--some"
+        : " lb-pick-pill--zero"
+    : "";
+  return `<span class="lb-pick-pill${accuracyClass}">${pick.homePick}&nbsp;–&nbsp;${pick.awayPick}</span>`;
 }
 
 /** @param {LeaderboardEntry} entry */
