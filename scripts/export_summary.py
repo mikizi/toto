@@ -21,6 +21,8 @@ DEFAULT_XLSX = XLSX_PATH
 SUMMARY = "Summary"
 USER_ROW_START = 79
 USER_ROW_END = 200
+SUMMARY_LEADERBOARD_ROW_START = 4
+SUMMARY_LEADERBOARD_ROW_END = 80
 MATCH_ROW_START = 4
 MATCH_ROW_END = 120
 CHAMPION_CELL = "CM47"
@@ -163,13 +165,9 @@ def _is_test_user(name: str) -> bool:
 def _public_leaderboard(
     raw: list[dict[str, Any]], previous: dict[str, Any] | None
 ) -> list[dict[str, Any]]:
-    """Pool-only leaderboard with ranks 1..n (excludes test users)."""
+    """Pool-only leaderboard in the exact order read from Summary."""
     pool = [entry for entry in raw if not _is_test_user(entry["name"])]
-    pool.sort(key=lambda e: (-e["points"], e["name"].lower()))
-    ranked: list[dict[str, Any]] = []
-    for index, entry in enumerate(pool, start=1):
-        ranked.append({**entry, "rank": index})
-    return _movement(ranked, previous)
+    return _movement(pool, previous)
 
 
 def _cell_number(value: object) -> float | None:
@@ -340,6 +338,19 @@ def _read_leaderboard(
     wb_formulas: openpyxl.Workbook,
     matches: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    raw_by_name = _read_raw_leaderboard_by_name(wb_data, ws_data, wb_formulas, matches)
+    visible_rows = _read_visible_summary_leaderboard(ws_data, raw_by_name)
+    if visible_rows:
+        return visible_rows
+    return list(raw_by_name.values())
+
+
+def _read_raw_leaderboard_by_name(
+    wb_data: openpyxl.Workbook,
+    ws_data: openpyxl.worksheet.worksheet.Worksheet,
+    wb_formulas: openpyxl.Workbook,
+    matches: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for row in range(USER_ROW_START, USER_ROW_END):
         name = ws_data[f"D{row}"].value
@@ -354,7 +365,40 @@ def _read_leaderboard(
                 "name": str(name),
                 "points": points,
                 "rank": rank,
+                "rankLabel": str(rank) if rank is not None else None,
                 "champion": champion,
+            }
+        )
+    return {entry["name"]: entry for entry in rows}
+
+
+def _read_visible_summary_leaderboard(
+    ws_data: openpyxl.worksheet.worksheet.Worksheet,
+    raw_by_name: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Read the sorted leaderboard table displayed at the top of Summary."""
+    rows: list[dict[str, Any]] = []
+    for row in range(SUMMARY_LEADERBOARD_ROW_START, SUMMARY_LEADERBOARD_ROW_END + 1):
+        name = ws_data[f"D{row}"].value
+        if not name or name == "Name":
+            continue
+        name_text = str(name)
+        if _is_test_user(name_text):
+            continue
+
+        rank_label = _cell_text(ws_data[f"C{row}"].value)
+        rank = _cell_int(ws_data[f"A{row}"].value)
+        points = _cell_number(ws_data[f"F{row}"].value)
+        champion = _cell_text(ws_data[f"E{row}"].value)
+        raw = raw_by_name.get(name_text, {})
+        rows.append(
+            {
+                "id": str(raw.get("id") or ""),
+                "name": name_text,
+                "points": round(points or 0.0, 2),
+                "rank": rank,
+                "rankLabel": rank_label,
+                "champion": champion or raw.get("champion"),
             }
         )
     return rows

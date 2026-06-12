@@ -1173,6 +1173,11 @@ body {
     max-height: min(70vh, 52rem);
 }
 
+.lb-body.is-expanding .lb-row {
+    animation: enter-lb-row 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--reveal-i, 0) * 24ms);
+}
+
 .lb-coming-soon {
     grid-column: 1 / -1;
     min-height: 13.5rem;
@@ -1206,6 +1211,7 @@ body {
     display: grid;
     grid-template-columns: subgrid;
     align-items: center;
+    min-height: 3.55rem;
     padding: 0.75rem var(--lb-pad-x);
     border-bottom: 1px solid var(--border);
     border-left: 3px solid transparent;
@@ -1235,14 +1241,14 @@ body {
     top: 0;
     right: 0;
     bottom: 0;
-    width: min(52%, 11rem);
+    width: min(70%, 15.5rem);
     height: 100%;
     object-fit: cover;
     object-position: right center;
-    opacity: 0.42;
-    filter: saturate(0.55) brightness(0.72) contrast(1);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.15) 42%, black 72%);
-    mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.15) 42%, black 72%);
+    opacity: 0.5;
+    filter: saturate(0.72) brightness(0.7) contrast(1.04);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.16) 22%, black 52%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.16) 22%, black 52%);
     pointer-events: none;
     z-index: 0;
     user-select: none;
@@ -1255,9 +1261,9 @@ body {
     background: linear-gradient(
         90deg,
         rgba(15, 20, 28, 1) 0%,
-        rgba(15, 20, 28, 0.96) 38%,
-        rgba(15, 20, 28, 0.72) 58%,
-        rgba(15, 20, 28, 0.28) 78%,
+        rgba(15, 20, 28, 0.98) 28%,
+        rgba(15, 20, 28, 0.78) 50%,
+        rgba(15, 20, 28, 0.34) 76%,
         transparent 100%
     );
     pointer-events: none;
@@ -1474,7 +1480,6 @@ body {
     overflow: visible;
     font-weight: 600;
     letter-spacing: 0.03em;
-    text-transform: uppercase;
     font-size: 0.85rem;
 }
 
@@ -1610,6 +1615,10 @@ body {
         padding-bottom: 0.65rem;
     }
 
+    .lb-row {
+        min-height: 3.25rem;
+    }
+
     .lb-col {
         font-size: 0.56rem;
         letter-spacing: 0.06em;
@@ -1626,10 +1635,10 @@ body {
     }
 
     .lb-row.lb-row--champion .lb-row-flag {
-        width: min(55%, 9.5rem);
-        opacity: 0.38;
-        -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.1) 38%, black 68%);
-        mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.1) 38%, black 68%);
+        width: min(72%, 12.5rem);
+        opacity: 0.48;
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.14) 22%, black 52%);
+        mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.14) 22%, black 52%);
     }
 
     .lb-player-name {

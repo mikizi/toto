@@ -1,7 +1,7 @@
 /** World Cup 2026 scoreboard — reads data/latest.json */
 
-const LEADERBOARD_PREVIEW_ROWS = 10;
-const SHOW_LEADERBOARD_ROWS = false;
+const LEADERBOARD_PREVIEW_ROWS = 8;
+const SHOW_LEADERBOARD_ROWS = true;
 
 const DATA_URL = "data/latest.json";
 const VERSION_URL = "data/version.json";
@@ -12,7 +12,7 @@ const UPDATE_TOAST_MS = 6000;
 
 const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 19h14v2H5v-2zm1.6-9.2L12 4l5.4 5.8L19 8l1 9H4l1.6-8.2z"/></svg>`;
 
-/** @typedef {{ id: string, name: string, points: number, rank: number | null, champion: string | null, movement: string }} LeaderboardEntry */
+/** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string }} LeaderboardEntry */
 /** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null }} MatchEntry */
 /** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ version: string, generatedAt: string, gamesPlayed: number, lastResult: object | null, leaderboard: LeaderboardEntry[], matches: MatchEntry[], broadcast?: BroadcastState, registration?: unknown }} TotoData */
@@ -74,7 +74,7 @@ function shouldShowLiveBadge(data) {
   if (isDebugMode()) {
     return false;
   }
-  return isMatchInProgress(data, isDebugMode());
+  return manualLiveMatchIds(data).length > 0;
 }
 
 /** @param {TotoData} data */
@@ -83,11 +83,10 @@ function updateLiveIndicator(data) {
   const statusDot = document.getElementById("statusDot");
   const card = document.querySelector(".scoreboard-card");
   const showLive = shouldShowLiveBadge(data);
-  const inProgress = isMatchInProgress(data, isDebugMode());
 
   badge?.classList.toggle("hidden", !showLive);
-  card?.classList.toggle("is-live", inProgress);
-  statusDot?.classList.toggle("is-live", inProgress);
+  card?.classList.toggle("is-live", showLive);
+  statusDot?.classList.toggle("is-live", showLive);
   statusDot?.classList.toggle("hidden", showLive);
 }
 
@@ -571,11 +570,12 @@ function syncLeaderboardCollapsedHeight(scrollEl, listEl, instant = false) {
   if (rows.length <= LEADERBOARD_PREVIEW_ROWS) {
     scrollEl.style.removeProperty("--lb-scroll-collapsed-h");
   } else {
+    const firstPreview = rows[0];
     const lastPreview = rows[LEADERBOARD_PREVIEW_ROWS - 1];
-    if (lastPreview instanceof HTMLElement) {
+    if (firstPreview instanceof HTMLElement && lastPreview instanceof HTMLElement) {
       scrollEl.style.setProperty(
         "--lb-scroll-collapsed-h",
-        `${lastPreview.offsetTop + lastPreview.offsetHeight}px`
+        `${lastPreview.offsetTop + lastPreview.offsetHeight - firstPreview.offsetTop}px`
       );
     }
   }
@@ -589,7 +589,13 @@ function toggleStandingsPanel() {
   if (!scroll || !btn) {
     return;
   }
+  scroll.classList.remove("is-expanding");
   const isOpen = scroll.classList.toggle("is-open");
+  if (isOpen) {
+    void scroll.offsetHeight;
+    scroll.classList.add("is-expanding");
+    window.setTimeout(() => scroll.classList.remove("is-expanding"), 650);
+  }
   if (!isOpen) {
     scroll.scrollTop = 0;
   }
@@ -608,7 +614,7 @@ function renderNextGames(listEl, scrollEl, data, animate = false) {
   const upcoming = allUpcomingMatches(data);
   const hasPast = fixtures.some((m) => m.played);
   const nextId = upcoming[0]?.id;
-  const liveIds = new Set(heroLiveMatchIds(data));
+  const liveIds = new Set(manualLiveMatchIds(data));
   const fixturesBtn = document.getElementById("viewFixturesBtn");
 
   if (listEl) {
@@ -695,7 +701,7 @@ function renderHeroAndCountdown(data, animate = false) {
   const next = nextUnplayedMatch(data);
   const live = isScoreboardLive(data, isDebugMode());
 
-  renderHeroMatch(hero, data, !live, isMatchInProgress(data, isDebugMode()), animate);
+  renderHeroMatch(hero, data, !live, shouldShowLiveBadge(data), animate);
   updateLiveIndicator(data);
 
   if (live) {
@@ -1048,31 +1054,23 @@ function renderLeaderboard(container, leaderboard, animate = false) {
     return;
   }
 
-  const sorted = [...leaderboard].sort((a, b) => {
-    const rankA = a.rank ?? 9999;
-    const rankB = b.rank ?? 9999;
-    if (rankA !== rankB) {
-      return rankA - rankB;
-    }
-    if (b.points !== a.points) {
-      return b.points - a.points;
-    }
-    return a.name.localeCompare(b.name);
-  });
+  const sorted = [...leaderboard];
 
   const standingsBtn = document.getElementById("viewStandingsBtn");
 
   container.innerHTML = sorted
     .map((entry, index) => {
       const displayRank = entry.rank ?? index + 1;
+      const rankLabel = entry.rankLabel || String(displayRank);
       const rankClass = displayRank <= 5 ? `rank-${displayRank}` : "rank-default";
       const rowClass = displayRank <= 5 ? `rank-${displayRank}` : "";
       const crown = displayRank === 1 ? CROWN_SVG : "";
       const trend = trendHtml(entry.movement);
       const rowFlag = lbRowFlagHtml(entry.champion);
       const championClass = rowFlag ? " lb-row--champion" : "";
-      const enterClass = animate ? " lb-row--enter" : "";
-      const stagger = animate ? ` style="--enter-i: ${index}"` : "";
+      const enterClass = animate && index < LEADERBOARD_PREVIEW_ROWS ? " lb-row--enter" : "";
+      const revealIndex = Math.min(index, 16);
+      const stagger = ` style="--enter-i: ${index}; --reveal-i: ${revealIndex}"`;
       const championLabel = entry.champion
         ? `, champion ${entry.champion}`
         : "";
@@ -1084,7 +1082,7 @@ function renderLeaderboard(container, leaderboard, animate = false) {
     <div class="lb-row ${rowClass}${championClass}${enterClass}"${stagger} title="${escapeHtml(rowTitle)}" aria-label="${escapeHtml(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}">
       ${rowFlag}
       <div class="lb-rank-cell">
-        <span class="rank-badge ${rankClass}">${displayRank}</span>
+        <span class="rank-badge ${rankClass}">${escapeHtml(rankLabel)}</span>
       </div>
       <div class="lb-trend-cell">${trend}</div>
       <div class="lb-player">

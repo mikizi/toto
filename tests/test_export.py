@@ -21,9 +21,6 @@ from scripts.validate_export import validate
 
 from scripts.paths import BACKUP_PATH, XLSX_PATH
 
-REAL_USERS = {"MikiZiso3", "MikiZiso2", "Miki_Ziso", "Nir1", "Nir2", "Nir3"}
-
-
 class TestCellParsing(unittest.TestCase):
     """Spreadsheet cached-value parsing."""
 
@@ -64,18 +61,21 @@ class TestExportFromXlsx(unittest.TestCase):
         for key in ("id", "name", "points", "rank", "movement"):
             self.assertIn(key, entry)
 
-    def test_real_users_have_champion_pick_at_day_zero(self) -> None:
+    def test_leaderboard_entries_have_champion_picks(self) -> None:
         payload = build_export(XLSX_PATH)
-        by_name = {e["name"]: e for e in payload["leaderboard"]}
-        for name in REAL_USERS:
-            self.assertIn(name, by_name)
-            self.assertIsNotNone(by_name[name]["champion"], msg=f"{name} missing champion")
+        missing = [entry["name"] for entry in payload["leaderboard"] if not entry["champion"]]
+        self.assertEqual(missing, [])
 
     def test_leaderboard_excludes_test_users(self) -> None:
         payload = build_export(XLSX_PATH)
         names = [e["name"] for e in payload["leaderboard"]]
         self.assertFalse(any(n.lower().startswith("test") for n in names))
-        self.assertLessEqual(len(payload["leaderboard"]), 10)
+        self.assertGreater(len(payload["leaderboard"]), 10)
+
+    def test_leaderboard_preserves_visible_summary_order(self) -> None:
+        payload = build_export(XLSX_PATH)
+        names = [entry["name"] for entry in payload["leaderboard"][:3]]
+        self.assertEqual(names, ["Pini2", "Pini3", "AmirLin"])
 
     def test_validate_latest_export(self) -> None:
         payload = build_export(XLSX_PATH)
@@ -195,6 +195,8 @@ class TestPatchMatch(unittest.TestCase):
 
             wb = openpyxl.load_workbook(path)
             ws = wb["Summary"]
+            for row in range(4, 81):
+                ws[f"D{row}"].value = None
             for row in range(79, 85):
                 ws[f"E{row}"].value = "#N/A"
                 ws[f"F{row}"].value = "#N/A"
@@ -203,8 +205,8 @@ class TestPatchMatch(unittest.TestCase):
 
             payload = build_export(path)
             by_name = {entry["name"]: entry for entry in payload["leaderboard"]}
-            self.assertEqual(by_name["MikiZiso3"]["champion"], "France")
-            self.assertEqual(by_name["MikiZiso3"]["points"], 5.0)
+            self.assertEqual(by_name["Miki_Ziso"]["champion"], "Brazil")
+            self.assertEqual(by_name["Miki_Ziso"]["points"], 5.0)
             self.assertEqual(by_name["Nir2"]["points"], 0.0)
             self.assertEqual(by_name["Nir3"]["points"], 3.0)
 
