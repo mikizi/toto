@@ -2,3 +2,5 @@ xlsx/*.simulation-backup.xlsx
 .DS_Store
 .wrangler/
 .playwright-mcp/
+.idae/
+.ai/
