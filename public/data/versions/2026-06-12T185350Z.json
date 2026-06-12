@@ -1,0 +1,1483 @@
+{
+  "version": "2026-06-12T185350Z",
+  "generatedAt": "2026-06-12T18:53:50.283642+00:00",
+  "gamesPlayed": 3,
+  "lastResult": {
+    "matchId": 3,
+    "teams": "Canada-Bosnia and Herzegovina",
+    "home": "Canada",
+    "away": "Bosnia and Herzegovina",
+    "homeScore": 0,
+    "awayScore": 0
+  },
+  "leaderboard": [
+    {
+      "id": "044",
+      "name": "ZamirRoei",
+      "points": 15.0,
+      "rank": 1,
+      "rankLabel": "1",
+      "champion": "Brazil",
+      "movement": "up"
+    },
+    {
+      "id": "002",
+      "name": "Pini2",
+      "points": 13.0,
+      "rank": 2,
+      "rankLabel": "2",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "003",
+      "name": "Pini3",
+      "points": 13.0,
+      "rank": 3,
+      "rankLabel": "-",
+      "champion": "Portugal",
+      "movement": "up"
+    },
+    {
+      "id": "006",
+      "name": "NissanC.C",
+      "points": 11.0,
+      "rank": 4,
+      "rankLabel": "4",
+      "champion": "Spain",
+      "movement": "up"
+    },
+    {
+      "id": "028",
+      "name": "Crazy1",
+      "points": 11.0,
+      "rank": 5,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "up"
+    },
+    {
+      "id": "033",
+      "name": "Karin1",
+      "points": 11.0,
+      "rank": 6,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "041",
+      "name": "sharonWisman",
+      "points": 11.0,
+      "rank": 7,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "047",
+      "name": "Arsenal",
+      "points": 11.0,
+      "rank": 8,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "066",
+      "name": "EyalRoei2",
+      "points": 11.0,
+      "rank": 9,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "076",
+      "name": "LiavShemesh",
+      "points": 11.0,
+      "rank": 10,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "up"
+    },
+    {
+      "id": "019",
+      "name": "RanStern",
+      "points": 10.0,
+      "rank": 11,
+      "rankLabel": "11",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "038",
+      "name": "OmriMilner",
+      "points": 10.0,
+      "rank": 12,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "058",
+      "name": "NirCohen1",
+      "points": 10.0,
+      "rank": 13,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "005",
+      "name": "dordagan",
+      "points": 8.0,
+      "rank": 14,
+      "rankLabel": "14",
+      "champion": "England",
+      "movement": "up"
+    },
+    {
+      "id": "008",
+      "name": "Omer&Shirli2",
+      "points": 8.0,
+      "rank": 15,
+      "rankLabel": "-",
+      "champion": "Germany",
+      "movement": "up"
+    },
+    {
+      "id": "025",
+      "name": "YogevTzur",
+      "points": 8.0,
+      "rank": 16,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "027",
+      "name": "OrStern",
+      "points": 8.0,
+      "rank": 17,
+      "rankLabel": "-",
+      "champion": "Portugal",
+      "movement": "up"
+    },
+    {
+      "id": "030",
+      "name": "MikiZiso",
+      "points": 8.0,
+      "rank": 18,
+      "rankLabel": "-",
+      "champion": "Brazil",
+      "movement": "up"
+    },
+    {
+      "id": "034",
+      "name": "LironShmueli",
+      "points": 8.0,
+      "rank": 19,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "043",
+      "name": "RoeiGuy",
+      "points": 8.0,
+      "rank": 20,
+      "rankLabel": "-",
+      "champion": "Argentina",
+      "movement": "up"
+    },
+    {
+      "id": "054",
+      "name": "TALHABA",
+      "points": 8.0,
+      "rank": 21,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "up"
+    },
+    {
+      "id": "059",
+      "name": "NirCohen2",
+      "points": 8.0,
+      "rank": 22,
+      "rankLabel": "-",
+      "champion": "Argentina",
+      "movement": "up"
+    },
+    {
+      "id": "063",
+      "name": "IdoKoish",
+      "points": 8.0,
+      "rank": 23,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "009",
+      "name": "Omer&Shirli1",
+      "points": 6.0,
+      "rank": 24,
+      "rankLabel": "24",
+      "champion": "Spain",
+      "movement": "up"
+    },
+    {
+      "id": "010",
+      "name": "RanCohen",
+      "points": 6.0,
+      "rank": 25,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "up"
+    },
+    {
+      "id": "012",
+      "name": "Toulouse",
+      "points": 6.0,
+      "rank": 26,
+      "rankLabel": "-",
+      "champion": "Brazil",
+      "movement": "up"
+    },
+    {
+      "id": "018",
+      "name": "IlanZiv",
+      "points": 6.0,
+      "rank": 27,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "up"
+    },
+    {
+      "id": "022",
+      "name": "melech2",
+      "points": 6.0,
+      "rank": 28,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "029",
+      "name": "CrazyCeramic(yogev)",
+      "points": 6.0,
+      "rank": 29,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "up"
+    },
+    {
+      "id": "049",
+      "name": "Sagi1",
+      "points": 6.0,
+      "rank": 30,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "down"
+    },
+    {
+      "id": "053",
+      "name": "GuyNaimRoy",
+      "points": 6.0,
+      "rank": 31,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "062",
+      "name": "YuvalKoish",
+      "points": 6.0,
+      "rank": 32,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "067",
+      "name": "SagiLevy2",
+      "points": 6.0,
+      "rank": 33,
+      "rankLabel": "-",
+      "champion": "Netherlands",
+      "movement": "down"
+    },
+    {
+      "id": "070",
+      "name": "DoronNachum",
+      "points": 6.0,
+      "rank": 34,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "up"
+    },
+    {
+      "id": "074",
+      "name": "NevoSchottig",
+      "points": 6.0,
+      "rank": 35,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "up"
+    },
+    {
+      "id": "077",
+      "name": "NadavAmar",
+      "points": 6.0,
+      "rank": 36,
+      "rankLabel": "-",
+      "champion": "Brazil",
+      "movement": "down"
+    },
+    {
+      "id": "004",
+      "name": "AmirLin",
+      "points": 5.0,
+      "rank": 37,
+      "rankLabel": "37",
+      "champion": "Argentina",
+      "movement": "down"
+    },
+    {
+      "id": "014",
+      "name": "AviDe",
+      "points": 5.0,
+      "rank": 38,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "015",
+      "name": "GOALBALL",
+      "points": 5.0,
+      "rank": 39,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "017",
+      "name": "HerzelCohen",
+      "points": 5.0,
+      "rank": 40,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "020",
+      "name": "LiatCohen",
+      "points": 5.0,
+      "rank": 41,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "023",
+      "name": "melech",
+      "points": 5.0,
+      "rank": 42,
+      "rankLabel": "-",
+      "champion": "Portugal",
+      "movement": "down"
+    },
+    {
+      "id": "024",
+      "name": "YogevTzur2",
+      "points": 5.0,
+      "rank": 43,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "down"
+    },
+    {
+      "id": "031",
+      "name": "IdanHazut1",
+      "points": 5.0,
+      "rank": 44,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "032",
+      "name": "IdanHazut2",
+      "points": 5.0,
+      "rank": 45,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "035",
+      "name": "PelegCohen1",
+      "points": 5.0,
+      "rank": 46,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "037",
+      "name": "pelegRoei",
+      "points": 5.0,
+      "rank": 47,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "040",
+      "name": "EliSmadja",
+      "points": 5.0,
+      "rank": 48,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "042",
+      "name": "EyalRoei",
+      "points": 5.0,
+      "rank": 49,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "045",
+      "name": "RoeiMelech",
+      "points": 5.0,
+      "rank": 50,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "051",
+      "name": "GuyNaim",
+      "points": 5.0,
+      "rank": 51,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "052",
+      "name": "GuyNaim2",
+      "points": 5.0,
+      "rank": 52,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "down"
+    },
+    {
+      "id": "056",
+      "name": "RoniTzur",
+      "points": 5.0,
+      "rank": 53,
+      "rankLabel": "-",
+      "champion": "Brazil",
+      "movement": "down"
+    },
+    {
+      "id": "057",
+      "name": "YanivMarciano",
+      "points": 5.0,
+      "rank": 54,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "061",
+      "name": "MikiKoish",
+      "points": 5.0,
+      "rank": 55,
+      "rankLabel": "-",
+      "champion": "Germany",
+      "movement": "down"
+    },
+    {
+      "id": "068",
+      "name": "LironShmueli2",
+      "points": 5.0,
+      "rank": 56,
+      "rankLabel": "-",
+      "champion": "Portugal",
+      "movement": "down"
+    },
+    {
+      "id": "069",
+      "name": "Shachar",
+      "points": 5.0,
+      "rank": 57,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "072",
+      "name": "RoyBarak",
+      "points": 5.0,
+      "rank": 58,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "073",
+      "name": "AfekCohen",
+      "points": 5.0,
+      "rank": 59,
+      "rankLabel": "-",
+      "champion": "Portugal",
+      "movement": "up"
+    },
+    {
+      "id": "001",
+      "name": "Pini1",
+      "points": 3.0,
+      "rank": 60,
+      "rankLabel": "60",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "011",
+      "name": "AlonAfek",
+      "points": 3.0,
+      "rank": 61,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "down"
+    },
+    {
+      "id": "013",
+      "name": "ArikLevy",
+      "points": 3.0,
+      "rank": 62,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "016",
+      "name": "Carmit-romi",
+      "points": 3.0,
+      "rank": 63,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "down"
+    },
+    {
+      "id": "021",
+      "name": "ShaharDe",
+      "points": 3.0,
+      "rank": 64,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "down"
+    },
+    {
+      "id": "036",
+      "name": "PelegCohen2",
+      "points": 3.0,
+      "rank": 65,
+      "rankLabel": "-",
+      "champion": "Spain",
+      "movement": "down"
+    },
+    {
+      "id": "039",
+      "name": "EldarAmgar",
+      "points": 3.0,
+      "rank": 66,
+      "rankLabel": "-",
+      "champion": "Portugal",
+      "movement": "down"
+    },
+    {
+      "id": "046",
+      "name": "RoeiNaim",
+      "points": 3.0,
+      "rank": 67,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "down"
+    },
+    {
+      "id": "048",
+      "name": "OmerKushmirski",
+      "points": 3.0,
+      "rank": 68,
+      "rankLabel": "-",
+      "champion": "Portugal",
+      "movement": "down"
+    },
+    {
+      "id": "050",
+      "name": "WU17",
+      "points": 3.0,
+      "rank": 69,
+      "rankLabel": "-",
+      "champion": "England",
+      "movement": "down"
+    },
+    {
+      "id": "055",
+      "name": "MayaVainer",
+      "points": 3.0,
+      "rank": 70,
+      "rankLabel": "-",
+      "champion": "Brazil",
+      "movement": "down"
+    },
+    {
+      "id": "065",
+      "name": "IdanLevy2",
+      "points": 3.0,
+      "rank": 71,
+      "rankLabel": "-",
+      "champion": "=IF(CO37>CO38,CN37,IF(CO37<CO38,CN38,IF(CP37>CP38,CN37,IF(CP37<CP38,CN38,IF(CQ37>CQ38,CN37,IF(CQ37<CQ38,CN38,\"XXXXXXXXXXXXXXXXXXX\"))))))",
+      "movement": "down"
+    },
+    {
+      "id": "007",
+      "name": "Nissan",
+      "points": 0.0,
+      "rank": 72,
+      "rankLabel": "72",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "026",
+      "name": "AmiBarda",
+      "points": 0.0,
+      "rank": 73,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "060",
+      "name": "EdenTzur",
+      "points": 0.0,
+      "rank": 74,
+      "rankLabel": "-",
+      "champion": "France",
+      "movement": "down"
+    },
+    {
+      "id": "064",
+      "name": "IdanLevy1",
+      "points": 0.0,
+      "rank": 75,
+      "rankLabel": "-",
+      "champion": "=IF(CO37>CO38,CN37,IF(CO37<CO38,CN38,IF(CP37>CP38,CN37,IF(CP37<CP38,CN38,IF(CQ37>CQ38,CN37,IF(CQ37<CQ38,CN38,\"XXXXXXXXXXXXXXXXXXX\"))))))",
+      "movement": "down"
+    },
+    {
+      "id": "071",
+      "name": "ItayGriner",
+      "points": 0.0,
+      "rank": 76,
+      "rankLabel": "-",
+      "champion": "=IF(CO37>CO38,CN37,IF(CO37<CO38,CN38,IF(CP37>CP38,CN37,IF(CP37<CP38,CN38,IF(CQ37>CQ38,CN37,IF(CQ37<CQ38,CN38,\"XXXXXXXXXXXXXXXXXXX\"))))))",
+      "movement": "down"
+    },
+    {
+      "id": "075",
+      "name": "ShaiShaul",
+      "points": 0.0,
+      "rank": 77,
+      "rankLabel": "-",
+      "champion": "Argentina",
+      "movement": "same"
+    }
+  ],
+  "matches": [
+    {
+      "id": 1,
+      "teams": "Mexico-South Africa",
+      "home": "Mexico",
+      "away": "South Africa",
+      "homeScore": 2,
+      "awayScore": 0,
+      "played": true,
+      "kickoffAt": "2026-06-11T19:00:00+00:00"
+    },
+    {
+      "id": 2,
+      "teams": "Korea Republic-Czech Republic",
+      "home": "Korea Republic",
+      "away": "Czech Republic",
+      "homeScore": 2,
+      "awayScore": 1,
+      "played": true,
+      "kickoffAt": "2026-06-12T02:00:00+00:00"
+    },
+    {
+      "id": 3,
+      "teams": "Canada-Bosnia and Herzegovina",
+      "home": "Canada",
+      "away": "Bosnia and Herzegovina",
+      "homeScore": 0,
+      "awayScore": 0,
+      "played": true,
+      "kickoffAt": "2026-06-12T19:00:00+00:00"
+    },
+    {
+      "id": 4,
+      "teams": "United States-Paraguay",
+      "home": "United States",
+      "away": "Paraguay",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-13T01:00:00+00:00"
+    },
+    {
+      "id": 5,
+      "teams": "Haiti-Scotland",
+      "home": "Haiti",
+      "away": "Scotland",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-14T01:00:00+00:00"
+    },
+    {
+      "id": 6,
+      "teams": "Australia-Turkey",
+      "home": "Australia",
+      "away": "Turkey",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-14T04:00:00+00:00"
+    },
+    {
+      "id": 7,
+      "teams": "Brazil-Morocco",
+      "home": "Brazil",
+      "away": "Morocco",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-13T22:00:00+00:00"
+    },
+    {
+      "id": 8,
+      "teams": "Qatar-Switzerland",
+      "home": "Qatar",
+      "away": "Switzerland",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-13T19:00:00+00:00"
+    },
+    {
+      "id": 9,
+      "teams": "Ivory Coast-Ecuador",
+      "home": "Ivory Coast",
+      "away": "Ecuador",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-14T23:00:00+00:00"
+    },
+    {
+      "id": 10,
+      "teams": "Germany-Cura\u00e7ao",
+      "home": "Germany",
+      "away": "Cura\u00e7ao",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-14T17:00:00+00:00"
+    },
+    {
+      "id": 11,
+      "teams": "Netherlands-Japan",
+      "home": "Netherlands",
+      "away": "Japan",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-14T20:00:00+00:00"
+    },
+    {
+      "id": 12,
+      "teams": "Sweden-Tunisia",
+      "home": "Sweden",
+      "away": "Tunisia",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-15T02:00:00+00:00"
+    },
+    {
+      "id": 13,
+      "teams": "Saudi Arabia-Uruguay",
+      "home": "Saudi Arabia",
+      "away": "Uruguay",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-15T22:00:00+00:00"
+    },
+    {
+      "id": 14,
+      "teams": "Spain-Cape Verde",
+      "home": "Spain",
+      "away": "Cape Verde",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-15T16:00:00+00:00"
+    },
+    {
+      "id": 15,
+      "teams": "Iran-New Zealand",
+      "home": "Iran",
+      "away": "New Zealand",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-16T01:00:00+00:00"
+    },
+    {
+      "id": 16,
+      "teams": "Belgium-Egypt",
+      "home": "Belgium",
+      "away": "Egypt",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-15T19:00:00+00:00"
+    },
+    {
+      "id": 17,
+      "teams": "France-Senegal",
+      "home": "France",
+      "away": "Senegal",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-16T19:00:00+00:00"
+    },
+    {
+      "id": 18,
+      "teams": "Iraq-Norway",
+      "home": "Iraq",
+      "away": "Norway",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-16T22:00:00+00:00"
+    },
+    {
+      "id": 19,
+      "teams": "Argentina-Algeria",
+      "home": "Argentina",
+      "away": "Algeria",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-17T01:00:00+00:00"
+    },
+    {
+      "id": 20,
+      "teams": "Austria-Jordan",
+      "home": "Austria",
+      "away": "Jordan",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-17T04:00:00+00:00"
+    },
+    {
+      "id": 21,
+      "teams": "Ghana-Panama",
+      "home": "Ghana",
+      "away": "Panama",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-17T23:00:00+00:00"
+    },
+    {
+      "id": 22,
+      "teams": "England-Croatia",
+      "home": "England",
+      "away": "Croatia",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-17T20:00:00+00:00"
+    },
+    {
+      "id": 23,
+      "teams": "Portugal-DR Congo",
+      "home": "Portugal",
+      "away": "DR Congo",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-17T17:00:00+00:00"
+    },
+    {
+      "id": 24,
+      "teams": "Uzbekistan-Colombia",
+      "home": "Uzbekistan",
+      "away": "Colombia",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-18T02:00:00+00:00"
+    },
+    {
+      "id": 25,
+      "teams": "Czech Republic-South Africa",
+      "home": "Czech Republic",
+      "away": "South Africa",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-18T16:00:00+00:00"
+    },
+    {
+      "id": 26,
+      "teams": "Switzerland-Bosnia and Herzegovina",
+      "home": "Switzerland",
+      "away": "Bosnia and Herzegovina",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-18T19:00:00+00:00"
+    },
+    {
+      "id": 27,
+      "teams": "Canada-Qatar",
+      "home": "Canada",
+      "away": "Qatar",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-18T22:00:00+00:00"
+    },
+    {
+      "id": 28,
+      "teams": "Mexico-Korea Republic",
+      "home": "Mexico",
+      "away": "Korea Republic",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-19T01:00:00+00:00"
+    },
+    {
+      "id": 29,
+      "teams": "Brazil-Haiti",
+      "home": "Brazil",
+      "away": "Haiti",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-20T00:30:00+00:00"
+    },
+    {
+      "id": 30,
+      "teams": "Scotland-Morocco",
+      "home": "Scotland",
+      "away": "Morocco",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-19T22:00:00+00:00"
+    },
+    {
+      "id": 31,
+      "teams": "United States-Australia",
+      "home": "United States",
+      "away": "Australia",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-20T03:00:00+00:00"
+    },
+    {
+      "id": 32,
+      "teams": "Turkey-Paraguay",
+      "home": "Turkey",
+      "away": "Paraguay",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-19T19:00:00+00:00"
+    },
+    {
+      "id": 33,
+      "teams": "Germany-Ivory Coast",
+      "home": "Germany",
+      "away": "Ivory Coast",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-20T20:00:00+00:00"
+    },
+    {
+      "id": 34,
+      "teams": "Ecuador-Cura\u00e7ao",
+      "home": "Ecuador",
+      "away": "Cura\u00e7ao",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-21T00:00:00+00:00"
+    },
+    {
+      "id": 35,
+      "teams": "Netherlands-Sweden",
+      "home": "Netherlands",
+      "away": "Sweden",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-20T17:00:00+00:00"
+    },
+    {
+      "id": 36,
+      "teams": "Tunisia-Japan",
+      "home": "Tunisia",
+      "away": "Japan",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-21T04:00:00+00:00"
+    },
+    {
+      "id": 37,
+      "teams": "Uruguay-Cape Verde",
+      "home": "Uruguay",
+      "away": "Cape Verde",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-21T22:00:00+00:00"
+    },
+    {
+      "id": 38,
+      "teams": "Spain-Saudi Arabia",
+      "home": "Spain",
+      "away": "Saudi Arabia",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-21T16:00:00+00:00"
+    },
+    {
+      "id": 39,
+      "teams": "Belgium-Iran",
+      "home": "Belgium",
+      "away": "Iran",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-21T19:00:00+00:00"
+    },
+    {
+      "id": 40,
+      "teams": "New Zealand-Egypt",
+      "home": "New Zealand",
+      "away": "Egypt",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-22T01:00:00+00:00"
+    },
+    {
+      "id": 41,
+      "teams": "Norway-Senegal",
+      "home": "Norway",
+      "away": "Senegal",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-23T00:00:00+00:00"
+    },
+    {
+      "id": 42,
+      "teams": "France-Iraq",
+      "home": "France",
+      "away": "Iraq",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-22T20:00:00+00:00"
+    },
+    {
+      "id": 43,
+      "teams": "Argentina-Austria",
+      "home": "Argentina",
+      "away": "Austria",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-22T17:00:00+00:00"
+    },
+    {
+      "id": 44,
+      "teams": "Jordan-Algeria",
+      "home": "Jordan",
+      "away": "Algeria",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-23T03:00:00+00:00"
+    },
+    {
+      "id": 45,
+      "teams": "England-Ghana",
+      "home": "England",
+      "away": "Ghana",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-23T20:00:00+00:00"
+    },
+    {
+      "id": 46,
+      "teams": "Panama-Croatia",
+      "home": "Panama",
+      "away": "Croatia",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-23T23:00:00+00:00"
+    },
+    {
+      "id": 47,
+      "teams": "Portugal-Uzbekistan",
+      "home": "Portugal",
+      "away": "Uzbekistan",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-23T17:00:00+00:00"
+    },
+    {
+      "id": 48,
+      "teams": "Colombia-DR Congo",
+      "home": "Colombia",
+      "away": "DR Congo",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-24T02:00:00+00:00"
+    },
+    {
+      "id": 49,
+      "teams": "Scotland-Brazil",
+      "home": "Scotland",
+      "away": "Brazil",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-24T22:00:00+00:00"
+    },
+    {
+      "id": 50,
+      "teams": "Morocco-Haiti",
+      "home": "Morocco",
+      "away": "Haiti",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-24T22:00:00+00:00"
+    },
+    {
+      "id": 51,
+      "teams": "Switzerland-Canada",
+      "home": "Switzerland",
+      "away": "Canada",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-24T19:00:00+00:00"
+    },
+    {
+      "id": 52,
+      "teams": "Bosnia and Herzegovina-Qatar",
+      "home": "Bosnia and Herzegovina",
+      "away": "Qatar",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-24T19:00:00+00:00"
+    },
+    {
+      "id": 53,
+      "teams": "Czech Republic-Mexico",
+      "home": "Czech Republic",
+      "away": "Mexico",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-25T01:00:00+00:00"
+    },
+    {
+      "id": 54,
+      "teams": "South Africa-Korea Republic",
+      "home": "South Africa",
+      "away": "Korea Republic",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-25T01:00:00+00:00"
+    },
+    {
+      "id": 55,
+      "teams": "Cura\u00e7ao-Ivory Coast",
+      "home": "Cura\u00e7ao",
+      "away": "Ivory Coast",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-25T20:00:00+00:00"
+    },
+    {
+      "id": 56,
+      "teams": "Ecuador-Germany",
+      "home": "Ecuador",
+      "away": "Germany",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-25T20:00:00+00:00"
+    },
+    {
+      "id": 57,
+      "teams": "Japan-Sweden",
+      "home": "Japan",
+      "away": "Sweden",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-25T23:00:00+00:00"
+    },
+    {
+      "id": 58,
+      "teams": "Tunisia-Netherlands",
+      "home": "Tunisia",
+      "away": "Netherlands",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-25T23:00:00+00:00"
+    },
+    {
+      "id": 59,
+      "teams": "Turkey-United States",
+      "home": "Turkey",
+      "away": "United States",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-26T02:00:00+00:00"
+    },
+    {
+      "id": 60,
+      "teams": "Paraguay-Australia",
+      "home": "Paraguay",
+      "away": "Australia",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-26T02:00:00+00:00"
+    },
+    {
+      "id": 61,
+      "teams": "Norway-France",
+      "home": "Norway",
+      "away": "France",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-26T19:00:00+00:00"
+    },
+    {
+      "id": 62,
+      "teams": "Senegal-Iraq",
+      "home": "Senegal",
+      "away": "Iraq",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-26T19:00:00+00:00"
+    },
+    {
+      "id": 63,
+      "teams": "Egypt-Iran",
+      "home": "Egypt",
+      "away": "Iran",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-27T03:00:00+00:00"
+    },
+    {
+      "id": 64,
+      "teams": "New Zealand-Belgium",
+      "home": "New Zealand",
+      "away": "Belgium",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-27T03:00:00+00:00"
+    },
+    {
+      "id": 65,
+      "teams": "Cape Verde-Saudi Arabia",
+      "home": "Cape Verde",
+      "away": "Saudi Arabia",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-27T00:00:00+00:00"
+    },
+    {
+      "id": 66,
+      "teams": "Uruguay-Spain",
+      "home": "Uruguay",
+      "away": "Spain",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-27T00:00:00+00:00"
+    },
+    {
+      "id": 67,
+      "teams": "Panama-England",
+      "home": "Panama",
+      "away": "England",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-27T21:00:00+00:00"
+    },
+    {
+      "id": 68,
+      "teams": "Croatia-Ghana",
+      "home": "Croatia",
+      "away": "Ghana",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-27T21:00:00+00:00"
+    },
+    {
+      "id": 69,
+      "teams": "Algeria-Austria",
+      "home": "Algeria",
+      "away": "Austria",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-28T02:00:00+00:00"
+    },
+    {
+      "id": 70,
+      "teams": "Jordan-Argentina",
+      "home": "Jordan",
+      "away": "Argentina",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-28T02:00:00+00:00"
+    },
+    {
+      "id": 71,
+      "teams": "Colombia-Portugal",
+      "home": "Colombia",
+      "away": "Portugal",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-27T23:30:00+00:00"
+    },
+    {
+      "id": 72,
+      "teams": "DR Congo-Uzbekistan",
+      "home": "DR Congo",
+      "away": "Uzbekistan",
+      "homeScore": null,
+      "awayScore": null,
+      "played": false,
+      "kickoffAt": "2026-06-27T23:30:00+00:00"
+    }
+  ],
+  "broadcast": {
+    "mode": "auto",
+    "openMatchIds": [
+      3
+    ],
+    "suppressAuto": false,
+    "autoPilot": true
+  },
+  "registration": {
+    "users": [
+      "\u05e4\u05d9\u05e0\u05d9 \u05d0\u05e1\u05e7\u05dc 1",
+      "\u05e4\u05d9\u05e0\u05d9 \u05d0\u05e1\u05e7\u05dc 2",
+      "\u05e4\u05d9\u05e0\u05d9 \u05d0\u05e1\u05e7\u05dc 3",
+      "\u05d0\u05d1\u05d9 \u05d3\u05d4",
+      "\u05e8\u05df \u05e9\u05d8\u05e8\u05df",
+      "\u05de\u05d9\u05e7\u05d9 \u05d6\u05d9\u05e1\u05d5",
+      "\u05e8\u05df \u05db\u05d4\u05df 1",
+      "\u05e8\u05df \u05db\u05d4\u05df 2",
+      "\u05e2\u05d5\u05de\u05e8 \u05d2\u05e8\u05d9\u05e0\u05de\u05df 1",
+      "\u05e2\u05d5\u05de\u05e8 \u05d2\u05e8\u05d9\u05e0\u05de\u05df 2",
+      "\u05de\u05d9\u05e7\u05d9 \u05e7\u05d5\u05d9\u05e9",
+      "\u05de\u05d9\u05e7\u05d9 \u05e7\u05d5\u05d9\u05e9 2",
+      "\u05de\u05d9\u05e7\u05d9 \u05e7\u05d5\u05d9\u05e9 3",
+      "\u05d3\u05d5\u05e8 \u05d3\u05d2\u05df",
+      "\u05db\u05e8\u05de\u05d9\u05ea \u05e0\u05d7\u05d5\u05dd",
+      "\u05e2\u05de\u05d9 \u05d1\u05e8\u05d3\u05d4",
+      "\u05e2\u05de\u05d9\u05e8 \u05dc\u05d9\u05df",
+      "\u05d0\u05d9\u05d9\u05dc \u05d5\u05d9\u05d9\u05e0\u05e9\u05d8\u05d9\u05d9\u05df",
+      "eldar amgar",
+      "\u05d0\u05e8\u05d9\u05e7 \u05dc\u05d5\u05d9",
+      "\u05d0\u05dc\u05d5\u05df \u05e8\u05e4\u05e7",
+      "\u05dc\u05d9\u05e8\u05d5\u05df \u05e9\u05de\u05d5\u05d0\u05dc\u05d9",
+      "\u05d0\u05e8\u05d9\u05e7 \u05dc\u05d5\u05d9 2",
+      "\u05d0\u05e8\u05d9\u05e7 \u05dc\u05d5\u05d9 3",
+      "\u05dc\u05d9\u05d0\u05ea \u05e4\u05e8\u05d7\u05d9",
+      "\u05e9\u05d2\u05d9\u05d0 \u05dc\u05d5\u05d9 1",
+      "\u05e9\u05d2\u05d9\u05d0 \u05dc\u05d5\u05d9 2",
+      "\u05e9\u05d2\u05d9\u05d0 \u05dc\u05d5\u05d9 3",
+      "\u05d9\u05d5\u05d2\u05d1 1",
+      "\u05d9\u05d5\u05d2\u05d1 2",
+      "\u05d9\u05d5\u05d2\u05d1 3",
+      "\u05d9\u05d5\u05d2\u05d1 4",
+      "\u05d9\u05d5\u05d2\u05d1 5",
+      "\u05d9\u05d5\u05d2\u05d1 6",
+      "\u05d9\u05d5\u05d2\u05d1 7"
+    ],
+    "count": 35,
+    "entryFee": 100,
+    "goalUsers": 100,
+    "goalPrize": 10000,
+    "prizePool": 3500,
+    "closesAt": "2026-06-11T18:00:00+00:00"
+  }
+}
