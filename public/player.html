@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta name="theme-color" content="#0d1117" />
+    <title>Player Bets · World Cup 2026 Toto</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://flagcdn.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+    <link rel="stylesheet" href="css/styles.css?v=38">
+    <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="page-bg" role="presentation" aria-hidden="true"></div>
+<main class="player-page">
+    <header class="player-page-header glass-panel">
+        <a class="player-back-link" href="./" aria-label="Back to scoreboard">Back</a>
+        <div class="player-title-block">
+            <span class="player-page-kicker">Player Bets</span>
+            <h1 id="playerName" class="player-page-title">Loading...</h1>
+            <p id="playerSummary" class="player-page-summary"></p>
+        </div>
+    </header>
+
+    <section class="player-overview glass-panel" aria-label="Player overview">
+        <div class="player-stat">
+            <span class="player-stat-label">Rank</span>
+            <span id="playerRank" class="player-stat-value">-</span>
+        </div>
+        <div class="player-stat">
+            <span class="player-stat-label">Points</span>
+            <span id="playerPoints" class="player-stat-value">-</span>
+        </div>
+        <div class="player-stat">
+            <span class="player-stat-label">Winner</span>
+            <span id="playerChampion" class="player-stat-value player-stat-team">-</span>
+        </div>
+    </section>
+
+    <section class="player-bets glass-panel" aria-label="All player bets">
+        <div class="player-bets-header">
+            <span>Match</span>
+            <span>Pick</span>
+            <span>Result</span>
+            <span>Pts</span>
+        </div>
+        <div id="playerBetsList" class="player-bets-list"></div>
+    </section>
+</main>
+
+<script src="js/flags.js?v=6"></script>
+<script src="js/player-page.js?v=1"></script>
+</body>
+</html>

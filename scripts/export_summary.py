@@ -307,6 +307,56 @@ def _score_from_user_sheet_name(
     return round(total, 2)
 
 
+def _player_picks_from_user_sheet(
+    wb: openpyxl.Workbook,
+    sheet_name: str,
+    matches: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Read one player's predictions for every known match."""
+    ws_user = wb[sheet_name]
+    pick_rows: dict[int, int] = {}
+    for user_row in range(SCHEDULE_ROW_START, 200):
+        match_id = ws_user.cell(user_row, SCHEDULE_MATCH_ID_COL).value
+        try:
+            pick_rows[int(match_id)] = user_row
+        except (TypeError, ValueError):
+            continue
+
+    picks: list[dict[str, Any]] = []
+    for match in matches:
+        match_id = int(match["id"])
+        pick_row = pick_rows.get(match_id)
+        home_pick = away_pick = None
+        if pick_row is not None:
+            home_pick = _cell_int(ws_user.cell(pick_row, PICK_HOME_COL).value)
+            away_pick = _cell_int(ws_user.cell(pick_row, PICK_AWAY_COL).value)
+
+        points = None
+        if (
+            match["played"]
+            and home_pick is not None
+            and away_pick is not None
+            and match["homeScore"] is not None
+            and match["awayScore"] is not None
+        ):
+            points = _score_prediction(
+                int(match["homeScore"]),
+                int(match["awayScore"]),
+                home_pick,
+                away_pick,
+            )
+
+        picks.append(
+            {
+                "matchId": match_id,
+                "homePick": home_pick,
+                "awayPick": away_pick,
+                "points": points,
+            }
+        )
+    return picks
+
+
 def _read_user_points(
     wb_data: openpyxl.Workbook,
     wb_formulas: openpyxl.Workbook,
@@ -417,6 +467,12 @@ def _read_raw_leaderboard_by_name(
             sheet_name = _user_sheet_for_uid(wb_formulas, uid)
             if sheet_name is not None:
                 champion = _cell_text(wb_formulas[sheet_name][CHAMPION_CELL].value)
+        sheet_name = _user_sheet_for_uid(wb_formulas, uid)
+        picks = (
+            _player_picks_from_user_sheet(wb_formulas, sheet_name, matches)
+            if sheet_name is not None
+            else []
+        )
         rows.append(
             {
                 "id": str(uid or ""),
@@ -425,6 +481,7 @@ def _read_raw_leaderboard_by_name(
                 "rank": rank,
                 "rankLabel": str(rank) if rank is not None else None,
                 "champion": champion,
+                "picks": picks,
                 "summaryOrder": row,
             }
         )
@@ -458,6 +515,7 @@ def _read_visible_summary_leaderboard(
                 "rank": rank,
                 "rankLabel": rank_label,
                 "champion": champion or raw.get("champion"),
+                "picks": raw.get("picks") or [],
             }
         )
     return rows

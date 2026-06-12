@@ -12,7 +12,8 @@ const UPDATE_TOAST_MS = 6000;
 
 const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 19h14v2H5v-2zm1.6-9.2L12 4l5.4 5.8L19 8l1 9H4l1.6-8.2z"/></svg>`;
 
-/** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string }} LeaderboardEntry */
+/** @typedef {{ matchId: number, homePick: number | null, awayPick: number | null, points: number | null }} PlayerPick */
+/** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string, picks?: PlayerPick[] }} LeaderboardEntry */
 /** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null }} MatchEntry */
 /** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ version: string, generatedAt: string, gamesPlayed: number, lastResult: object | null, leaderboard: LeaderboardEntry[], matches: MatchEntry[], broadcast?: BroadcastState, registration?: unknown }} TotoData */
@@ -885,7 +886,7 @@ async function loadData(fromUserClick, options = {}) {
 
     if (isScoreboardLive(data, isDebugMode())) {
       if (SHOW_LEADERBOARD_ROWS) {
-        renderLeaderboard(table, data.leaderboard, animate);
+      renderLeaderboard(table, data, animate);
       } else {
         renderLeaderboardComingSoon(table);
         standingsBtn?.classList.add("hidden");
@@ -1048,13 +1049,38 @@ function renderLeaderboardComingSoon(container) {
   container.style.removeProperty("--lb-scroll-collapsed-h");
 }
 
-/** @param {LeaderboardEntry[]} leaderboard @param {boolean} [animate] */
-function renderLeaderboard(container, leaderboard, animate = false) {
+/**
+ * @param {LeaderboardEntry} entry
+ * @param {number | null} matchId
+ */
+function livePredictionHtml(entry, matchId) {
+  if (!matchId) {
+    return "";
+  }
+  const pick = (entry.picks || []).find((item) => Number(item.matchId) === Number(matchId));
+  if (!pick || pick.homePick === null || pick.awayPick === null) {
+    return '<span class="lb-pick-pill lb-pick-pill--empty">No pick</span>';
+  }
+  return `<span class="lb-pick-pill">${pick.homePick}&nbsp;–&nbsp;${pick.awayPick}</span>`;
+}
+
+/** @param {LeaderboardEntry} entry */
+function playerHref(entry) {
+  const id = entry.id ? `id=${encodeURIComponent(entry.id)}` : "";
+  const name = `name=${encodeURIComponent(entry.name)}`;
+  return `player.html?${id ? `${id}&` : ""}${name}`;
+}
+
+/** @param {HTMLElement | null} container @param {TotoData} data @param {boolean} [animate] */
+function renderLeaderboard(container, data, animate = false) {
   if (!container) {
     return;
   }
 
-  const sorted = [...leaderboard];
+  const sorted = [...data.leaderboard];
+  const liveMatchId = manualLiveMatchIds(data)[0] ?? null;
+  const leaderboardPanel = container.closest(".leaderboard");
+  leaderboardPanel?.classList.toggle("has-live-picks", liveMatchId !== null);
 
   const standingsBtn = document.getElementById("viewStandingsBtn");
 
@@ -1077,9 +1103,11 @@ function renderLeaderboard(container, leaderboard, animate = false) {
       const rowTitle = entry.champion
         ? `Champion pick: ${entry.champion}`
         : "";
+      const href = playerHref(entry);
+      const livePick = livePredictionHtml(entry, liveMatchId);
 
       return `
-    <div class="lb-row ${rowClass}${championClass}${enterClass}"${stagger} title="${escapeHtml(rowTitle)}" aria-label="${escapeHtml(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}">
+    <a class="lb-row ${rowClass}${championClass}${enterClass}" href="${escapeHtml(href)}"${stagger} title="${escapeHtml(rowTitle)}" aria-label="${escapeHtml(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}">
       ${rowFlag}
       <div class="lb-rank-cell">
         <span class="rank-badge ${rankClass}">${escapeHtml(rankLabel)}</span>
@@ -1089,8 +1117,9 @@ function renderLeaderboard(container, leaderboard, animate = false) {
         ${crown}
         <span class="lb-player-name">${escapeHtml(entry.name)}</span>
       </div>
+      <div class="lb-pick-cell">${livePick}</div>
       <div class="lb-pts">${entry.points.toFixed(0)}</div>
-    </div>`;
+    </a>`;
     })
     .join("");
 
