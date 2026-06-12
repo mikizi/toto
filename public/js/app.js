@@ -74,7 +74,7 @@ function shouldShowLiveBadge(data) {
   if (isDebugMode()) {
     return false;
   }
-  return isScoreboardLive(data, isDebugMode());
+  return isMatchInProgress(data, isDebugMode());
 }
 
 /** @param {TotoData} data */
@@ -86,7 +86,7 @@ function updateLiveIndicator(data) {
   const inProgress = isMatchInProgress(data, isDebugMode());
 
   badge?.classList.toggle("hidden", !showLive);
-  card?.classList.toggle("is-live", showLive);
+  card?.classList.toggle("is-live", inProgress);
   statusDot?.classList.toggle("is-live", inProgress);
   statusDot?.classList.toggle("hidden", showLive);
 }
