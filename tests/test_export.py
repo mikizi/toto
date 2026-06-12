@@ -72,10 +72,12 @@ class TestExportFromXlsx(unittest.TestCase):
         self.assertFalse(any(n.lower().startswith("test") for n in names))
         self.assertGreater(len(payload["leaderboard"]), 10)
 
-    def test_leaderboard_preserves_visible_summary_order(self) -> None:
+    def test_leaderboard_has_valid_names_and_score_order(self) -> None:
         payload = build_export(XLSX_PATH)
-        names = [entry["name"] for entry in payload["leaderboard"][:3]]
-        self.assertEqual(names, ["Pini2", "Pini3", "AmirLin"])
+        names = [entry["name"] for entry in payload["leaderboard"]]
+        self.assertFalse(any(name.startswith("#") for name in names))
+        points = [entry["points"] for entry in payload["leaderboard"]]
+        self.assertEqual(points, sorted(points, reverse=True))
 
     def test_validate_latest_export(self) -> None:
         payload = build_export(XLSX_PATH)

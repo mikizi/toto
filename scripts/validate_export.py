@@ -28,6 +28,14 @@ def validate(payload: dict) -> list[str]:
 
     games_played = int(payload.get("gamesPlayed") or 0)
     for entry in leaderboard or []:
+        name = str(entry.get("name") or "").strip()
+        champion = str(entry.get("champion") or "").strip()
+        if not name or name.startswith("#"):
+            errors.append("leaderboard contains invalid/missing player name")
+            break
+        if not champion or champion.startswith("#"):
+            errors.append(f"champion missing for {name}")
+            break
         if entry.get("rank") is None and games_played > 0:
             errors.append(f"rank missing for {entry.get('name')} after games played")
             break

@@ -21,8 +21,10 @@ DEFAULT_XLSX = XLSX_PATH
 SUMMARY = "Summary"
 USER_ROW_START = 79
 USER_ROW_END = 200
+SUMMARY_RAW_ROW_START = 86
 SUMMARY_LEADERBOARD_ROW_START = 4
 SUMMARY_LEADERBOARD_ROW_END = 80
+CALC_SCORE_ROW_START = 238
 MATCH_ROW_START = 4
 MATCH_ROW_END = 120
 CHAMPION_CELL = "CM47"
@@ -84,6 +86,13 @@ def _user_sheet_name(uid: object, name: str) -> str:
     return f"{uid_text}_{name}"
 
 
+def _user_sheet_for_uid(wb: openpyxl.Workbook, uid: object) -> str | None:
+    """Find a user sheet by Summary id, independent of cached display name."""
+    uid_text = str(uid or "").strip().zfill(3)
+    prefix = f"{uid_text}_"
+    return next((name for name in wb.sheetnames if name.startswith(prefix)), None)
+
+
 def _cell_text(value: object) -> str | None:
     """Parse a cached spreadsheet cell as text, ignoring Excel error strings."""
     if value is None:
@@ -124,7 +133,11 @@ def _split_teams(teams: str) -> tuple[str, str]:
 def _is_match_row(ws: openpyxl.worksheet.worksheet.Worksheet, row: int) -> bool:
     match_id = ws[f"J{row}"].value
     teams = ws[f"K{row}"].value
-    return match_id is not None and teams is not None and "-" in str(teams)
+    try:
+        int(match_id)
+    except (TypeError, ValueError):
+        return False
+    return teams is not None and "-" in str(teams)
 
 
 def _read_matches(
@@ -263,6 +276,37 @@ def _score_from_user_sheet(
     return round(total, 2)
 
 
+def _score_from_user_sheet_name(
+    wb: openpyxl.Workbook,
+    sheet_name: str,
+    matches: list[dict[str, Any]],
+) -> float:
+    """Compute group-stage points directly from a known user sheet name."""
+    ws_user = wb[sheet_name]
+    pick_rows: dict[int, int] = {}
+    for user_row in range(SCHEDULE_ROW_START, 200):
+        match_id = ws_user.cell(user_row, SCHEDULE_MATCH_ID_COL).value
+        try:
+            pick_rows[int(match_id)] = user_row
+        except (TypeError, ValueError):
+            continue
+
+    total = 0.0
+    for match in matches:
+        if not match["played"]:
+            continue
+        pick_row = pick_rows.get(int(match["id"]))
+        if pick_row is None:
+            continue
+        total += _score_prediction(
+            int(match["homeScore"]),
+            int(match["awayScore"]),
+            ws_user.cell(pick_row, PICK_HOME_COL).value,
+            ws_user.cell(pick_row, PICK_AWAY_COL).value,
+        )
+    return round(total, 2)
+
+
 def _read_user_points(
     wb_data: openpyxl.Workbook,
     wb_formulas: openpyxl.Workbook,
@@ -342,7 +386,7 @@ def _read_leaderboard(
     visible_rows = _read_visible_summary_leaderboard(ws_data, raw_by_name)
     if visible_rows:
         return visible_rows
-    return list(raw_by_name.values())
+    return _reconstructed_summary_leaderboard(list(raw_by_name.values()))
 
 
 def _read_raw_leaderboard_by_name(
@@ -353,20 +397,35 @@ def _read_raw_leaderboard_by_name(
 ) -> dict[str, dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for row in range(USER_ROW_START, USER_ROW_END):
-        name = ws_data[f"D{row}"].value
+        uid = ws_data[f"C{row}"].value
+        name = _cell_text(ws_data[f"D{row}"].value)
+        if not name or name == "Name":
+            sheet_name = _user_sheet_for_uid(wb_formulas, uid)
+            if sheet_name is None:
+                continue
+            name = sheet_name.split("_", 1)[1]
         if not name or name == "Name":
             continue
         points = _read_user_points(wb_data, wb_formulas, ws_data, row, matches)
+        if points == 0.0:
+            sheet_name = _user_sheet_for_uid(wb_formulas, uid)
+            if sheet_name is not None:
+                points = _score_from_user_sheet_name(wb_formulas, sheet_name, matches)
         rank = _cell_int(ws_data[f"G{row}"].value)
         champion = _read_champion(wb_data, ws_data, row)
+        if not champion:
+            sheet_name = _user_sheet_for_uid(wb_formulas, uid)
+            if sheet_name is not None:
+                champion = _cell_text(wb_formulas[sheet_name][CHAMPION_CELL].value)
         rows.append(
             {
-                "id": str(ws_data[f"C{row}"].value or ""),
-                "name": str(name),
+                "id": str(uid or ""),
+                "name": name,
                 "points": points,
                 "rank": rank,
                 "rankLabel": str(rank) if rank is not None else None,
                 "champion": champion,
+                "summaryOrder": row,
             }
         )
     return {entry["name"]: entry for entry in rows}
@@ -379,10 +438,10 @@ def _read_visible_summary_leaderboard(
     """Read the sorted leaderboard table displayed at the top of Summary."""
     rows: list[dict[str, Any]] = []
     for row in range(SUMMARY_LEADERBOARD_ROW_START, SUMMARY_LEADERBOARD_ROW_END + 1):
-        name = ws_data[f"D{row}"].value
+        name = _cell_text(ws_data[f"D{row}"].value)
         if not name or name == "Name":
             continue
-        name_text = str(name)
+        name_text = name
         if _is_test_user(name_text):
             continue
 
@@ -401,6 +460,24 @@ def _read_visible_summary_leaderboard(
                 "champion": champion or raw.get("champion"),
             }
         )
+    return rows
+
+
+def _reconstructed_summary_leaderboard(raw_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Rebuild the visible Summary order when cached VLOOKUP rows are #N/A."""
+    pool = [entry for entry in raw_rows if not _is_test_user(entry["name"])]
+    pool.sort(key=lambda e: (-float(e.get("points") or 0), int(e.get("summaryOrder") or 9999)))
+
+    rows: list[dict[str, Any]] = []
+    previous_points: float | None = None
+    for index, entry in enumerate(pool, start=1):
+        points = float(entry.get("points") or 0)
+        rank_label = str(index) if previous_points is None or points != previous_points else "-"
+        previous_points = points
+        public_entry = {k: v for k, v in entry.items() if k != "summaryOrder"}
+        public_entry["rank"] = index
+        public_entry["rankLabel"] = rank_label
+        rows.append(public_entry)
     return rows
 
 
