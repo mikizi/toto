@@ -1,38 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="World Cup 2026 Toto">
   <defs>
-    <linearGradient id="tile" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#1f3548"/>
-      <stop offset="0.48" stop-color="#0d1724"/>
-      <stop offset="1" stop-color="#05080d"/>
+    <linearGradient id="bg" x1="9" y1="6" x2="55" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#174235"/>
+      <stop offset="0.5" stop-color="#0b1c25"/>
+      <stop offset="1" stop-color="#05070c"/>
     </linearGradient>
-    <radialGradient id="glow" cx="32" cy="26" r="33" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#e8b923" stop-opacity="0.52"/>
-      <stop offset="0.44" stop-color="#18a6b8" stop-opacity="0.23"/>
-      <stop offset="1" stop-color="#05080d" stop-opacity="0"/>
+    <linearGradient id="gold" x1="14" y1="8" x2="50" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff2a8"/>
+      <stop offset="0.42" stop-color="#e8b923"/>
+      <stop offset="1" stop-color="#9b650d"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="24" cy="14" r="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#53f2a5" stop-opacity="0.32"/>
+      <stop offset="0.42" stop-color="#e8b923" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#05070c" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="gold" x1="21" y1="9" x2="46" y2="42" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#fff3b0"/>
-      <stop offset="0.4" stop-color="#e8b923"/>
-      <stop offset="1" stop-color="#a86f10"/>
-    </linearGradient>
-    <linearGradient id="ball" x1="19" y1="19" x2="45" y2="47" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#f8fbff"/>
-      <stop offset="0.43" stop-color="#d7e1ea"/>
-      <stop offset="1" stop-color="#8fa5b9"/>
+    <linearGradient id="ball" x1="22" y1="18" x2="44" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#dce7ef"/>
+      <stop offset="1" stop-color="#8fa3b5"/>
     </linearGradient>
   </defs>
 
-  <rect width="64" height="64" rx="15" fill="url(#tile)"/>
-  <rect width="64" height="64" rx="15" fill="url(#glow)"/>
-  <path d="M20 13h24v7c0 8.3-5.2 15-12 15S20 28.3 20 20v-7Z" fill="none" stroke="url(#gold)" stroke-width="4" stroke-linejoin="round"/>
-  <path d="M25 14v-3h14v3" fill="none" stroke="#fff3b0" stroke-width="3" stroke-linecap="round"/>
-  <path d="M32 35v8" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
-  <path d="M24 45h16" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+  <rect width="64" height="64" rx="15" fill="url(#shine)"/>
+  <path d="M12 48c8.3-4.2 18-6.3 29-6.3 4 0 7.7.3 11 .8" fill="none" stroke="#5ee2a0" stroke-opacity="0.2" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M14 17h36" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M14 47h36" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M17 14v36M47 14v36" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+  <rect x="14" y="14" width="36" height="36" rx="10" fill="#07121a" fill-opacity="0.42" stroke="url(#gold)" stroke-width="2"/>
 
-  <circle cx="32" cy="35" r="16" fill="url(#ball)" stroke="#07101b" stroke-width="3"/>
-  <path d="M32 25l7 5-3 8h-8l-3-8 7-5Z" fill="#0a1624"/>
-  <path d="M32 25v-5M39 30l5-4M36 38l4 6M28 38l-4 6M25 30l-5-4" stroke="#0a1624" stroke-width="2.4" stroke-linecap="round"/>
-  <path d="M20 34h8M36 38l7 7M28 38l-7 7M39 30h8M25 30h-8" stroke="#0a1624" stroke-width="2" stroke-linecap="round"/>
-  <path d="M47 13l1.7 4.3L53 19l-4.3 1.7L47 25l-1.7-4.3L41 19l4.3-1.7L47 13Z" fill="#fff3b0"/>
-  <path d="M17 17l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1 1-2.6Z" fill="#e8b923"/>
+  <circle cx="32" cy="29" r="13.5" fill="url(#ball)" stroke="#061018" stroke-width="2.4"/>
+  <path d="M32 21.5 38 26l-2.3 7h-7.4L26 26l6-4.5Z" fill="#07121a"/>
+  <path d="M32 21.5v-5M38 26l5-3M35.7 33l3.9 5M28.3 33l-3.9 5M26 26l-5-3" stroke="#07121a" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M20.3 31.5h8M35.7 33l6.1 6.1M28.3 33l-6.1 6.1M38 26h7.2M26 26h-7.2" stroke="#07121a" stroke-width="1.7" stroke-linecap="round"/>
+
+  <path d="M20.5 50.5h23" stroke="#fff2a8" stroke-opacity="0.58" stroke-width="1.8" stroke-linecap="round"/>
+  <text x="32" y="55.4" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="900" letter-spacing="0" fill="#fff2a8">26</text>
 </svg>
