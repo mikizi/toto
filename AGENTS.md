@@ -40,7 +40,7 @@ The admin page uses a shared password, so it does not call `mixpanel.identify()`
 | `standings_toggled` | User expands or collapses standings | `is_expanded`, `visible_rows`, `leaderboard_count`, `games_played` | `public/js/app.js` |
 | `fixtures_toggled` | User expands or collapses fixtures | `is_expanded`, `matches_count`, `games_played` | `public/js/app.js` |
 | `player_profile_opened` | User clicks a leaderboard row | `source`, `rank`, `points`, `has_champion_pick`, `games_played` | `public/js/app.js` |
-| `player_profile_viewed` | Player page loads successfully | `rank`, `points`, `champion_pick`, `picks_count`, `games_played`, `matches_count`, `lookup_method` | `public/js/player-page.js` |
+| `player_profile_viewed` | Player page loads successfully | `player_id`, `player_name`, `rank`, `points`, `champion_pick`, `picks_count`, `games_played`, `matches_count`, `lookup_method` | `public/js/player-page.js` |
 | `player_profile_missing` | Player page cannot find the requested player | `lookup_method` | `public/js/player-page.js` |
 | `player_profile_load_failed` | Player page data request fails | `error_message` | `public/js/player-page.js` |
 | `music_player_controlled` | User controls the music player or a track ends | `action`, `track_index`, `track_title`, `is_paused` | `public/js/player.js` |
@@ -60,7 +60,8 @@ The admin page uses a shared password, so it does not call `mixpanel.identify()`
 
 - Use `snake_case` event and property names.
 - Track after a user action succeeds or after the UI state has actually changed.
-- Do not send participant names, admin passwords, emails, phone numbers, or payment details.
+- Do not send admin passwords, emails, phone numbers, or payment details.
+- Participant display names are allowed only on `player_profile_viewed`, per user confirmation that these names are not sensitive for this site.
 - Do not construct event names dynamically.
 - Reuse `window.totoAnalytics` so base properties stay consistent.
 - Update this file whenever adding, renaming, or removing a Mixpanel event.

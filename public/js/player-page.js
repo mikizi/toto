@@ -214,6 +214,8 @@ async function loadPlayerPage() {
     }
     renderPlayer(player, data);
     window.totoAnalytics?.trackPage("player_profile", {
+      player_id: String(player.id || ""),
+      player_name: String(player.name || ""),
       rank: Number(playerRankText(player, data.leaderboard || [])),
       points: Number(player.points),
       champion_pick: player.champion || "",

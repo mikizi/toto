@@ -5,7 +5,12 @@ const SHOW_LEADERBOARD_ROWS = true;
 
 const DATA_URL = "data/latest.json";
 const VERSION_URL = "data/version.json";
-const PRESENCE_URL = "https://toto-admin-publish.mikizi-toto.workers.dev/presence";
+const IS_LOCAL_HOST =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+const PRESENCE_URL = IS_LOCAL_HOST
+  ? "http://127.0.0.1:8090/presence"
+  : "https://toto-admin-publish.mikizi-toto.workers.dev/presence";
 const LIVE_POLL_MS = 20000;
 const PRESENCE_POLL_MS = 15000;
 const UPDATE_TOAST_MS = 6000;
