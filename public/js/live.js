@@ -59,8 +59,13 @@ function matchesById(data) {
  * @param {number} matchId
  */
 function previousMatchesAllPlayed(matches, matchId) {
-  for (const match of matches) {
-    if (match.id >= matchId) {
+  const target = matches.find((match) => match.id === matchId);
+  const targetMs = target ? matchKickoffMs(target) : Number.NaN;
+  for (const match of chronologicalMatches(matches)) {
+    if (match.id === matchId) {
+      return true;
+    }
+    if (!Number.isNaN(targetMs) && matchKickoffMs(match) >= targetMs) {
       continue;
     }
     if (!match.played) {
@@ -68,6 +73,26 @@ function previousMatchesAllPlayed(matches, matchId) {
     }
   }
   return true;
+}
+
+/** @param {MatchEntry} match */
+function matchKickoffMs(match) {
+  if (!match.kickoffAt) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const ms = Date.parse(match.kickoffAt);
+  return Number.isNaN(ms) ? Number.POSITIVE_INFINITY : ms;
+}
+
+/** @param {MatchEntry} a @param {MatchEntry} b */
+function compareMatchesByKickoff(a, b) {
+  const diff = matchKickoffMs(a) - matchKickoffMs(b);
+  return diff !== 0 ? diff : a.id - b.id;
+}
+
+/** @param {MatchEntry[]} matches */
+function chronologicalMatches(matches) {
+  return [...matches].sort(compareMatchesByKickoff);
 }
 
 /**
@@ -108,8 +133,9 @@ function autoLiveMatchIds(data, nowMs = Date.now()) {
     return [];
   }
   const ids = [];
-  for (const match of data.matches || []) {
-    if (!matchQualifiesForAutoLive(match, data.matches, nowMs)) {
+  const matches = data.matches || [];
+  for (const match of chronologicalMatches(matches)) {
+    if (!matchQualifiesForAutoLive(match, matches, nowMs)) {
       continue;
     }
     ids.push(match.id);
@@ -170,7 +196,7 @@ function heroLiveMatches(data, nowMs = Date.now()) {
  * @returns {MatchEntry | undefined}
  */
 function nextUnplayedMatch(data) {
-  return data.matches.find((m) => !m.played);
+  return chronologicalMatches(data.matches || []).find((m) => !m.played);
 }
 
 /**

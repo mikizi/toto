@@ -423,14 +423,7 @@ function stopPresencePolling() {
 function upcomingMatches(data, limit = 3) {
   return data.matches
     .filter((m) => !m.played)
-    .sort((a, b) => {
-      const ta = a.kickoffAt ? Date.parse(a.kickoffAt) : Number.POSITIVE_INFINITY;
-      const tb = b.kickoffAt ? Date.parse(b.kickoffAt) : Number.POSITIVE_INFINITY;
-      if (ta !== tb) {
-        return ta - tb;
-      }
-      return a.id - b.id;
-    })
+    .sort(compareMatchesByKickoff)
     .slice(0, limit);
 }
 
@@ -438,26 +431,12 @@ function upcomingMatches(data, limit = 3) {
 function allUpcomingMatches(data) {
   return data.matches
     .filter((m) => !m.played)
-    .sort((a, b) => {
-      const ta = a.kickoffAt ? Date.parse(a.kickoffAt) : Number.POSITIVE_INFINITY;
-      const tb = b.kickoffAt ? Date.parse(b.kickoffAt) : Number.POSITIVE_INFINITY;
-      if (ta !== tb) {
-        return ta - tb;
-      }
-      return a.id - b.id;
-    });
+    .sort(compareMatchesByKickoff);
 }
 
 /** @param {TotoData} data @returns {MatchEntry[]} */
 function allFixturesMatches(data) {
-  return [...data.matches].sort((a, b) => {
-    const ta = a.kickoffAt ? Date.parse(a.kickoffAt) : Number.POSITIVE_INFINITY;
-    const tb = b.kickoffAt ? Date.parse(b.kickoffAt) : Number.POSITIVE_INFINITY;
-    if (ta !== tb) {
-      return ta - tb;
-    }
-    return a.id - b.id;
-  });
+  return chronologicalMatches(data.matches || []);
 }
 
 /** @param {MatchEntry} match @param {number} [index] @param {boolean} [animate] @param {boolean} [isNext] @param {boolean} [isLive] */
@@ -491,7 +470,7 @@ function fixtureItemHtml(match, index = 0, animate = false, isNext = false, isLi
     : "next-game-vs-badge";
 
   return `
-    <div class="next-game-item${enterClass}${playedClass}${nextClass}" data-played="${match.played ? "1" : "0"}"${stagger}>
+    <div class="next-game-item${enterClass}${playedClass}${nextClass}" data-played="${match.played ? "1" : "0"}" data-current="${isLive ? "1" : "0"}"${stagger}>
       <div class="next-game-matchup">
         <div class="next-game-team next-game-team--home" title="${escapeHtml(match.home)}">
           ${flagHtml(match.home, "sm")}
@@ -541,7 +520,7 @@ function setScrollHeightInstant(scrollEl, instant) {
  * @returns {HTMLElement | null}
  */
 function firstUpcomingFixtureItem(listEl) {
-  const item = listEl.querySelector('.next-game-item[data-played="0"]');
+  const item = listEl.querySelector('.next-game-item[data-current="1"], .next-game-item[data-played="0"]');
   return item instanceof HTMLElement ? item : null;
 }
 
@@ -581,7 +560,9 @@ function syncNextGamesCollapsedHeight(scrollEl, listEl, instant = false) {
   }
 
   const items = [...listEl.querySelectorAll(".next-game-item")];
-  const startIdx = items.findIndex((el) => el.getAttribute("data-played") !== "1");
+  const startIdx = items.findIndex((el) => (
+    el.getAttribute("data-current") === "1" || el.getAttribute("data-played") !== "1"
+  ));
   const anchorIdx = startIdx >= 0 ? startIdx : 0;
   const remaining = items.length - anchorIdx;
 
@@ -663,9 +644,9 @@ function toggleStandingsPanel() {
 function renderNextGames(listEl, scrollEl, data, animate = false) {
   const fixtures = allFixturesMatches(data);
   const upcoming = allUpcomingMatches(data);
-  const hasPast = fixtures.some((m) => m.played);
-  const nextId = upcoming[0]?.id;
   const liveIds = new Set(manualLiveMatchIds(data));
+  const hasPast = fixtures.some((m) => m.played && !liveIds.has(m.id));
+  const nextId = liveIds.size > 0 ? undefined : upcoming[0]?.id;
   const fixturesBtn = document.getElementById("viewFixturesBtn");
 
   if (listEl) {

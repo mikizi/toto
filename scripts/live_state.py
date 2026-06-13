@@ -30,9 +30,32 @@ def parse_iso(value: str | None) -> datetime | None:
     return dt.astimezone(timezone.utc)
 
 
+def match_kickoff_key(match: dict[str, Any]) -> tuple[datetime, int]:
+    """Return a stable chronological sort key for a match row."""
+    kickoff = parse_iso(match.get("kickoffAt")) or datetime.max.replace(tzinfo=timezone.utc)
+    try:
+        match_id = int(match["id"])
+    except (KeyError, TypeError, ValueError):
+        match_id = 0
+    return kickoff, match_id
+
+
+def chronological_matches(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return matches sorted by actual kickoff time, then match id."""
+    return sorted(matches, key=match_kickoff_key)
+
+
+def match_id_value(match: dict[str, Any]) -> int | None:
+    """Return a match id as int when present and valid."""
+    try:
+        return int(match["id"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def next_unplayed_match(matches: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """Return the first unplayed match in schedule order."""
-    for match in matches:
+    """Return the next unplayed match by kickoff time."""
+    for match in chronological_matches(matches):
         if not match.get("played"):
             return match
     return None
@@ -79,13 +102,18 @@ def _matches_by_id(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
 
 
 def previous_matches_all_played(matches: list[dict[str, Any]], match_id: int) -> bool:
-    """True when every earlier match in schedule order has been closed (played)."""
-    for match in matches:
+    """True when every earlier kickoff has been closed (played)."""
+    target = next((match for match in matches if match_id_value(match) == match_id), None)
+    target_kickoff = parse_iso(target.get("kickoffAt")) if target else None
+    for match in chronological_matches(matches):
         try:
             mid = int(match["id"])
         except (KeyError, TypeError, ValueError):
             continue
-        if mid >= match_id:
+        if mid == match_id:
+            return True
+        kickoff = parse_iso(match.get("kickoffAt"))
+        if target_kickoff and kickoff and kickoff >= target_kickoff:
             continue
         if not match.get("played"):
             return False
@@ -129,7 +157,7 @@ def auto_live_match_ids(
     moment = now or datetime.now(timezone.utc)
     matches = data.get("matches") or []
     ids: list[int] = []
-    for match in matches:
+    for match in chronological_matches(matches):
         if not match_qualifies_for_auto_live(match, matches, moment):
             continue
         try:
