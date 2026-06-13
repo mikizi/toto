@@ -26,9 +26,9 @@ Feature files should call `window.totoAnalytics.track(...)` or `window.totoAnaly
 
 ## Identity
 
-There is no public user login flow. Public visitors are tracked anonymously by Mixpanel distinct ID, with the existing `wc26-presence-id` added as a non-PII super property for live-traffic analysis.
+There is no public user login flow. Public visitors are identified in Mixpanel with the anonymous `wc26-presence-id` so Mixpanel user profiles populate for visitor analysis. The same `wc26-presence-id` is also added as a non-PII super property for live-traffic analysis.
 
-The admin page uses a shared password, so it does not call `mixpanel.identify()`. Do not identify admins as a shared static user.
+The admin page uses a shared password, so it must not identify admins as a shared static user. It may still use the anonymous visitor profile ID from `wc26-presence-id`.
 
 ## Current Tracking Plan
 

@@ -81,6 +81,42 @@
     };
   }
 
+  /** @param {string} visitorId */
+  function visitorDisplayName(visitorId) {
+    return `Visitor ${visitorId.slice(0, 8)}`;
+  }
+
+  /** @param {string} visitorId @returns {Record<string, unknown>} */
+  function visitorProfileProperties(visitorId) {
+    return {
+      $name: visitorDisplayName(visitorId),
+      visitor_id: visitorId,
+      app_name: APP_NAME,
+      visitor_type: "anonymous_site_visitor",
+      last_seen_page_path: window.location.pathname || "/",
+      last_seen_page_title: document.title,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      locale: navigator.language,
+      is_local: isLocal,
+    };
+  }
+
+  function syncVisitorProfile() {
+    const visitorId = getPresenceClientId();
+    if (!visitorId || !window.mixpanel) {
+      return;
+    }
+    if (typeof window.mixpanel.identify === "function") {
+      window.mixpanel.identify(visitorId);
+    }
+    if (typeof window.mixpanel.name_tag === "function") {
+      window.mixpanel.name_tag(visitorDisplayName(visitorId));
+    }
+    if (typeof window.mixpanel.people?.set === "function") {
+      window.mixpanel.people.set(cleanProperties(visitorProfileProperties(visitorId)));
+    }
+  }
+
   function installMixpanelSnippet() {
     if (window.mixpanel?.__SV || window.mixpanel?.__loaded) {
       return;
@@ -164,6 +200,7 @@
     if (typeof window.mixpanel.register === "function") {
       window.mixpanel.register(cleanProperties(baseProperties()));
     }
+    syncVisitorProfile();
   }
 
   /**
