@@ -89,6 +89,14 @@ function formatPoints(value) {
   return Number.isInteger(num) ? String(num) : num.toFixed(1);
 }
 
+/**
+ * @param {string} eventName
+ * @param {Record<string, unknown>} [properties]
+ */
+function trackAnalytics(eventName, properties = {}) {
+  window.totoAnalytics?.track(eventName, properties);
+}
+
 /** @param {any} player @param {any[]} leaderboard */
 function playerRankText(player, leaderboard) {
   const index = leaderboard.findIndex((entry) => (
@@ -199,12 +207,27 @@ async function loadPlayerPage() {
     const player = findPlayer(data.leaderboard || []);
     if (!player) {
       document.getElementById("playerName").textContent = "Player not found";
+      trackAnalytics("player_profile_missing", {
+        lookup_method: playerParams().id ? "id" : "name",
+      });
       return;
     }
     renderPlayer(player, data);
+    window.totoAnalytics?.trackPage("player_profile", {
+      rank: Number(playerRankText(player, data.leaderboard || [])),
+      points: Number(player.points),
+      champion_pick: player.champion || "",
+      picks_count: Array.isArray(player.picks) ? player.picks.length : 0,
+      games_played: data.gamesPlayed,
+      matches_count: Array.isArray(data.matches) ? data.matches.length : 0,
+      lookup_method: playerParams().id ? "id" : "name",
+    });
   } catch (err) {
     console.error(err);
     document.getElementById("playerName").textContent = "Could not load player";
+    trackAnalytics("player_profile_load_failed", {
+      error_message: err instanceof Error ? err.message : "unknown",
+    });
   }
 }
 

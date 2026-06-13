@@ -43,6 +43,35 @@ let activeAdminTab = "match";
 /** @type {string[]} */
 let registrationDraftUsers = [];
 
+/**
+ * @param {string} eventName
+ * @param {Record<string, unknown>} [properties]
+ */
+function trackAdminAnalytics(eventName, properties = {}) {
+  window.totoAnalytics?.track(eventName, {
+    surface: "admin",
+    admin_mode: IS_LOCAL ? "local" : "production",
+    active_admin_tab: activeAdminTab,
+    ...properties,
+  });
+}
+
+/**
+ * @param {number} matchId
+ * @param {Record<string, unknown>} [properties]
+ * @returns {Record<string, unknown>}
+ */
+function matchAnalyticsProps(matchId, properties = {}) {
+  const match = cachedMatches.find((item) => item.id === matchId);
+  return {
+    match_id: matchId,
+    home_team: match?.home || "",
+    away_team: match?.away || "",
+    is_played: Boolean(match?.played),
+    ...properties,
+  };
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("loginForm")?.addEventListener("submit", onLogin);
   document.getElementById("publishForm")?.addEventListener("submit", onPublish);
@@ -78,6 +107,9 @@ function onAdminTabClick(event) {
   const tab = btn.getAttribute("data-tab");
   if (tab === "match" || tab === "players" || tab === "standings") {
     setAdminTab(tab);
+    trackAdminAnalytics("admin_tab_changed", {
+      tab_name: tab,
+    });
   }
 }
 
@@ -157,9 +189,11 @@ function onLogin(event) {
   }
   showAdminApp();
   setMessage(loginMsg, "", "");
+  trackAdminAnalytics("admin_signed_in");
 }
 
 function onLogout() {
+  trackAdminAnalytics("admin_signed_out");
   clearSavedAdminPassword();
   showLoginScreen();
 }
@@ -343,6 +377,7 @@ function onMatchCardClick(event) {
     return;
   }
   selectMatch(matchId, { focusScores: true });
+  trackAdminAnalytics("admin_match_selected", matchAnalyticsProps(matchId));
   scrollToPublish();
 }
 
@@ -662,6 +697,10 @@ async function publishViaProxy(matchId, homeScore, awayScore, msg) {
       "Queued! Check GitHub Actions, then refresh the scoreboard in ~2 min.",
       "success"
     );
+    trackAdminAnalytics("match_result_published", matchAnalyticsProps(matchId, {
+      home_score: homeScore,
+      away_score: awayScore,
+    }));
   } catch (err) {
     console.error(err);
     if (err instanceof Error && err.message === "Wrong admin password.") {
@@ -720,6 +759,7 @@ async function restoreMatchLocally(matchId, msg) {
     }
     await loadData();
     setMessage(msg, "Restored.", "success");
+    trackAdminAnalytics("match_score_restored", matchAnalyticsProps(matchId));
   } catch (err) {
     console.error(err);
     setMessage(
@@ -765,6 +805,7 @@ async function restoreMatchViaProxy(matchId, msg) {
     }
     applyRestoredMatch(matchId);
     setMessage(msg, "Restore queued. Refresh scoreboard in ~1 min.", "success");
+    trackAdminAnalytics("match_score_restored", matchAnalyticsProps(matchId));
   } catch (err) {
     console.error(err);
     setMessage(msg, `Restore failed: ${err instanceof Error ? err.message : "unknown error"}`, "error");
@@ -847,6 +888,7 @@ async function downloadXlsx() {
     if (status) {
       status.textContent = previousStatus || "Download started.";
     }
+    trackAdminAnalytics("workbook_downloaded");
   } catch (err) {
     console.error(err);
     if (status) {
@@ -958,6 +1000,9 @@ async function uploadXlsx(file) {
     } else if (status) {
       status.textContent = "Workbook uploaded. GitHub Actions is rebuilding latest.json; refresh in ~2 min.";
     }
+    trackAdminAnalytics("workbook_uploaded", {
+      file_size_bytes: file.size,
+    });
   } catch (err) {
     console.error(err);
     if (status) {
@@ -1003,6 +1048,10 @@ async function publishLocally(matchId, homeScore, awayScore, msg) {
     }
     await loadData();
     setMessage(msg, `Published ${data.teams} ${data.score}. Open scoreboard to verify.`, "success");
+    trackAdminAnalytics("match_result_published", matchAnalyticsProps(matchId, {
+      home_score: homeScore,
+      away_score: awayScore,
+    }));
   } catch (err) {
     console.error(err);
     setMessage(
@@ -1084,7 +1133,12 @@ async function setAutopilot(enabled, msg) {
     autoPilot: enabled,
   };
   if (IS_LOCAL) {
-    await postBroadcastLocally(payload, msg);
+    const updated = await postBroadcastLocally(payload, msg);
+    if (updated) {
+      trackAdminAnalytics("autopilot_changed", {
+        is_enabled: enabled,
+      });
+    }
     if (toggle) {
       toggle.disabled = false;
     }
@@ -1093,6 +1147,9 @@ async function setAutopilot(enabled, msg) {
   const queued = await postBroadcastViaProxy(payload, msg);
   if (queued) {
     applyQueuedAutopilot(enabled);
+    trackAdminAnalytics("autopilot_changed", {
+      is_enabled: enabled,
+    });
   }
   if (toggle) {
     toggle.disabled = false;
@@ -1118,12 +1175,22 @@ async function setMatchLive(openMatchIds, msg) {
     openMatchIds,
   };
   if (IS_LOCAL) {
-    await postBroadcastLocally(payload, msg);
+    const updated = await postBroadcastLocally(payload, msg);
+    if (updated) {
+      trackAdminAnalytics("match_live_changed", {
+        live_match_ids: openMatchIds,
+        live_match_count: openMatchIds.length,
+      });
+    }
     return;
   }
   const queued = await postBroadcastViaProxy(payload, msg);
   if (queued) {
     applyQueuedBroadcast(openMatchIds);
+    trackAdminAnalytics("match_live_changed", {
+      live_match_ids: openMatchIds,
+      live_match_count: openMatchIds.length,
+    });
   }
 }
 
@@ -1161,6 +1228,7 @@ async function postBroadcastLocally(payload, msg) {
     }
     await loadData();
     setMessage(msg, "Updated.", "success");
+    return true;
   } catch (err) {
     console.error(err);
     setMessage(
@@ -1168,6 +1236,7 @@ async function postBroadcastLocally(payload, msg) {
       `Broadcast update failed. Run "make dev". ${err instanceof Error ? err.message : ""}`,
       "error"
     );
+    return false;
   }
 }
 
@@ -1469,6 +1538,11 @@ async function saveRegistrationLocally(users, msg) {
       `Saved ${data.registration.count} player(s) · ${formatMoney(data.registration.prizePool)} prize pool.`,
       "success"
     );
+    trackAdminAnalytics("registration_saved", {
+      player_count: data.registration.count,
+      prize_pool: data.registration.prizePool,
+      save_mode: "local",
+    });
   } catch (err) {
     console.error(err);
     setMessage(
@@ -1521,6 +1595,10 @@ async function saveRegistrationViaProxy(users, msg) {
       throw new Error(`${response.status}: ${text}`);
     }
     setMessage(msg, "Queued! Refresh in ~1 min to verify.", "success");
+    trackAdminAnalytics("registration_saved", {
+      player_count: users.length,
+      save_mode: "production_queue",
+    });
   } catch (err) {
     console.error(err);
     setMessage(msg, `Failed: ${err instanceof Error ? err.message : "unknown error"}`, "error");

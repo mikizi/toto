@@ -274,11 +274,55 @@ function onKickoffReached() {
   loadData(false);
 }
 
+/**
+ * @param {string} eventName
+ * @param {Record<string, unknown>} [properties]
+ */
+function trackAnalytics(eventName, properties = {}) {
+  window.totoAnalytics?.track(eventName, properties);
+}
+
+/**
+ * @param {TotoData} data
+ * @returns {Record<string, unknown>}
+ */
+function scoreboardAnalyticsProps(data) {
+  const registration = normalizeRegistration(data.registration, data.matches);
+  const liveMatchIds = heroLiveMatchIds(data);
+  return {
+    view_mode: isScoreboardLive(data, isDebugMode()) ? "scoreboard" : "countdown",
+    games_played: data.gamesPlayed,
+    matches_count: data.matches.length,
+    leaderboard_count: data.leaderboard.length,
+    has_live_match: liveMatchIds.length > 0,
+    live_match_count: liveMatchIds.length,
+    registration_open: isRegistrationOpen(registration),
+    registration_count: registration.count,
+    prize_pool: registration.prizePool,
+  };
+}
+
+/** @param {MouseEvent} event */
+function trackPlayerLinkClick(event) {
+  const row = event.target instanceof Element ? event.target.closest(".lb-row") : null;
+  if (!(row instanceof HTMLElement)) {
+    return;
+  }
+  trackAnalytics("player_profile_opened", {
+    source: "leaderboard",
+    rank: Number(row.dataset.rank),
+    points: Number(row.dataset.points),
+    has_champion_pick: row.dataset.hasChampion === "true",
+    games_played: cachedData?.gamesPlayed,
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const refreshBtn = document.getElementById("refreshBtn");
   refreshBtn?.addEventListener("click", () => loadData(true));
   document.getElementById("viewFixturesBtn")?.addEventListener("click", toggleFixturesPanel);
   document.getElementById("viewStandingsBtn")?.addEventListener("click", toggleStandingsPanel);
+  document.getElementById("betsTable")?.addEventListener("click", trackPlayerLinkClick);
   document.getElementById("nextGamesScroll")?.addEventListener("scroll", (event) => {
     const scroll = event.currentTarget;
     if (scroll instanceof HTMLElement) {
@@ -602,6 +646,12 @@ function toggleStandingsPanel() {
   }
   btn.setAttribute("aria-expanded", String(isOpen));
   btn.textContent = isOpen ? "Hide standings" : "View full standings";
+  trackAnalytics("standings_toggled", {
+    is_expanded: isOpen,
+    visible_rows: LEADERBOARD_PREVIEW_ROWS,
+    leaderboard_count: cachedData?.leaderboard.length,
+    games_played: cachedData?.gamesPlayed,
+  });
 }
 
 /**
@@ -675,6 +725,11 @@ function toggleFixturesPanel() {
   }
   btn.setAttribute("aria-expanded", String(isOpen));
   btn.textContent = isOpen ? "Hide fixtures" : "View all fixtures";
+  trackAnalytics("fixtures_toggled", {
+    is_expanded: isOpen,
+    matches_count: cachedData?.matches.length,
+    games_played: cachedData?.gamesPlayed,
+  });
 }
 
 /**
@@ -920,6 +975,25 @@ async function loadData(fromUserClick, options = {}) {
     if (isLivePush && previousData) {
       const update = describeLiveUpdate(previousData, data);
       showUpdateToast(update.title, update.message);
+    }
+
+    if (!previousData) {
+      window.totoAnalytics?.trackPage("scoreboard", {
+        ...scoreboardAnalyticsProps(data),
+        load_source: "initial",
+      });
+    } else if (fromUserClick) {
+      trackAnalytics("scoreboard_refreshed", {
+        ...scoreboardAnalyticsProps(data),
+        load_source: "manual",
+      });
+    } else if (isLivePush) {
+      trackAnalytics("live_update_received", {
+        ...scoreboardAnalyticsProps(data),
+        previous_games_played: previousData.gamesPlayed,
+        previous_version: previousData.version,
+        next_version: data.version,
+      });
     }
 
     startLivePolling();
@@ -1306,7 +1380,7 @@ function renderLeaderboard(container, data, animate = false) {
       const livePick = livePredictionHtml(entry, liveMatchId);
 
       return `
-    <a class="lb-row ${rowClass}${championClass}${enterClass}" href="${escapeHtml(href)}"${stagger} title="${escapeHtml(rowTitle)}" aria-label="${escapeHtml(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}">
+    <a class="lb-row ${rowClass}${championClass}${enterClass}" href="${escapeHtml(href)}"${stagger} data-rank="${displayRank}" data-points="${entry.points.toFixed(0)}" data-has-champion="${entry.champion ? "true" : "false"}" title="${escapeHtml(rowTitle)}" aria-label="${escapeHtml(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}">
       ${rowFlag}
       <div class="lb-rank-cell">
         <span class="rank-badge ${rankClass}">${escapeHtml(rankLabel)}</span>

@@ -88,6 +88,21 @@ function initMusicPlayer() {
   /** @type {PlayerState} */
   let state = loadState();
 
+  /**
+   * @param {string} action
+   * @param {Record<string, unknown>} [properties]
+   */
+  function trackMusicAction(action, properties = {}) {
+    const track = PLAYLIST[state.trackIndex];
+    window.totoAnalytics?.track("music_player_controlled", {
+      action,
+      track_index: state.trackIndex,
+      track_title: track?.title || "",
+      is_paused: state.paused,
+      ...properties,
+    });
+  }
+
   /** @param {boolean} playing */
   function setPlayingUi(playing) {
     const showPause = playing && !mutedAutoplay;
@@ -278,12 +293,15 @@ function initMusicPlayer() {
 
   function togglePlayPause() {
     if (unmuteIfNeeded()) {
+      trackMusicAction("unmute");
       return;
     }
     if (video.paused) {
+      trackMusicAction("play");
       void tryPlay({ userInitiated: true });
     } else {
       pause();
+      trackMusicAction("pause");
     }
   }
 
@@ -301,12 +319,14 @@ function initMusicPlayer() {
     state.closed = true;
     applyVisibility();
     saveState(state);
+    trackMusicAction("close");
   }
 
   function openPlayer() {
     state.closed = false;
     applyVisibility();
     saveState(state);
+    trackMusicAction("open");
     if (!state.paused) {
       tryPlay();
     } else {
@@ -321,11 +341,13 @@ function initMusicPlayer() {
   prevBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     unmuteIfNeeded();
+    trackMusicAction("previous");
     skip(-1);
   });
   nextBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     unmuteIfNeeded();
+    trackMusicAction("next");
     skip(1);
   });
 
@@ -337,13 +359,17 @@ function initMusicPlayer() {
       return;
     }
     if (player.classList.contains("is-awaiting-play") && video.paused) {
+      trackMusicAction("play_from_art");
       void tryPlay({ userInitiated: true });
     }
   });
   closeBtn.addEventListener("click", closePlayer);
   reopenBtn.addEventListener("click", openPlayer);
 
-  video.addEventListener("ended", () => skip(1));
+  video.addEventListener("ended", () => {
+    trackMusicAction("track_completed");
+    skip(1);
+  });
 
   video.addEventListener("play", () => {
     state.paused = false;
