@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="../css/styles.css?v=9">
+    <link rel="stylesheet" href="../css/styles.css?v=10">
 </head>
 <body class="admin-body">
 <div id="loginScreen" class="admin-login hidden" aria-labelledby="loginTitle">
@@ -38,6 +38,15 @@
         </div>
         <div class="admin-header-actions">
             <a href="../index.html" class="btn-refresh admin-nav-link" title="Open scoreboard">Board</a>
+            <input id="uploadXlsxInput" class="admin-file-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+            <button id="uploadXlsxBtn" type="button" class="btn-refresh" aria-label="Upload Excel workbook" title="Upload xlsx">
+                <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M12 21V9"/>
+                    <path d="m17 14-5-5-5 5"/>
+                    <path d="M5 3h14"/>
+                </svg>
+                <span class="admin-header-btn-label">Upload</span>
+            </button>
             <button id="downloadXlsxBtn" type="button" class="btn-refresh" aria-label="Download Excel workbook" title="Download xlsx">
                 <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M12 3v12"/>
@@ -200,6 +209,6 @@
 
 <script src="../js/flags.js"></script>
 <script src="../js/live.js?v=4"></script>
-<script src="admin.js?v=9"></script>
+<script src="admin.js?v=10"></script>
 </body>
 </html>

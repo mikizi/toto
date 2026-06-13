@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_XLSX = XLSX_PATH
 SUMMARY = "Summary"
 MATCH_ROW_START = 4
-MATCH_ROW_END = 120
+MATCH_COUNT = 72
+MATCH_ROW_END = MATCH_ROW_START + MATCH_COUNT
 
 
 def find_match_row(

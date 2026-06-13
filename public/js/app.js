@@ -885,8 +885,9 @@ async function loadData(fromUserClick, options = {}) {
     renderRegistrationCounter(data);
 
     if (isScoreboardLive(data, isDebugMode())) {
+      renderPredictionsPanel(document.getElementById("predictionsPanel"), data);
       if (SHOW_LEADERBOARD_ROWS) {
-      renderLeaderboard(table, data, animate);
+        renderLeaderboard(table, data, animate);
       } else {
         renderLeaderboardComingSoon(table);
         standingsBtn?.classList.add("hidden");
@@ -904,6 +905,8 @@ async function loadData(fromUserClick, options = {}) {
           window.setTimeout(() => gamesBadge.classList.remove("games-badge--pulse"), 1200);
         }
       }
+    } else {
+      renderPredictionsPanel(document.getElementById("predictionsPanel"), null);
     }
 
     const app = document.querySelector(".app");
@@ -1032,6 +1035,194 @@ function gamesBadgeHtml(count, justUpdated) {
     return '<span class="games-badge-dot">●</span> Waiting for kickoff';
   }
   return `<span class="games-badge-dot">●</span> ${count} ${label}`;
+}
+
+/** @param {TotoData} data @returns {MatchEntry | null} */
+function predictionMatch(data) {
+  const live = heroLiveMatches(data)[0];
+  if (live) {
+    return live;
+  }
+  const last = data.lastResult;
+  if (last && typeof last === "object" && "matchId" in last) {
+    const lastId = Number(last.matchId);
+    return data.matches.find((match) => Number(match.id) === lastId) || null;
+  }
+  return null;
+}
+
+/**
+ * @param {number} count
+ * @param {number} total
+ */
+function predictionPercent(count, total) {
+  if (total <= 0) {
+    return 0;
+  }
+  return Math.round((count / total) * 100);
+}
+
+/**
+ * @param {TotoData} data
+ * @param {MatchEntry} match
+ */
+function predictionStats(data, match) {
+  const outcome = { home: 0, draw: 0, away: 0 };
+  /** @type {Map<string, { home: number, away: number, count: number, players: string[] }>} */
+  const scores = new Map();
+
+  for (const entry of data.leaderboard || []) {
+    const pick = (entry.picks || []).find((item) => Number(item.matchId) === Number(match.id));
+    if (
+      !pick ||
+      pick.homePick === null ||
+      pick.homePick === undefined ||
+      pick.awayPick === null ||
+      pick.awayPick === undefined
+    ) {
+      continue;
+    }
+    const home = Number(pick?.homePick);
+    const away = Number(pick?.awayPick);
+    if (!Number.isFinite(home) || !Number.isFinite(away)) {
+      continue;
+    }
+    if (home > away) {
+      outcome.home += 1;
+    } else if (home < away) {
+      outcome.away += 1;
+    } else {
+      outcome.draw += 1;
+    }
+
+    const key = `${home}-${away}`;
+    const current = scores.get(key) || { home, away, count: 0, players: [] };
+    current.count += 1;
+    current.players.push(entry.name);
+    scores.set(key, current);
+  }
+
+  const total = outcome.home + outcome.draw + outcome.away;
+  if (total === 0 || scores.size === 0) {
+    return null;
+  }
+
+  const scoreRows = [...scores.values()];
+  const trending = [...scoreRows].sort((a, b) => (
+    b.count - a.count ||
+    Math.abs(b.home - b.away) - Math.abs(a.home - a.away) ||
+    b.home + b.away - (a.home + a.away) ||
+    b.home - a.home ||
+    a.away - b.away
+  ))[0];
+  const unique = [...scoreRows].sort((a, b) => (
+    a.count - b.count ||
+    Math.abs(b.home - b.away) - Math.abs(a.home - a.away) ||
+    b.home + b.away - (a.home + a.away) ||
+    b.home - a.home ||
+    a.away - b.away
+  ))[0];
+
+  return {
+    match,
+    total,
+    outcome: {
+      home: predictionPercent(outcome.home, total),
+      draw: predictionPercent(outcome.draw, total),
+      away: predictionPercent(outcome.away, total),
+      homeCount: outcome.home,
+      drawCount: outcome.draw,
+      awayCount: outcome.away,
+    },
+    trending,
+    unique,
+  };
+}
+
+/**
+ * @param {{ home: number, away: number, count: number, players: string[] }} score
+ * @param {MatchEntry} match
+ */
+function predictionScoreHtml(score, match) {
+  return `
+    <div class="prediction-scoreline">
+      ${flagHtml(match.home, "sm")}
+      <span class="prediction-score">${score.home}&nbsp;—&nbsp;${score.away}</span>
+      ${flagHtml(match.away, "sm")}
+    </div>`;
+}
+
+/**
+ * @param {HTMLElement | null} panel
+ * @param {TotoData | null} data
+ */
+function renderPredictionsPanel(panel, data) {
+  if (!panel || !data) {
+    panel?.classList.add("hidden");
+    return;
+  }
+
+  const match = predictionMatch(data);
+  const stats = match ? predictionStats(data, match) : null;
+  if (!match || !stats) {
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    return;
+  }
+
+  const homePct = stats.outcome.home;
+  const drawPct = stats.outcome.draw;
+  const awayPct = stats.outcome.away;
+  const trendingPct = predictionPercent(stats.trending.count, stats.total);
+  const uniquePlayer = stats.unique.count === 1 ? stats.unique.players[0] : "";
+  const uniqueMeta = uniquePlayer
+    ? `<span>${escapeHtml(uniquePlayer)}</span>`
+    : `<span>${stats.unique.count} players</span>`;
+
+  panel.innerHTML = `
+    <div class="predictions-summary glass-panel">
+      <div class="predictions-head">
+        <div>
+          <h2 class="predictions-title">Predictions</h2>
+          <p class="predictions-sub">How people think ${escapeHtml(shortTeamName(match.home))} vs ${escapeHtml(shortTeamName(match.away))} will end</p>
+        </div>
+        <span class="predictions-count">${stats.total} picks</span>
+      </div>
+      <div class="prediction-outcomes" aria-label="Prediction outcome split">
+        <div class="prediction-outcome prediction-outcome--home">
+          <span class="prediction-pct">${homePct}%</span>
+          <span class="prediction-label">Home win</span>
+        </div>
+        <div class="prediction-outcome prediction-outcome--draw">
+          <span class="prediction-pct">${drawPct}%</span>
+          <span class="prediction-label">Draw</span>
+        </div>
+        <div class="prediction-outcome prediction-outcome--away">
+          <span class="prediction-pct">${awayPct}%</span>
+          <span class="prediction-label">Away win</span>
+        </div>
+      </div>
+      <div class="prediction-bar" aria-hidden="true">
+        <span class="prediction-bar-home" style="flex-grow:${stats.outcome.homeCount}"></span>
+        <span class="prediction-bar-draw" style="flex-grow:${stats.outcome.drawCount}"></span>
+        <span class="prediction-bar-away" style="flex-grow:${stats.outcome.awayCount}"></span>
+      </div>
+    </div>
+    <div class="prediction-cards">
+      <article class="prediction-card glass-panel">
+        <h3 class="prediction-card-title">Most trending result</h3>
+        <p class="prediction-card-sub">Most predicted exact score</p>
+        ${predictionScoreHtml(stats.trending, match)}
+        <p class="prediction-card-meta">${trendingPct}% of predictions</p>
+      </article>
+      <article class="prediction-card glass-panel">
+        <h3 class="prediction-card-title">Most unique result</h3>
+        <p class="prediction-card-sub">Rarest predicted exact score</p>
+        ${predictionScoreHtml(stats.unique, match)}
+        <p class="prediction-card-meta prediction-card-meta--player">${uniqueMeta}</p>
+      </article>
+    </div>`;
+  panel.classList.remove("hidden");
 }
 
 /** @param {HTMLElement | null} container */

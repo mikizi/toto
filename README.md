@@ -24,6 +24,11 @@ pip install -r requirements.txt
 make dev
 ```
 
+```sh
+pip install -r requirements.txt
+SKIP_TESTS=1 make dev
+```
+
 - Scoreboard: http://localhost:8080/
 - Admin: http://localhost:8080/admin/
 
@@ -37,6 +42,19 @@ CLI equivalent:
 
 ```sh
 PYTHONPATH=. python3 scripts/publish_match.py 1 0 1
+```
+
+### Sync a repaired workbook
+
+In Admin, use **Upload** in the header and choose a replacement `Master WorldCup26.xlsx`.
+
+- Local admin replaces `xlsx/Master WorldCup26.xlsx`, recalculates it, and rewrites `public/data/latest.json`.
+- Production admin uploads the workbook to GitHub and queues **Sync uploaded workbook**; refresh the site after the Action finishes.
+
+Manual local equivalent:
+
+```sh
+make export
 ```
 
 ### Test score changes via admin (production, after merge to main)
@@ -78,7 +96,13 @@ https://toto-admin-publish.your-subdomain.workers.dev/publish
 ## Local tests
 
 ```sh
-python scripts/run_local_tests.py
+make test
+```
+
+LibreOffice-backed workbook integration tests are slower. Run them only when changing recalc/pipeline behavior:
+
+```sh
+make test-integration
 ```
 
 ## Kickoff simulation (local)

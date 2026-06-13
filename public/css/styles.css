@@ -579,7 +579,13 @@ body {
 
     .scoreboard-app > .title-row {
         grid-column: 1 / -1;
+        grid-row: 2;
         margin-bottom: 0;
+    }
+
+    .scoreboard-app > .predictions-panel {
+        grid-column: 1 / -1;
+        grid-row: 1;
     }
 
     .desktop-dashboard {
@@ -588,13 +594,13 @@ body {
 
     .leaderboard {
         grid-column: 1;
-        grid-row: 2;
+        grid-row: 3;
         align-self: start;
     }
 
     .next-games-panel {
         grid-column: 2;
-        grid-row: 2;
+        grid-row: 3;
         align-self: start;
         position: sticky;
         top: 1.5rem;
@@ -889,6 +895,192 @@ body {
     color: var(--text-muted);
     font-size: 0.9rem;
     padding: 1.25rem;
+}
+
+/* ── Match predictions ── */
+
+.predictions-panel {
+    display: grid;
+    gap: 0.5rem;
+    margin: -0.65rem 0 1.25rem;
+}
+
+.predictions-summary,
+.prediction-card {
+    border-radius: var(--radius);
+    border: 1px solid rgba(232, 185, 35, 0.18);
+    overflow: hidden;
+}
+
+.predictions-summary {
+    padding: 1rem 1.1rem 1.15rem;
+}
+
+.predictions-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+}
+
+.predictions-title,
+.prediction-card-title {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.predictions-sub,
+.prediction-card-sub {
+    margin: 0.22rem 0 0;
+    font-size: 0.76rem;
+    font-weight: 650;
+    color: var(--text-muted);
+}
+
+.predictions-count {
+    flex-shrink: 0;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid rgba(232, 185, 35, 0.28);
+    background: rgba(232, 185, 35, 0.1);
+    color: var(--gold);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.prediction-outcomes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: end;
+    text-align: center;
+}
+
+.prediction-outcome {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    min-width: 0;
+}
+
+.prediction-pct {
+    font-size: clamp(1.8rem, 5vw, 2.45rem);
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.prediction-outcome--home .prediction-pct {
+    color: #60a5fa;
+    text-shadow: 0 0 22px rgba(96, 165, 250, 0.25);
+}
+
+.prediction-outcome--draw .prediction-pct {
+    color: #cbd5e1;
+}
+
+.prediction-outcome--away .prediction-pct {
+    color: var(--gold);
+    text-shadow: 0 0 22px rgba(232, 185, 35, 0.24);
+}
+
+.prediction-label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.prediction-bar {
+    display: flex;
+    height: 0.58rem;
+    margin-top: 1rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.prediction-bar span {
+    min-width: 0;
+}
+
+.prediction-bar-home {
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.prediction-bar-draw {
+    background: linear-gradient(90deg, #94a3b8, #d1d5db);
+}
+
+.prediction-bar-away {
+    background: linear-gradient(90deg, #f59e0b, var(--gold));
+}
+
+.prediction-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.prediction-card {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    align-items: start;
+    padding: 0.95rem 1rem 1rem;
+}
+
+.prediction-scoreline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    margin: 0.65rem 0 0.25rem;
+    align-self: center;
+}
+
+.prediction-scoreline .team-flag--sm {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.prediction-score {
+    font-size: clamp(1.8rem, 5vw, 2.35rem);
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: var(--text);
+    text-shadow: 0 0 22px rgba(232, 185, 35, 0.24);
+}
+
+.prediction-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 1.1rem;
+    margin: 0.35rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.prediction-card-meta--player {
+    color: var(--text);
+}
+
+.prediction-card-meta .crown-icon {
+    width: 0.95rem;
+    height: 0.95rem;
 }
 
 /* ── Top bar ── */
@@ -1902,6 +2094,68 @@ body {
         padding: 1.25rem 0.85rem 1.5rem;
     }
 
+    .predictions-panel {
+        margin-top: -0.35rem;
+        gap: 0.45rem;
+    }
+
+    .predictions-summary {
+        padding: 0.9rem 0.85rem 1rem;
+    }
+
+    .predictions-head {
+        gap: 0.65rem;
+        margin-bottom: 0.95rem;
+    }
+
+    .predictions-count {
+        display: none;
+    }
+
+    .prediction-outcomes {
+        gap: 0.45rem;
+    }
+
+    .prediction-label {
+        font-size: 0.54rem;
+        letter-spacing: 0.1em;
+    }
+
+    .prediction-card {
+        padding: 0.85rem;
+        min-width: 0;
+        grid-template-rows: 1.6rem 2.4rem 1fr auto;
+    }
+
+    .prediction-scoreline {
+        gap: 0.5rem;
+        margin-top: 0.35rem;
+    }
+
+    .prediction-scoreline .team-flag--sm {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+
+    .prediction-card-title {
+        font-size: 0.58rem;
+        letter-spacing: 0.1em;
+        line-height: 1.2;
+    }
+
+    .prediction-card-sub {
+        font-size: 0.66rem;
+        line-height: 1.25;
+    }
+
+    .prediction-card-meta {
+        font-size: 0.68rem;
+    }
+
+    .prediction-score {
+        font-size: clamp(1.45rem, 8vw, 1.8rem);
+    }
+
     .scoreboard-card .top-bar {
         padding: 0.7rem 0.85rem;
         align-items: center;
@@ -2251,6 +2505,16 @@ body {
 
 .admin-header-btn-label {
     display: none;
+}
+
+.admin-file-input {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
 }
 
 @media (min-width: 480px) {

@@ -1,11 +1,14 @@
-.PHONY: test serve dev export reset-tournament auto-start-kickoff sync-espn-scores simulate simulate-restore simulate-ci simulate-scores
+.PHONY: test test-integration serve dev export reset-tournament auto-start-kickoff sync-espn-scores simulate simulate-restore simulate-ci simulate-scores
 
 test:
 	python3 scripts/run_local_tests.py
 
+test-integration:
+	RUN_INTEGRATION=1 python3 scripts/run_local_tests.py
+
 export:
-	python3 scripts/libreoffice_recalc.py
-	python3 scripts/export_summary.py
+	PYTHONPATH=. python3 scripts/libreoffice_recalc.py
+	PYTHONPATH=. python3 scripts/export_summary.py
 
 serve:
 	SKIP_TESTS=1 ./scripts/serve_local.sh

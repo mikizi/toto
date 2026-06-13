@@ -1,0 +1,52 @@
+name: Sync uploaded workbook
+
+on:
+  repository_dispatch:
+    types: [sync-xlsx-upload]
+  workflow_dispatch:
+
+concurrency:
+  group: toto-data-writes
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refresh latest state
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+
+      - name: Setup Python and LibreOffice
+        uses: ./.github/actions/setup-toto-ci
+        with:
+          libreoffice: "true"
+
+      - name: Recalculate uploaded workbook and export data
+        env:
+          HOME: /tmp
+          SAL_USE_VCLPLUGIN: gen
+        run: |
+          PYTHONPATH=. python3 -u scripts/libreoffice_recalc.py
+          PYTHONPATH=. python3 -u scripts/export_summary.py
+          PYTHONPATH=. python3 -u scripts/validate_export.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add xlsx/Master\ WorldCup26.xlsx public/data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Workbook: sync uploaded xlsx"
+          git push

@@ -4,23 +4,31 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sys
+import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+import openpyxl
+
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.paths import XLSX_PATH
+from scripts.export_summary import build_export, write_export
+from scripts.libreoffice_recalc import recalc
+from scripts.paths import LATEST_PATH, XLSX_PATH
 from scripts.publish_match import publish_match, restore_match
 from scripts.update_broadcast import update_broadcast
 from scripts.update_registration import update_registration
+from scripts.validate_export import validate
 
 DEFAULT_PORT = 8090
 XLSX_DOWNLOAD_NAME = "Master WorldCup26.xlsx"
+MAX_XLSX_UPLOAD_BYTES = 30 * 1024 * 1024
 ALLOWED_ORIGINS = {
     "http://localhost:8080",
     "http://127.0.0.1:8080",
@@ -56,7 +64,7 @@ class AdminApiHandler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Admin-Password")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Admin-Password, X-File-Name")
         self.send_header("Vary", "Origin")
         self.end_headers()
 
@@ -91,13 +99,17 @@ class AdminApiHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path not in ("/publish", "/broadcast", "/registration", "/restore"):
+        if path not in ("/publish", "/broadcast", "/registration", "/restore", "/xlsx"):
             self._send_json(404, {"ok": False, "error": "Not found"})
             return
 
         origin = self.headers.get("Origin", "")
         if origin and origin not in ALLOWED_ORIGINS:
             self._send_json(403, {"ok": False, "error": "Origin not allowed"})
+            return
+
+        if path == "/xlsx":
+            self._handle_xlsx_upload()
             return
 
         try:
@@ -240,6 +252,72 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                 "score": result["score"],
                 "gamesPlayed": result["gamesPlayed"],
                 "version": result["version"],
+            },
+        )
+
+    def _handle_xlsx_upload(self) -> None:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            self._send_json(400, {"ok": False, "error": "Invalid Content-Length"})
+            return
+
+        if length <= 0:
+            self._send_json(400, {"ok": False, "error": "Upload is empty"})
+            return
+        if length > MAX_XLSX_UPLOAD_BYTES:
+            self._send_json(413, {"ok": False, "error": "Workbook is too large"})
+            return
+
+        raw = self.rfile.read(length)
+        if not raw.startswith(b"PK"):
+            self._send_json(400, {"ok": False, "error": "Upload must be an .xlsx workbook"})
+            return
+
+        backup_path: Path | None = None
+        XLSX_PATH.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as handle:
+                temp_path = Path(handle.name)
+                handle.write(raw)
+
+            try:
+                wb = openpyxl.load_workbook(temp_path, read_only=True)
+                wb.close()
+            except Exception as exc:
+                temp_path.unlink(missing_ok=True)
+                self._send_json(400, {"ok": False, "error": f"Invalid workbook: {exc}"})
+                return
+
+            if XLSX_PATH.exists():
+                backup_path = XLSX_PATH.with_suffix(".upload-backup.xlsx")
+                shutil.copy2(XLSX_PATH, backup_path)
+            shutil.move(str(temp_path), XLSX_PATH)
+
+            recalc(XLSX_PATH, require_cached=False)
+            previous = json.loads(LATEST_PATH.read_text(encoding="utf-8")) if LATEST_PATH.exists() else None
+            payload = build_export(XLSX_PATH, previous)
+            errors = validate(payload)
+            if errors:
+                raise RuntimeError(f"Export validation failed: {errors}")
+            write_export(payload)
+            if backup_path:
+                backup_path.unlink(missing_ok=True)
+        except Exception as exc:
+            if backup_path and backup_path.exists():
+                shutil.copy2(backup_path, XLSX_PATH)
+                backup_path.unlink(missing_ok=True)
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "message": "Workbook uploaded and latest.json regenerated",
+                "version": payload["version"],
+                "gamesPlayed": payload["gamesPlayed"],
+                "players": len(payload["leaderboard"]),
             },
         )
 

@@ -4,8 +4,10 @@ const DISPATCH_EVENT_TYPE = "update-score";
 const RESTORE_EVENT_TYPE = "restore-score";
 const BROADCAST_EVENT_TYPE = "update-broadcast";
 const REGISTRATION_EVENT_TYPE = "update-registration";
+const XLSX_SYNC_EVENT_TYPE = "sync-xlsx-upload";
 const XLSX_REPO_PATH = "xlsx/Master WorldCup26.xlsx";
 const XLSX_DOWNLOAD_NAME = "Master WorldCup26.xlsx";
+const MAX_XLSX_UPLOAD_BYTES = 30 * 1024 * 1024;
 const PRESENCE_TTL_SECONDS = 75;
 const PRESENCE_KEY_PREFIX = "viewer:";
 
@@ -43,10 +45,13 @@ export default {
     }
 
     if (url.pathname === "/xlsx") {
-      if (request.method !== "GET") {
-        return jsonResponse({ ok: false, error: "Method not allowed" }, 405, corsHeaders);
+      if (request.method === "GET") {
+        return downloadWorkbook(env, corsHeaders);
       }
-      return downloadWorkbook(env, corsHeaders);
+      if (request.method === "POST") {
+        return uploadWorkbook(request, env, corsHeaders);
+      }
+      return jsonResponse({ ok: false, error: "Method not allowed" }, 405, corsHeaders);
     }
 
     if (request.method !== "POST") {
@@ -60,13 +65,7 @@ export default {
       const action = typeof payload.action === "string" ? payload.action : "set";
       const githubResponse = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
         method: "POST",
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-          "User-Agent": "wc26-toto-admin-worker",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
+        headers: githubJsonHeaders(env),
         body: JSON.stringify({
           event_type: BROADCAST_EVENT_TYPE,
           client_payload: {
@@ -100,13 +99,7 @@ export default {
 
       const githubResponse = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
         method: "POST",
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-          "User-Agent": "wc26-toto-admin-worker",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
+        headers: githubJsonHeaders(env),
         body: JSON.stringify({
           event_type: REGISTRATION_EVENT_TYPE,
           client_payload: { users },
@@ -133,13 +126,7 @@ export default {
 
       const githubResponse = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
         method: "POST",
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-          "User-Agent": "wc26-toto-admin-worker",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
+        headers: githubJsonHeaders(env),
         body: JSON.stringify({
           event_type: RESTORE_EVENT_TYPE,
           client_payload: { matchId },
@@ -168,13 +155,7 @@ export default {
 
     const githubResponse = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
       method: "POST",
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-        "User-Agent": "wc26-toto-admin-worker",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
+      headers: githubJsonHeaders(env),
       body: JSON.stringify({
         event_type: DISPATCH_EVENT_TYPE,
         client_payload: {
@@ -204,6 +185,90 @@ export default {
     );
   },
 };
+
+async function uploadWorkbook(request, env, corsHeaders) {
+  const contentLength = Number(request.headers.get("Content-Length") || "0");
+  if (!Number.isFinite(contentLength) || contentLength <= 0) {
+    return jsonResponse({ ok: false, error: "Upload is empty" }, 400, corsHeaders);
+  }
+  if (contentLength > MAX_XLSX_UPLOAD_BYTES) {
+    return jsonResponse({ ok: false, error: "Workbook is too large" }, 413, corsHeaders);
+  }
+
+  const buffer = await request.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length === 0) {
+    return jsonResponse({ ok: false, error: "Upload is empty" }, 400, corsHeaders);
+  }
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+    return jsonResponse({ ok: false, error: "Upload must be an .xlsx workbook" }, 400, corsHeaders);
+  }
+
+  const repo = env.GITHUB_REPO || DEFAULT_REPO;
+  const encodedPath = XLSX_REPO_PATH.split("/").map(encodeURIComponent).join("/");
+  const metaResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${encodedPath}`, {
+    headers: githubJsonHeaders(env),
+  });
+
+  if (!metaResponse.ok) {
+    const errorText = await metaResponse.text();
+    return jsonResponse(
+      { ok: false, error: `GitHub file metadata failed: ${metaResponse.status} ${errorText}` },
+      metaResponse.status === 404 ? 404 : 502,
+      corsHeaders
+    );
+  }
+
+  const meta = await metaResponse.json();
+  const updateResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${encodedPath}`, {
+    method: "PUT",
+    headers: githubJsonHeaders(env),
+    body: JSON.stringify({
+      message: "Workbook: upload admin xlsx",
+      content: arrayBufferToBase64(buffer),
+      sha: meta.sha,
+    }),
+  });
+
+  if (!updateResponse.ok) {
+    const errorText = await updateResponse.text();
+    return jsonResponse(
+      { ok: false, error: `GitHub workbook upload failed: ${updateResponse.status} ${errorText}` },
+      502,
+      corsHeaders
+    );
+  }
+
+  const dispatchResponse = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+    method: "POST",
+    headers: githubJsonHeaders(env),
+    body: JSON.stringify({
+      event_type: XLSX_SYNC_EVENT_TYPE,
+      client_payload: {
+        path: XLSX_REPO_PATH,
+        size: bytes.length,
+      },
+    }),
+  });
+
+  if (!dispatchResponse.ok) {
+    const errorText = await dispatchResponse.text();
+    return jsonResponse(
+      { ok: false, error: `GitHub sync dispatch failed: ${dispatchResponse.status} ${errorText}` },
+      502,
+      corsHeaders
+    );
+  }
+
+  return jsonResponse(
+    {
+      ok: true,
+      message: "Workbook uploaded. GitHub Actions is regenerating latest.json.",
+    },
+    202,
+    corsHeaders
+  );
+}
 
 async function handlePresence(request, env, corsHeaders) {
   if (!env.VIEWER_PRESENCE) {
@@ -269,12 +334,7 @@ async function downloadWorkbook(env, corsHeaders) {
   const githubResponse = await fetch(
     `https://api.github.com/repos/${repo}/contents/${encodedPath}`,
     {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        "User-Agent": "wc26-toto-admin-worker",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
+      headers: githubJsonHeaders(env),
     }
   );
 
@@ -289,6 +349,23 @@ async function downloadWorkbook(env, corsHeaders) {
 
   const fileMeta = await githubResponse.json();
   if (!fileMeta.content || fileMeta.encoding !== "base64") {
+    const rawResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${encodedPath}`, {
+      headers: {
+        ...githubJsonHeaders(env),
+        Accept: "application/vnd.github.raw",
+      },
+    });
+    if (rawResponse.ok) {
+      return new Response(rawResponse.body, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="${XLSX_DOWNLOAD_NAME}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
     return jsonResponse({ ok: false, error: "Unexpected GitHub file response" }, 502, corsHeaders);
   }
 
@@ -306,7 +383,7 @@ async function downloadWorkbook(env, corsHeaders) {
 
 function buildCorsHeaders(origin, allowedOrigin) {
   const headers = {
-    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Password",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Password, X-File-Name",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
   };
@@ -325,6 +402,26 @@ function isAllowedOrigin(origin, allowedOrigin) {
     origin.startsWith("http://localhost:") ||
     origin.startsWith("http://127.0.0.1:")
   );
+}
+
+function githubJsonHeaders(env) {
+  return {
+    Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    "Content-Type": "application/json",
+    "User-Agent": "wc26-toto-admin-worker",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 }
 
 async function readJson(request) {

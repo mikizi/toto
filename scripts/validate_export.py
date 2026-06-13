@@ -22,6 +22,10 @@ def validate(payload: dict) -> list[str]:
     matches = payload.get("matches")
     if not isinstance(matches, list) or len(matches) == 0:
         errors.append("matches must be a non-empty list")
+    else:
+        match_ids = [match.get("id") for match in matches if isinstance(match, dict)]
+        if len(match_ids) != len(set(match_ids)):
+            errors.append("matches contain duplicate ids")
 
     if not payload.get("version"):
         errors.append("version is required")

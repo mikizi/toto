@@ -54,4 +54,4 @@ jobs:
             --wait-seconds "${{ inputs.wait_seconds || '20' }}"
 
       - name: Run kickoff unit tests
-        run: python3 scripts/run_local_tests.py
+        run: RUN_INTEGRATION=1 python3 scripts/run_local_tests.py

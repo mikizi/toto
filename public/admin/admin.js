@@ -48,6 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("publishForm")?.addEventListener("submit", onPublish);
   document.getElementById("refreshBtn")?.addEventListener("click", loadData);
   document.getElementById("downloadXlsxBtn")?.addEventListener("click", () => void downloadXlsx());
+  document.getElementById("uploadXlsxBtn")?.addEventListener("click", onUploadXlsxClick);
+  document.getElementById("uploadXlsxInput")?.addEventListener("change", onXlsxFileSelected);
   document.getElementById("logoutBtn")?.addEventListener("click", onLogout);
   document.getElementById("modeBannerToggle")?.addEventListener("click", toggleModeBanner);
   document.getElementById("matchesList")?.addEventListener("click", onMatchesListClick);
@@ -854,6 +856,120 @@ async function downloadXlsx() {
   } finally {
     if (btn) {
       btn.disabled = false;
+    }
+  }
+}
+
+function onUploadXlsxClick() {
+  const input = document.getElementById("uploadXlsxInput");
+  if (input instanceof HTMLInputElement) {
+    input.click();
+  }
+}
+
+/** @param {Event} event */
+async function onXlsxFileSelected(event) {
+  const input = event.currentTarget;
+  if (!(input instanceof HTMLInputElement)) {
+    return;
+  }
+  const file = input.files?.[0] || null;
+  input.value = "";
+  if (!file) {
+    return;
+  }
+  await uploadXlsx(file);
+}
+
+/** @param {File} file */
+async function uploadXlsx(file) {
+  const status = document.getElementById("statusMsg");
+  const btn = document.getElementById("uploadXlsxBtn");
+  const previousStatus = status?.textContent ?? "";
+
+  if (!file.name.toLowerCase().endsWith(".xlsx")) {
+    if (status) {
+      status.textContent = "Choose an .xlsx workbook.";
+    }
+    return;
+  }
+  if (!window.confirm(`Upload ${file.name} and rebuild the scoreboard data?`)) {
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+  }
+  if (status) {
+    status.textContent = IS_LOCAL
+      ? "Uploading workbook and rebuilding latest.json…"
+      : "Uploading workbook and queuing rebuild…";
+  }
+
+  try {
+    const headers = {
+      "Content-Type": file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "X-File-Name": file.name,
+    };
+    let response;
+    if (IS_LOCAL) {
+      response = await fetch(LOCAL_XLSX_API, {
+        method: "POST",
+        headers,
+        body: file,
+      });
+    } else {
+      if (!isProxyConfigured()) {
+        if (status) {
+          status.textContent = "Admin proxy not configured.";
+        }
+        return;
+      }
+      const password = getSavedAdminPassword();
+      if (!password) {
+        showLoginScreen("Sign in to upload the workbook.");
+        return;
+      }
+      response = await fetch(XLSX_PROXY_URL, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "X-Admin-Password": password,
+        },
+        body: file,
+      });
+      if (response.status === 401) {
+        clearSavedAdminPassword();
+        showLoginScreen("Wrong password. Try again.");
+        return;
+      }
+    }
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+
+    if (IS_LOCAL) {
+      await loadData();
+      if (status) {
+        status.textContent = `Workbook synced · version ${data.version || "updated"}`;
+      }
+    } else if (status) {
+      status.textContent = "Workbook uploaded. GitHub Actions is rebuilding latest.json; refresh in ~2 min.";
+    }
+  } catch (err) {
+    console.error(err);
+    if (status) {
+      const hint = IS_LOCAL ? ' Run "make dev".' : "";
+      status.textContent = `Upload failed.${hint} ${err instanceof Error ? err.message : ""}`.trim();
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+    }
+    if (status && !status.textContent) {
+      status.textContent = previousStatus;
     }
   }
 }

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,6 +21,20 @@ from scripts.publish_match import (
 from scripts.validate_export import validate
 
 from scripts.paths import BACKUP_PATH, XLSX_PATH
+
+
+class TestValidation(unittest.TestCase):
+    """Export payload validation."""
+
+    def test_validate_rejects_duplicate_match_ids(self) -> None:
+        payload = {
+            "version": "test",
+            "gamesPlayed": 0,
+            "leaderboard": [{"name": "Miki", "champion": "Spain"}],
+            "matches": [{"id": 1}, {"id": 1}],
+        }
+        self.assertIn("matches contain duplicate ids", validate(payload))
+
 
 class TestCellParsing(unittest.TestCase):
     """Spreadsheet cached-value parsing."""
@@ -47,45 +62,51 @@ class TestExportFromXlsx(unittest.TestCase):
     def setUpClass(cls) -> None:
         if not XLSX_PATH.exists():
             raise unittest.SkipTest("xlsx/Master WorldCup26.xlsx not found")
+        cls.payload = build_export(XLSX_PATH)
 
     def test_build_export_has_leaderboard_and_matches(self) -> None:
-        payload = build_export(XLSX_PATH)
+        payload = self.payload
         self.assertGreaterEqual(len(payload["leaderboard"]), 6)
         self.assertGreater(len(payload["matches"]), 0)
         self.assertIn("version", payload)
         self.assertIn("gamesPlayed", payload)
 
+    def test_build_export_has_unique_scheduled_matches(self) -> None:
+        payload = self.payload
+        match_ids = [match["id"] for match in payload["matches"]]
+        self.assertEqual(len(match_ids), 72)
+        self.assertEqual(match_ids, list(range(1, 73)))
+
     def test_leaderboard_entries_have_required_fields(self) -> None:
-        payload = build_export(XLSX_PATH)
+        payload = self.payload
         entry = payload["leaderboard"][0]
         for key in ("id", "name", "points", "rank", "movement"):
             self.assertIn(key, entry)
 
     def test_leaderboard_entries_have_champion_picks(self) -> None:
-        payload = build_export(XLSX_PATH)
+        payload = self.payload
         missing = [entry["name"] for entry in payload["leaderboard"] if not entry["champion"]]
         self.assertEqual(missing, [])
 
     def test_leaderboard_excludes_test_users(self) -> None:
-        payload = build_export(XLSX_PATH)
+        payload = self.payload
         names = [e["name"] for e in payload["leaderboard"]]
         self.assertFalse(any(n.lower().startswith("test") for n in names))
         self.assertGreater(len(payload["leaderboard"]), 10)
 
     def test_leaderboard_has_valid_names_and_score_order(self) -> None:
-        payload = build_export(XLSX_PATH)
+        payload = self.payload
         names = [entry["name"] for entry in payload["leaderboard"]]
         self.assertFalse(any(name.startswith("#") for name in names))
         points = [entry["points"] for entry in payload["leaderboard"]]
         self.assertEqual(points, sorted(points, reverse=True))
 
     def test_validate_latest_export(self) -> None:
-        payload = build_export(XLSX_PATH)
-        errors = validate(payload)
+        errors = validate(self.payload)
         self.assertEqual(errors, [], msg="; ".join(errors))
 
     def test_export_keeps_open_live_matches_even_after_start_score(self) -> None:
-        base = build_export(XLSX_PATH)
+        base = self.payload
         played_row = base["matches"][0]
         unplayed_row = base["matches"][1]
         previous = {
@@ -113,7 +134,7 @@ class TestExportFromXlsx(unittest.TestCase):
         self.assertIs(default, False)
 
     def test_restore_open_match_ids_from_previous(self) -> None:
-        base = build_export(XLSX_PATH)
+        base = self.payload
         previous = {
             **base,
             "broadcast": {
@@ -123,17 +144,23 @@ class TestExportFromXlsx(unittest.TestCase):
                 "autoPilot": False,
             },
         }
-        payload = build_export(XLSX_PATH, {"broadcast": {"openMatchIds": [], "mode": "auto"}})
+        payload = copy.deepcopy(self.payload)
+        payload["broadcast"] = {"openMatchIds": [2], "mode": "manual", "suppressAuto": True}
         close_live_match(payload, 2)
         self.assertEqual(payload["broadcast"]["openMatchIds"], [])
         _restore_open_match_ids_from_previous(payload, previous)
         self.assertEqual(payload["broadcast"]["openMatchIds"], [2])
 
     def test_write_export_roundtrip(self) -> None:
-        payload = build_export(XLSX_PATH)
+        payload = self.payload
         with tempfile.TemporaryDirectory() as tmp:
             latest = Path(tmp) / "latest.json"
-            write_export(payload, latest_path=latest, version_path=Path(tmp) / "v.json")
+            write_export(
+                payload,
+                latest_path=latest,
+                version_path=Path(tmp) / "v.json",
+                versions_dir=Path(tmp) / "versions",
+            )
             loaded = json.loads(latest.read_text(encoding="utf-8"))
             self.assertEqual(len(loaded["leaderboard"]), len(payload["leaderboard"]))
 
