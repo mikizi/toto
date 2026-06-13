@@ -4940,7 +4940,9 @@ body {
     .player-bet-date {
         position: absolute;
         top: -2.45rem;
-        right: 0;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
         max-width: calc(100% - 1rem);
         padding: 0.52rem 0.95rem;
         overflow: hidden;
@@ -4949,17 +4951,20 @@ body {
         color: var(--text);
         font-size: 0.92rem;
         font-weight: 800;
-        text-align: right;
+        text-align: center;
         text-overflow: ellipsis;
         white-space: nowrap;
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
     }
 
     .player-bet-teams {
+        width: min(100%, 19rem);
+        margin: 0 auto;
         display: grid;
-        grid-template-columns: minmax(4.5rem, 1fr) minmax(9.25rem, 10.2rem) minmax(4.5rem, 1fr);
-        gap: 0.8rem;
+        grid-template-columns: minmax(4.25rem, 1fr) minmax(8.35rem, 9rem) minmax(4.25rem, 1fr);
+        gap: 0.45rem;
         align-items: center;
+        justify-content: center;
     }
 
     .player-bet-team {
@@ -4981,15 +4986,15 @@ body {
     }
 
     .player-bet-team .team-flag {
-        width: 3.9rem;
-        height: 2.45rem;
+        width: 3.45rem;
+        height: 2.2rem;
         aspect-ratio: 16 / 10;
         border-radius: 5px;
     }
 
     .player-bet-team-name {
         max-width: 100%;
-        font-size: 1rem;
+        font-size: 0.92rem;
         line-height: 1.15;
         white-space: normal;
     }
@@ -5021,10 +5026,10 @@ body {
     .player-bet-mobile-scoreline {
         flex: 0 0 100%;
         display: grid;
-        grid-template-columns: 1.7rem 1.18rem 2.5rem 1.18rem 1.7rem;
+        grid-template-columns: 1.45rem 1.05rem 2.25rem 1.05rem 1.45rem;
         align-items: center;
         justify-content: center;
-        gap: 0.34rem;
+        gap: 0.28rem;
     }
 
     .player-bet-mobile-pick {
@@ -5036,7 +5041,7 @@ body {
 
     .player-bet-mobile-score {
         color: var(--text);
-        font-size: 1.52rem;
+        font-size: 1.36rem;
         font-weight: 850;
         line-height: 1;
         text-align: center;
@@ -5057,10 +5062,10 @@ body {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 2.4rem;
-        height: 2.4rem;
+        width: 2.2rem;
+        height: 2.2rem;
         border-radius: 50%;
-        font-size: 1.12rem;
+        font-size: 1.02rem;
         font-weight: 900;
         line-height: 1;
     }
