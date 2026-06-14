@@ -1126,6 +1126,70 @@ function predictionPercent(count, total) {
   return Math.round((count / total) * 100);
 }
 
+/** @param {{ home: number, away: number }} score */
+function predictionOutcome(score) {
+  if (score.home > score.away) {
+    return "home";
+  }
+  if (score.home < score.away) {
+    return "away";
+  }
+  return "draw";
+}
+
+/**
+ * @param {{ home: number, away: number, count: number }} a
+ * @param {{ home: number, away: number, count: number }} b
+ */
+function compareUniquePredictionScores(a, b) {
+  return (
+    a.count - b.count ||
+    Math.abs(b.home - b.away) - Math.abs(a.home - a.away) ||
+    b.home + b.away - (a.home + a.away) ||
+    b.home - a.home ||
+    a.away - b.away
+  );
+}
+
+/**
+ * @param {{ homeCount: number, drawCount: number, awayCount: number }} outcome
+ * @returns {"home" | "away" | null}
+ */
+function leadingTeamOutcome(outcome) {
+  if (outcome.homeCount > outcome.awayCount && outcome.homeCount > outcome.drawCount) {
+    return "home";
+  }
+  if (outcome.awayCount > outcome.homeCount && outcome.awayCount > outcome.drawCount) {
+    return "away";
+  }
+  return null;
+}
+
+/**
+ * @param {Array<{ home: number, away: number, count: number, players: string[] }>} scoreRows
+ * @param {{ homeCount: number, drawCount: number, awayCount: number }} outcome
+ */
+function selectUniquePredictionScore(scoreRows, outcome) {
+  const rarestOverall = [...scoreRows].sort(compareUniquePredictionScores)[0];
+  const leadingTeam = leadingTeamOutcome(outcome);
+  if (!leadingTeam) {
+    return rarestOverall;
+  }
+
+  const oppositeTeam = leadingTeam === "home" ? "away" : "home";
+  const oppositeScore = scoreRows
+    .filter((score) => predictionOutcome(score) === oppositeTeam)
+    .sort(compareUniquePredictionScores)[0];
+  if (oppositeScore) {
+    return oppositeScore;
+  }
+
+  const drawScore = scoreRows
+    .filter((score) => predictionOutcome(score) === "draw")
+    .sort(compareUniquePredictionScores)[0];
+  return drawScore || rarestOverall;
+}
+
 /**
  * @param {TotoData} data
  * @param {MatchEntry} match
@@ -1179,13 +1243,12 @@ function predictionStats(data, match) {
     b.home - a.home ||
     a.away - b.away
   ))[0];
-  const unique = [...scoreRows].sort((a, b) => (
-    a.count - b.count ||
-    Math.abs(b.home - b.away) - Math.abs(a.home - a.away) ||
-    b.home + b.away - (a.home + a.away) ||
-    b.home - a.home ||
-    a.away - b.away
-  ))[0];
+  const outcomeCounts = {
+    homeCount: outcome.home,
+    drawCount: outcome.draw,
+    awayCount: outcome.away,
+  };
+  const unique = selectUniquePredictionScore(scoreRows, outcomeCounts);
 
   return {
     match,
@@ -1194,9 +1257,7 @@ function predictionStats(data, match) {
       home: predictionPercent(outcome.home, total),
       draw: predictionPercent(outcome.draw, total),
       away: predictionPercent(outcome.away, total),
-      homeCount: outcome.home,
-      drawCount: outcome.draw,
-      awayCount: outcome.away,
+      ...outcomeCounts,
     },
     trending,
     unique,
