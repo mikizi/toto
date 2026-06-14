@@ -440,12 +440,30 @@ function updateMatchRowHighlights() {
   });
 }
 
+/** @param {AdminMatch[]} matches */
+function orderedAdminMatches(matches) {
+  if (typeof chronologicalMatches === "function") {
+    return chronologicalMatches(matches);
+  }
+  return [...matches].sort((a, b) => a.id - b.id);
+}
+
+/** @param {number[]} matchIds */
+function orderedAdminMatchIds(matchIds) {
+  const order = new Map(orderedAdminMatches(cachedMatches).map((match, index) => [match.id, index]));
+  return [...matchIds].sort((a, b) => {
+    const aOrder = order.get(a) ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = order.get(b) ?? Number.MAX_SAFE_INTEGER;
+    return aOrder - bOrder || a - b;
+  });
+}
+
 /**
  * @param {AdminMatch[]} matches
  * @returns {AdminMatch | undefined}
  */
 function getNextUnplayedMatch(matches) {
-  return [...matches].sort((a, b) => a.id - b.id).find((m) => !m.played);
+  return orderedAdminMatches(matches).find((m) => !m.played);
 }
 
 /**
@@ -454,7 +472,7 @@ function getNextUnplayedMatch(matches) {
  * @returns {AdminMatch | undefined}
  */
 function getFocusedMatch(matches, broadcast) {
-  const sorted = [...matches].sort((a, b) => a.id - b.id);
+  const sorted = orderedAdminMatches(matches);
   const openIds = new Set(broadcast.openMatchIds || []);
   return sorted.find((m) => openIds.has(m.id)) || sorted.find((m) => !m.played) || sorted[sorted.length - 1];
 }
@@ -555,7 +573,7 @@ function renderMatches(matches, broadcast) {
     return;
   }
 
-  const sorted = [...matches].sort((a, b) => a.id - b.id);
+  const sorted = orderedAdminMatches(matches);
   const nextUnplayed = getNextUnplayedMatch(sorted);
   const openIds = new Set(broadcast.openMatchIds || []);
   selectedMatchId = getFocusedMatch(sorted, broadcast)?.id ?? null;
@@ -1170,26 +1188,27 @@ function applyQueuedAutopilot(enabled) {
 }
 
 async function setMatchLive(openMatchIds, msg) {
+  const orderedOpenMatchIds = orderedAdminMatchIds(openMatchIds).slice(0, 2);
   const payload = {
-    action: openMatchIds.length === 0 ? "clear_manual" : "set",
-    openMatchIds,
+    action: orderedOpenMatchIds.length === 0 ? "clear_manual" : "set",
+    openMatchIds: orderedOpenMatchIds,
   };
   if (IS_LOCAL) {
     const updated = await postBroadcastLocally(payload, msg);
     if (updated) {
       trackAdminAnalytics("match_live_changed", {
-        live_match_ids: openMatchIds,
-        live_match_count: openMatchIds.length,
+        live_match_ids: orderedOpenMatchIds,
+        live_match_count: orderedOpenMatchIds.length,
       });
     }
     return;
   }
   const queued = await postBroadcastViaProxy(payload, msg);
   if (queued) {
-    applyQueuedBroadcast(openMatchIds);
+    applyQueuedBroadcast(orderedOpenMatchIds);
     trackAdminAnalytics("match_live_changed", {
-      live_match_ids: openMatchIds,
-      live_match_count: openMatchIds.length,
+      live_match_ids: orderedOpenMatchIds,
+      live_match_count: orderedOpenMatchIds.length,
     });
   }
 }
