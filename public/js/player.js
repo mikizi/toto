@@ -14,6 +14,8 @@ const PLAYLIST = [
   { file: "The_Golden_Roar.mp4", title: "The Golden Roar" },
   { file: "Ushindi_ni_Wetu.mp4", title: "Ushindi ni Wetu" },
   { file: "Green_and_Gold_Forever.mp4", title: "Green and Gold Forever" },
+  { file: "Kòrsou_ta_Inbatibel.mp4", title: "Kòrsou ta Inbatibel" },
+  { file: "Şampiyon_Türkiye_.mp4", title: "Şampiyon Türkiye" },
   { file: "arabica.mp4", title: "Arabica" },
 ];
 
