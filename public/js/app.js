@@ -1103,6 +1103,10 @@ function predictionMatch(data) {
   if (live) {
     return live;
   }
+  const next = nextUnplayedMatch(data);
+  if (next) {
+    return next;
+  }
   const last = data.lastResult;
   if (last && typeof last === "object" && "matchId" in last) {
     const lastId = Number(last.matchId);
@@ -1451,6 +1455,16 @@ function renderHeroMatch(el, data, previewNext = false, showLive = false, animat
     return;
   }
 
+  const next = nextUnplayedMatch(data);
+  if (next) {
+    el.innerHTML = `
+      <div class="hero-body-inner">
+        ${singleHeroMatchHtml(next)}
+      </div>`;
+    el.classList.toggle("hero-animate", animate);
+    return;
+  }
+
   const last = data.lastResult;
   if (last && !previewNext) {
     el.innerHTML = `
@@ -1460,16 +1474,6 @@ function renderHeroMatch(el, data, previewNext = false, showLive = false, animat
           ${heroCenterBlock(`${last.homeScore}&nbsp;—&nbsp;${last.awayScore}`, last.matchId, false, false)}
           ${heroTeamBlock(last.away, "away")}
         </div>
-      </div>`;
-    el.classList.toggle("hero-animate", animate);
-    return;
-  }
-
-  const next = nextUnplayedMatch(data);
-  if (next) {
-    el.innerHTML = `
-      <div class="hero-body-inner">
-        ${singleHeroMatchHtml(next)}
       </div>`;
     el.classList.toggle("hero-animate", animate);
     return;

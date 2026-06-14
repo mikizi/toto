@@ -22,7 +22,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.export_summary import build_export, write_export
+from scripts.espn_scores import (
+    espn_dates_param,
+    fetch_scoreboard,
+    match_espn_to_sheet_id,
+    parse_espn_events,
+    plan_score_updates,
+)
 from scripts.libreoffice_recalc import recalc
+from scripts.live_state import normalize_broadcast
 from scripts.paths import LATEST_PATH, XLSX_PATH
 from scripts.publish_match import publish_match, restore_match
 from scripts.update_broadcast import update_broadcast
@@ -83,6 +91,14 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                 self._send_json(403, {"ok": False, "error": "Origin not allowed"})
                 return
             self._handle_presence()
+            return
+
+        if path == "/api-scores":
+            origin = self.headers.get("Origin", "")
+            if origin and origin not in ALLOWED_ORIGINS:
+                self._send_json(403, {"ok": False, "error": "Origin not allowed"})
+                return
+            self._handle_api_scores()
             return
 
         if path != "/xlsx":
@@ -273,6 +289,76 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                 "version": result["version"],
             },
         )
+
+    def _handle_api_scores(self) -> None:
+        """Return read-only ESPN/API scoreboard data matched to local fixture ids."""
+        try:
+            if not LATEST_PATH.exists():
+                self._send_json(404, {"ok": False, "error": "Missing latest.json"})
+                return
+
+            latest = json.loads(LATEST_PATH.read_text(encoding="utf-8"))
+            sheet_matches = latest.get("matches") if isinstance(latest.get("matches"), list) else []
+            dates = espn_dates_param(sheet_matches=sheet_matches)
+            payload = fetch_scoreboard(dates=dates)
+            espn_events = parse_espn_events(payload)
+            broadcast = normalize_broadcast(latest.get("broadcast"))
+            open_ids = {int(value) for value in broadcast["openMatchIds"]}
+            updates = plan_score_updates(sheet_matches, espn_events, open_match_ids=open_ids)
+            updates_by_id = {item.match_id: item for item in updates}
+            sheet_by_id = {
+                int(match["id"]): match
+                for match in sheet_matches
+                if isinstance(match, dict) and match.get("id") is not None
+            }
+
+            rows: list[dict[str, Any]] = []
+            for event in espn_events:
+                match_id = match_espn_to_sheet_id(event, sheet_matches)
+                sheet = sheet_by_id.get(match_id) if match_id is not None else None
+                update = updates_by_id.get(match_id) if match_id is not None else None
+                rows.append(
+                    {
+                        "matchId": match_id,
+                        "espnEventId": event.espn_event_id,
+                        "home": sheet.get("home") if sheet else event.home,
+                        "away": sheet.get("away") if sheet else event.away,
+                        "apiHome": event.home,
+                        "apiAway": event.away,
+                        "apiHomeScore": event.home_score,
+                        "apiAwayScore": event.away_score,
+                        "apiState": event.state,
+                        "kickoffAt": event.kickoff_at,
+                        "currentHomeScore": sheet.get("homeScore") if sheet else None,
+                        "currentAwayScore": sheet.get("awayScore") if sheet else None,
+                        "currentPlayed": bool(sheet.get("played")) if sheet else False,
+                        "isMatched": match_id is not None,
+                        "wouldUpdate": update is not None,
+                        "wouldCloseLive": bool(update.close_live) if update else False,
+                    }
+                )
+
+            rows.sort(
+                key=lambda row: (
+                    row.get("kickoffAt") or "",
+                    int(row.get("matchId") or 9999),
+                    str(row.get("espnEventId") or ""),
+                )
+            )
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "source": "ESPN",
+                    "dates": dates,
+                    "fetchedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "eventsCount": len(espn_events),
+                    "updatesCount": len(updates),
+                    "rows": rows,
+                },
+            )
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
 
     def _handle_presence(self, data: dict[str, Any] | None = None) -> None:
         now = time.time()

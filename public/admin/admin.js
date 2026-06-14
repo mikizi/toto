@@ -6,6 +6,7 @@ const LOCAL_RESTORE_API = "http://127.0.0.1:8090/restore";
 const LOCAL_BROADCAST_API = "http://127.0.0.1:8090/broadcast";
 const LOCAL_REGISTRATION_API = "http://127.0.0.1:8090/registration";
 const LOCAL_XLSX_API = "http://127.0.0.1:8090/xlsx";
+const LOCAL_API_SCORES_URL = "http://127.0.0.1:8090/api-scores";
 const XLSX_FILENAME = "Master WorldCup26.xlsx";
 const PUBLISH_PROXY_URL =
   "https://toto-admin-publish.mikizi-toto.workers.dev/publish";
@@ -37,7 +38,7 @@ let cachedRegistration = null;
 /** @type {number | null} */
 let selectedMatchId = null;
 
-/** @type {"match" | "players" | "standings"} */
+/** @type {"match" | "players" | "api" | "standings"} */
 let activeAdminTab = "match";
 
 /** @type {string[]} */
@@ -88,6 +89,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("regPlayerNameInput")?.addEventListener("keydown", onRegistrationNameKeydown);
   document.getElementById("regPlayerNameInput")?.addEventListener("paste", onRegistrationNamePaste);
   document.getElementById("regPlayerChips")?.addEventListener("click", onRegistrationChipClick);
+  document.getElementById("refreshApiScoresBtn")?.addEventListener("click", () => {
+    void loadApiScores();
+  });
   document.querySelectorAll(".admin-tab").forEach((btn) => {
     btn.addEventListener("click", onAdminTabClick);
   });
@@ -105,25 +109,30 @@ function onAdminTabClick(event) {
     return;
   }
   const tab = btn.getAttribute("data-tab");
-  if (tab === "match" || tab === "players" || tab === "standings") {
+  if (tab === "match" || tab === "players" || tab === "api" || tab === "standings") {
     setAdminTab(tab);
+    if (tab === "api") {
+      void loadApiScores();
+    }
     trackAdminAnalytics("admin_tab_changed", {
       tab_name: tab,
     });
   }
 }
 
-/** @param {"match" | "players" | "standings"} tab */
+/** @param {"match" | "players" | "api" | "standings"} tab */
 function setAdminTab(tab) {
   activeAdminTab = tab;
   const panels = {
     match: document.getElementById("tabPanelMatch"),
     players: document.getElementById("tabPanelPlayers"),
+    api: document.getElementById("tabPanelApi"),
     standings: document.getElementById("tabPanelStandings"),
   };
   const buttons = {
     match: document.getElementById("tabBtnMatch"),
     players: document.getElementById("tabBtnPlayers"),
+    api: document.getElementById("tabBtnApi"),
     standings: document.getElementById("tabBtnStandings"),
   };
   for (const key of Object.keys(panels)) {
@@ -637,6 +646,153 @@ function renderLeaderboard(leaderboard) {
         </div>`
     )
     .join("");
+}
+
+async function loadApiScores() {
+  const list = document.getElementById("apiScoresList");
+  const summary = document.getElementById("apiScoresSummary");
+  const msg = document.getElementById("apiScoresMsg");
+  const button = document.getElementById("refreshApiScoresBtn");
+
+  if (!IS_LOCAL) {
+    if (summary) {
+      summary.textContent = "Local API score preview";
+    }
+    if (list) {
+      list.innerHTML = '<p class="admin-api-empty">API preview is available in local admin for phase 1. Run <code>make dev</code>.</p>';
+    }
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+  }
+  setMessage(msg, "Checking ESPN API…", "");
+  if (summary) {
+    summary.textContent = "Loading API score data";
+  }
+
+  try {
+    const response = await fetch(LOCAL_API_SCORES_URL, { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    renderApiScores(data);
+    setMessage(msg, "", "");
+  } catch (err) {
+    console.error(err);
+    if (summary) {
+      summary.textContent = "Could not load API score data";
+    }
+    if (list) {
+      list.innerHTML = '<p class="admin-api-empty">No API data loaded.</p>';
+    }
+    setMessage(
+      msg,
+      `API check failed. Restart "make dev" if this endpoint was just added. ${err instanceof Error ? err.message : ""}`,
+      "error"
+    );
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
+  }
+}
+
+/**
+ * @param {{ source?: string, dates?: string, fetchedAt?: string, eventsCount?: number, updatesCount?: number, rows?: Array<Record<string, unknown>> }} data
+ */
+function renderApiScores(data) {
+  const list = document.getElementById("apiScoresList");
+  const summary = document.getElementById("apiScoresSummary");
+  if (!list) {
+    return;
+  }
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+  if (summary) {
+    summary.textContent = `${data.source || "API"} · ${rows.length} event(s) · ${Number(data.updatesCount || 0)} update(s) · ${data.dates || ""}`;
+  }
+  if (!rows.length) {
+    list.innerHTML = '<p class="admin-api-empty">No API events returned.</p>';
+    return;
+  }
+  list.innerHTML = rows.map(apiScoreRowHtml).join("");
+}
+
+/** @param {Record<string, unknown>} row */
+function apiScoreRowHtml(row) {
+  const matchId = Number(row.matchId);
+  const hasMatchId = Number.isInteger(matchId) && matchId > 0;
+  const isMatched = Boolean(row.isMatched);
+  const wouldUpdate = Boolean(row.wouldUpdate);
+  const wouldCloseLive = Boolean(row.wouldCloseLive);
+  const state = String(row.apiState || "pre");
+  const statusClass = wouldUpdate ? "is-update" : isMatched ? "is-synced" : "is-unmatched";
+  const statusText = wouldUpdate
+    ? (wouldCloseLive ? "Final update" : "Would update")
+    : !isMatched
+      ? "Unmatched"
+      : state === "pre"
+        ? "Waiting"
+        : "Synced";
+  const currentScore = apiScoreText(row.currentHomeScore, row.currentAwayScore);
+  const apiScore = apiScoreText(row.apiHomeScore, row.apiAwayScore);
+  const home = String(row.home || row.apiHome || "");
+  const away = String(row.away || row.apiAway || "");
+  return `<article class="admin-api-row ${statusClass}" role="listitem">
+    <div class="admin-api-row-head">
+      <span class="admin-api-match">${hasMatchId ? `#${matchId}` : "No match"}</span>
+      <span class="admin-api-state">${escapeHtml(apiStateLabel(state))}</span>
+      <span class="admin-api-status">${escapeHtml(statusText)}</span>
+    </div>
+    <div class="admin-api-teams">
+      <span>${flagHtml(home, "sm")} ${escapeHtml(home || "Unknown")}</span>
+      <strong>${escapeHtml(apiScore)}</strong>
+      <span>${flagHtml(away, "sm")} ${escapeHtml(away || "Unknown")}</span>
+    </div>
+    <div class="admin-api-meta">
+      <span>Sheet: ${escapeHtml(currentScore)}</span>
+      <span>ESPN: ${escapeHtml(String(row.espnEventId || "—"))}</span>
+      <span>${escapeHtml(apiKickoffLabel(row.kickoffAt))}</span>
+    </div>
+  </article>`;
+}
+
+/** @param {unknown} home @param {unknown} away */
+function apiScoreText(home, away) {
+  if (home === null || home === undefined || away === null || away === undefined) {
+    return "—";
+  }
+  return `${Number(home)}–${Number(away)}`;
+}
+
+/** @param {string} state */
+function apiStateLabel(state) {
+  if (state === "in") {
+    return "Live";
+  }
+  if (state === "post") {
+    return "Final";
+  }
+  return "Scheduled";
+}
+
+/** @param {unknown} value */
+function apiKickoffLabel(value) {
+  if (!value) {
+    return "No kickoff";
+  }
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 /** @param {SubmitEvent} event */

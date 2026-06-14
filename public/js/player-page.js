@@ -116,7 +116,10 @@ function renderBets(player, matches) {
     return;
   }
   const picks = new Map((player.picks || []).map((pick) => [Number(pick.matchId), pick]));
-  list.innerHTML = matches
+  const sortedMatches = typeof chronologicalMatches === "function"
+    ? chronologicalMatches(matches)
+    : [...matches].sort((a, b) => Number(a.id) - Number(b.id));
+  list.innerHTML = sortedMatches
     .map((match) => {
       const pick = picks.get(Number(match.id)) || {};
       const points = pick.points;
