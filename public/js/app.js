@@ -2,6 +2,10 @@
 
 const LEADERBOARD_PREVIEW_ROWS = 8;
 const SHOW_LEADERBOARD_ROWS = true;
+const LEADERBOARD_TAB_STORAGE_KEY = "wc26-leaderboard-tab";
+const CHAMPION_FILTER_STORAGE_KEY = "wc26-champion-filter";
+const FOLLOWED_PLAYERS_STORAGE_KEY = "wc26-followed-players";
+const LEADERBOARD_TABS = new Set(["full", "following", "champion"]);
 
 const DATA_URL = "data/latest.json";
 const VERSION_URL = "data/version.json";
@@ -15,7 +19,8 @@ const LIVE_POLL_MS = 20000;
 const PRESENCE_POLL_MS = 15000;
 const UPDATE_TOAST_MS = 6000;
 
-const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 19h14v2H5v-2zm1.6-9.2L12 4l5.4 5.8L19 8l1 9H4l1.6-8.2z"/></svg>`;
+const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18h16l1-11-5.2 4.1L12 4 8.2 11.1 3 7l1 11Z" fill="currentColor"/><path d="M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const STAR_SVG = `<svg class="lb-follow-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2.6 2.86 5.8 6.4.93-4.63 4.52 1.1 6.38L12 17.22l-5.73 3.01 1.1-6.38-4.63-4.52 6.4-.93L12 2.6Z"/></svg>`;
 
 /** @typedef {{ matchId: number, homePick: number | null, awayPick: number | null, points: number | null }} PlayerPick */
 /** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string, picks?: PlayerPick[] }} LeaderboardEntry */
@@ -28,6 +33,11 @@ let countdownTimerId;
 
 /** @type {TotoData | null} */
 let cachedData = null;
+
+const leaderboardState = {
+  tab: getStoredLeaderboardTab(),
+  champion: getStoredChampionFilter(),
+};
 
 /** @type {string | null} */
 let knownVersion = null;
@@ -307,12 +317,8 @@ function scoreboardAnalyticsProps(data) {
   };
 }
 
-/** @param {MouseEvent} event */
-function trackPlayerLinkClick(event) {
-  const row = event.target instanceof Element ? event.target.closest(".lb-row") : null;
-  if (!(row instanceof HTMLElement)) {
-    return;
-  }
+/** @param {HTMLElement} row */
+function trackLeaderboardRowOpen(row) {
   trackAnalytics("player_profile_opened", {
     source: "leaderboard",
     rank: Number(row.dataset.rank),
@@ -322,12 +328,54 @@ function trackPlayerLinkClick(event) {
   });
 }
 
+/** @param {HTMLElement} row */
+function openLeaderboardRow(row) {
+  const href = row.dataset.href;
+  if (!href) {
+    return;
+  }
+  trackLeaderboardRowOpen(row);
+  window.location.href = href;
+}
+
+/** @param {MouseEvent} event */
+function handleLeaderboardBodyClick(event) {
+  const target = event.target instanceof Element ? event.target : null;
+  const followBtn = target?.closest(".lb-follow-btn");
+  if (followBtn instanceof HTMLButtonElement) {
+    toggleFollowedPlayer(followBtn.dataset.playerKey || "");
+    return;
+  }
+
+  const row = target?.closest(".lb-row");
+  if (row instanceof HTMLElement) {
+    openLeaderboardRow(row);
+  }
+}
+
+/** @param {KeyboardEvent} event */
+function handleLeaderboardBodyKeydown(event) {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+  const target = event.target instanceof Element ? event.target : null;
+  const row = target?.closest(".lb-row");
+  if (!(row instanceof HTMLElement) || target?.closest(".lb-follow-btn")) {
+    return;
+  }
+  event.preventDefault();
+  openLeaderboardRow(row);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const refreshBtn = document.getElementById("refreshBtn");
   refreshBtn?.addEventListener("click", () => loadData(true));
   document.getElementById("viewFixturesBtn")?.addEventListener("click", toggleFixturesPanel);
   document.getElementById("viewStandingsBtn")?.addEventListener("click", toggleStandingsPanel);
-  document.getElementById("betsTable")?.addEventListener("click", trackPlayerLinkClick);
+  document.getElementById("betsTable")?.addEventListener("click", handleLeaderboardBodyClick);
+  document.getElementById("betsTable")?.addEventListener("keydown", handleLeaderboardBodyKeydown);
+  document.getElementById("leaderboardTabs")?.addEventListener("click", handleLeaderboardTabClick);
+  document.getElementById("championFilterSelect")?.addEventListener("change", handleChampionFilterChange);
   document.getElementById("nextGamesScroll")?.addEventListener("scroll", (event) => {
     const scroll = event.currentTarget;
     if (scroll instanceof HTMLElement) {
@@ -1395,22 +1443,234 @@ function playerHref(entry) {
   return `player.html?${id ? `${id}&` : ""}${name}`;
 }
 
+/** @param {string | null | undefined} tab */
+function normalizeLeaderboardTab(tab) {
+  return tab && LEADERBOARD_TABS.has(tab) ? tab : "full";
+}
+
+/** @returns {string} */
+function getStoredLeaderboardTab() {
+  try {
+    return normalizeLeaderboardTab(window.localStorage.getItem(LEADERBOARD_TAB_STORAGE_KEY));
+  } catch (err) {
+    return "full";
+  }
+}
+
+/** @returns {string} */
+function getStoredChampionFilter() {
+  try {
+    return window.localStorage.getItem(CHAMPION_FILTER_STORAGE_KEY) || "";
+  } catch (err) {
+    return "";
+  }
+}
+
+/** @returns {Set<string>} */
+function getFollowedPlayerKeys() {
+  try {
+    const raw = window.localStorage.getItem(FOLLOWED_PLAYERS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) {
+      return new Set();
+    }
+    return new Set(parsed.filter((key) => typeof key === "string" && key));
+  } catch (err) {
+    return new Set();
+  }
+}
+
+/** @param {Set<string>} keys */
+function saveFollowedPlayerKeys(keys) {
+  try {
+    window.localStorage.setItem(FOLLOWED_PLAYERS_STORAGE_KEY, JSON.stringify([...keys]));
+  } catch (err) {
+    console.warn("Could not save followed players", err);
+  }
+}
+
+/** @param {LeaderboardEntry} entry */
+function playerFollowKey(entry) {
+  return entry.id ? `id:${entry.id}` : `name:${entry.name}`;
+}
+
+/** @param {string} playerKey */
+function toggleFollowedPlayer(playerKey) {
+  if (!playerKey) {
+    return;
+  }
+  const followed = getFollowedPlayerKeys();
+  if (followed.has(playerKey)) {
+    followed.delete(playerKey);
+  } else {
+    followed.add(playerKey);
+  }
+  saveFollowedPlayerKeys(followed);
+  if (cachedData) {
+    renderLeaderboard(document.getElementById("betsTable"), cachedData);
+  }
+}
+
+/** @param {MouseEvent} event */
+function handleLeaderboardTabClick(event) {
+  const btn = event.target instanceof Element ? event.target.closest("[data-leaderboard-tab]") : null;
+  if (!(btn instanceof HTMLButtonElement)) {
+    return;
+  }
+  const nextTab = normalizeLeaderboardTab(btn.dataset.leaderboardTab);
+  if (leaderboardState.tab === nextTab) {
+    return;
+  }
+  leaderboardState.tab = nextTab;
+  try {
+    window.localStorage.setItem(LEADERBOARD_TAB_STORAGE_KEY, nextTab);
+  } catch (err) {
+    // Ignore storage failures; the tab still changes for this session.
+  }
+  if (cachedData) {
+    renderLeaderboard(document.getElementById("betsTable"), cachedData);
+  }
+}
+
+/** @param {Event} event */
+function handleChampionFilterChange(event) {
+  const select = event.currentTarget;
+  if (!(select instanceof HTMLSelectElement)) {
+    return;
+  }
+  leaderboardState.champion = select.value;
+  try {
+    window.localStorage.setItem(CHAMPION_FILTER_STORAGE_KEY, leaderboardState.champion);
+  } catch (err) {
+    // Ignore storage failures; the selected filter still changes for this session.
+  }
+  if (cachedData) {
+    renderLeaderboard(document.getElementById("betsTable"), cachedData);
+  }
+}
+
+/** @param {TotoData} data */
+function championFilterOptions(data) {
+  const counts = new Map();
+  for (const entry of data.leaderboard || []) {
+    const champion = entry.champion || "";
+    if (!champion) {
+      continue;
+    }
+    counts.set(champion, (counts.get(champion) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/** @param {TotoData} data */
+function syncChampionFilter(data) {
+  const options = championFilterOptions(data);
+  if (!options.some((option) => option.name === leaderboardState.champion)) {
+    leaderboardState.champion = options[0]?.name || "";
+  }
+  return options;
+}
+
+/**
+ * @param {TotoData} data
+ * @param {Set<string>} followed
+ */
+function visibleLeaderboardEntries(data, followed) {
+  const sorted = [...data.leaderboard];
+  if (leaderboardState.tab === "following") {
+    return sorted.filter((entry) => followed.has(playerFollowKey(entry)));
+  }
+  if (leaderboardState.tab === "champion") {
+    return sorted.filter((entry) => entry.champion === leaderboardState.champion);
+  }
+  return sorted;
+}
+
+/**
+ * @param {TotoData} data
+ * @param {Set<string>} followed
+ * @param {Array<{ name: string, count: number }>} championOptions
+ */
+function updateLeaderboardControls(data, followed, championOptions) {
+  const panel = document.getElementById("standingsPanel");
+  const tabs = document.querySelectorAll("[data-leaderboard-tab]");
+  const championFilter = document.getElementById("championFilter");
+  const championSelect = document.getElementById("championFilterSelect");
+  panel?.setAttribute("data-leaderboard-tab", leaderboardState.tab);
+  tabs.forEach((tab) => {
+    const isActive = tab instanceof HTMLElement && tab.dataset.leaderboardTab === leaderboardState.tab;
+    tab.classList.toggle("is-active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+    if (tab instanceof HTMLButtonElement && tab.dataset.leaderboardTab === "following") {
+      const count = followed.size;
+      tab.textContent = count > 0 ? `Follow (${count})` : "Follow";
+    }
+  });
+
+  championFilter?.classList.toggle("hidden", leaderboardState.tab !== "champion");
+  if (championSelect instanceof HTMLSelectElement) {
+    championSelect.innerHTML = championOptions
+      .map((option) => (
+        `<option value="${escapeAttribute(option.name)}"${option.name === leaderboardState.champion ? " selected" : ""}>${escapeHtml(option.name)} (${option.count})</option>`
+      ))
+      .join("");
+    championSelect.disabled = championOptions.length === 0;
+  }
+}
+
+/**
+ * @param {string} kind
+ * @param {TotoData} data
+ */
+function leaderboardEmptyHtml(kind, data) {
+  if (kind === "following") {
+    const total = data.leaderboard.length;
+    return `
+      <div class="lb-empty">
+        <span class="lb-empty-title">No followed players yet</span>
+        <span class="lb-empty-copy">${total} players in the full standings</span>
+      </div>`;
+  }
+  if (kind === "champion") {
+    return `
+      <div class="lb-empty">
+        <span class="lb-empty-title">No winner picks found</span>
+        <span class="lb-empty-copy">Choose another winner above</span>
+      </div>`;
+  }
+  return `
+    <div class="lb-empty">
+      <span class="lb-empty-title">No standings yet</span>
+    </div>`;
+}
+
 /** @param {HTMLElement | null} container @param {TotoData} data @param {boolean} [animate] */
 function renderLeaderboard(container, data, animate = false) {
   if (!container) {
     return;
   }
 
-  const sorted = [...data.leaderboard];
+  const followed = getFollowedPlayerKeys();
+  const championOptions = syncChampionFilter(data);
+  updateLeaderboardControls(data, followed, championOptions);
+  const sorted = visibleLeaderboardEntries(data, followed);
   const liveMatchId = manualLiveMatchIds(data)[0] ?? null;
   const leaderboardPanel = container.closest(".leaderboard");
   leaderboardPanel?.classList.toggle("has-live-picks", liveMatchId !== null);
 
   const standingsBtn = document.getElementById("viewStandingsBtn");
 
-  container.innerHTML = sorted
-    .map((entry, index) => {
-      const displayRank = index + 1;
+  if (sorted.length === 0) {
+    container.innerHTML = leaderboardEmptyHtml(leaderboardState.tab, data);
+  } else {
+    container.innerHTML = sorted
+      .map((entry, index) => {
+      const dataRank = Number(entry.rank);
+      const displayRank = Number.isFinite(dataRank) && dataRank > 0
+        ? dataRank
+        : data.leaderboard.indexOf(entry) + 1;
       const rankLabel = String(displayRank);
       const rankClass = displayRank <= 5 ? `rank-${displayRank}` : "rank-default";
       const rowClass = displayRank <= 5 ? `rank-${displayRank}` : "";
@@ -1421,6 +1681,10 @@ function renderLeaderboard(container, data, animate = false) {
       const enterClass = animate && index < LEADERBOARD_PREVIEW_ROWS ? " lb-row--enter" : "";
       const revealIndex = Math.min(index, 16);
       const stagger = ` style="--enter-i: ${index}; --reveal-i: ${revealIndex}"`;
+      const followKey = playerFollowKey(entry);
+      const isFollowed = followed.has(followKey);
+      const followClass = isFollowed ? " is-followed" : "";
+      const followAction = isFollowed ? "Unfollow" : "Follow";
       const championLabel = entry.champion
         ? `, champion ${entry.champion}`
         : "";
@@ -1431,21 +1695,27 @@ function renderLeaderboard(container, data, animate = false) {
       const livePick = livePredictionHtml(entry, liveMatchId);
 
       return `
-    <a class="lb-row ${rowClass}${championClass}${enterClass}" href="${escapeHtml(href)}"${stagger} data-rank="${displayRank}" data-points="${entry.points.toFixed(0)}" data-has-champion="${entry.champion ? "true" : "false"}" title="${escapeHtml(rowTitle)}" aria-label="${escapeHtml(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}">
+    <div class="lb-row ${rowClass}${championClass}${enterClass}" role="link" tabindex="0" data-href="${escapeAttribute(href)}" data-rank="${displayRank}" data-points="${entry.points.toFixed(0)}" data-has-champion="${entry.champion ? "true" : "false"}" title="${escapeAttribute(rowTitle)}" aria-label="${escapeAttribute(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}"${stagger}>
       ${rowFlag}
       <div class="lb-rank-cell">
         <span class="rank-badge ${rankClass}">${escapeHtml(rankLabel)}</span>
       </div>
       <div class="lb-trend-cell">${trend}</div>
       <div class="lb-player">
-        ${crown}
         <span class="lb-player-name">${escapeHtml(entry.name)}</span>
+        ${crown}
       </div>
       <div class="lb-pick-cell">${livePick}</div>
+      <div class="lb-follow-cell">
+        <button type="button" class="lb-follow-btn${followClass}" data-player-key="${escapeAttribute(followKey)}" aria-pressed="${isFollowed}" aria-label="${escapeAttribute(`${followAction} ${entry.name}`)}">
+          ${STAR_SVG}
+        </button>
+      </div>
       <div class="lb-pts">${entry.points.toFixed(0)}</div>
-    </a>`;
+    </div>`;
     })
     .join("");
+  }
 
   if (container instanceof HTMLElement) {
     syncLeaderboardCollapsedHeight(container, container, true);
@@ -1585,4 +1855,9 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+/** @param {string} text */
+function escapeAttribute(text) {
+  return escapeHtml(String(text)).replace(/"/g, "&quot;");
 }

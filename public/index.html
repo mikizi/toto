@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://flagcdn.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="css/styles.css?v=53">
+    <link rel="stylesheet" href="css/styles.css?v=56">
     <link rel="manifest" href="manifest.json?v=3">
     <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png?v=3" type="image/png">
     <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png?v=3">
@@ -113,11 +113,27 @@
 
         <div class="desktop-dashboard">
             <section id="standingsPanel" class="leaderboard glass-panel" aria-label="Leaderboard">
+                <div id="leaderboardTabs" class="lb-tabs" role="tablist" aria-label="Leaderboard filters">
+                    <button type="button" class="lb-tab is-active" role="tab" aria-selected="true" data-leaderboard-tab="full">
+                        Full Standings
+                    </button>
+                    <button type="button" class="lb-tab" role="tab" aria-selected="false" data-leaderboard-tab="following">
+                        Follow
+                    </button>
+                    <button type="button" class="lb-tab" role="tab" aria-selected="false" data-leaderboard-tab="champion">
+                        Same Winner
+                    </button>
+                </div>
+                <div id="championFilter" class="lb-filter hidden">
+                    <label class="lb-filter-label" for="championFilterSelect">Winner</label>
+                    <select id="championFilterSelect" class="lb-filter-select" aria-label="Filter by final winner pick"></select>
+                </div>
                 <div class="lb-header">
                     <span class="lb-col lb-col-rank"><span class="lb-h-long">Rank</span><span class="lb-h-short">Rk</span></span>
                     <span class="lb-col lb-col-trend"><span class="lb-h-long">Last</span><span class="lb-h-short">Last</span></span>
                     <span class="lb-col lb-col-player"><span class="lb-h-long">Player</span><span class="lb-h-short">Player</span></span>
                     <span class="lb-col lb-col-pick"><span class="lb-h-long">Pick</span><span class="lb-h-short">Pick</span></span>
+                    <span class="lb-col lb-col-follow" aria-hidden="true"></span>
                     <span class="lb-col lb-col-pts"><span class="lb-h-long">Pts</span><span class="lb-h-short">Pts</span></span>
                 </div>
                 <div id="betsTable" class="lb-body" aria-label="Standings list"></div>
@@ -208,7 +224,7 @@
 <script src="js/live.js?v=5"></script>
 <script src="js/analytics.js?v=7"></script>
 <script src="js/ga.js?v=2"></script>
-<script src="js/app.js?v=44"></script>
+<script src="js/app.js?v=47"></script>
 <script src="js/player.js?v=17"></script>
 </body>
 </html>
