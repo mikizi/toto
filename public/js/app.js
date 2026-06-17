@@ -15,8 +15,10 @@ const IS_LOCAL_HOST =
 const PRESENCE_URL = IS_LOCAL_HOST
   ? "http://127.0.0.1:8090/presence"
   : "https://toto-admin-publish.mikizi-toto.workers.dev/presence";
-const LIVE_POLL_MS = 20000;
-const PRESENCE_POLL_MS = 15000;
+const LIVE_POLL_MS = 60000;
+const PRESENCE_POLL_MS = 300000;
+const PRESENCE_FAILURE_BACKOFF_MS = 30 * 60 * 1000;
+const PRESENCE_RATE_LIMIT_BACKOFF_MS = 6 * 60 * 60 * 1000;
 const UPDATE_TOAST_MS = 6000;
 
 const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18h16l1-11-5.2 4.1L12 4 8.2 11.1 3 7l1 11Z" fill="currentColor"/><path d="M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -47,6 +49,12 @@ let livePollTimerId;
 
 /** @type {number | undefined} */
 let presencePollTimerId;
+
+/** @type {number} */
+let presenceBackoffUntilMs = 0;
+
+/** @type {number} */
+let lastPresenceAttemptMs = 0;
 
 /** @type {number | undefined} */
 let updateToastTimerId;
@@ -395,7 +403,6 @@ document.addEventListener("DOMContentLoaded", () => {
       startLivePolling();
     }
   });
-  startPresencePolling();
   loadData(false);
 });
 
@@ -428,10 +435,47 @@ function hideViewerCount() {
   document.getElementById("viewerCount")?.classList.add("hidden");
 }
 
+/** @returns {boolean} */
+function shouldTrackPresence() {
+  return cachedData ? isScoreboardLive(cachedData, isDebugMode()) : false;
+}
+
+/** @param {Response} response @returns {number} */
+function presenceRetryDelayMs(response) {
+  const retryAfter = response.headers.get("Retry-After");
+  if (!retryAfter) {
+    return response.status === 429
+      ? PRESENCE_RATE_LIMIT_BACKOFF_MS
+      : PRESENCE_FAILURE_BACKOFF_MS;
+  }
+
+  const retrySeconds = Number(retryAfter);
+  if (Number.isFinite(retrySeconds) && retrySeconds > 0) {
+    return retrySeconds * 1000;
+  }
+
+  const retryAtMs = Date.parse(retryAfter);
+  if (!Number.isNaN(retryAtMs)) {
+    return Math.max(0, retryAtMs - Date.now());
+  }
+
+  return response.status === 429
+    ? PRESENCE_RATE_LIMIT_BACKOFF_MS
+    : PRESENCE_FAILURE_BACKOFF_MS;
+}
+
 async function updatePresence() {
-  if (document.hidden) {
+  if (document.hidden || !shouldTrackPresence()) {
     return;
   }
+  const nowMs = Date.now();
+  if (nowMs < presenceBackoffUntilMs) {
+    return;
+  }
+  if (nowMs - lastPresenceAttemptMs < PRESENCE_POLL_MS) {
+    return;
+  }
+  lastPresenceAttemptMs = nowMs;
   try {
     const response = await fetch(PRESENCE_URL, {
       method: "POST",
@@ -440,9 +484,11 @@ async function updatePresence() {
       body: JSON.stringify({ id: getPresenceClientId() }),
     });
     if (!response.ok) {
+      presenceBackoffUntilMs = Date.now() + presenceRetryDelayMs(response);
       hideViewerCount();
       return;
     }
+    presenceBackoffUntilMs = 0;
     const payload = await response.json();
     if (payload && payload.ok === true && Number.isFinite(Number(payload.viewers))) {
       renderViewerCount(Number(payload.viewers));
@@ -450,11 +496,16 @@ async function updatePresence() {
     }
     hideViewerCount();
   } catch (err) {
+    presenceBackoffUntilMs = Date.now() + PRESENCE_FAILURE_BACKOFF_MS;
     hideViewerCount();
   }
 }
 
 function startPresencePolling() {
+  if (!shouldTrackPresence()) {
+    hideViewerCount();
+    return;
+  }
   void updatePresence();
   if (presencePollTimerId !== undefined) {
     return;
@@ -1005,6 +1056,12 @@ async function loadData(fromUserClick, options = {}) {
     app?.classList.add("loaded");
     app?.classList.toggle("is-live", isScoreboardLive(data, isDebugMode()));
     triggerEntrance(animate);
+    if (shouldTrackPresence()) {
+      startPresencePolling();
+    } else {
+      stopPresencePolling();
+      hideViewerCount();
+    }
 
     if (isLivePush && previousData) {
       const update = describeLiveUpdate(previousData, data);

@@ -8,8 +8,14 @@ const XLSX_SYNC_EVENT_TYPE = "sync-xlsx-upload";
 const XLSX_REPO_PATH = "xlsx/Master WorldCup26.xlsx";
 const XLSX_DOWNLOAD_NAME = "Master WorldCup26.xlsx";
 const MAX_XLSX_UPLOAD_BYTES = 30 * 1024 * 1024;
-const PRESENCE_TTL_SECONDS = 75;
+const PRESENCE_TTL_SECONDS = 600;
+const PRESENCE_COUNT_CACHE_MS = 60000;
 const PRESENCE_KEY_PREFIX = "viewer:";
+
+let presenceCountCache = {
+  value: null,
+  expiresAt: 0,
+};
 
 export default {
   async fetch(request, env) {
@@ -289,12 +295,21 @@ async function handlePresence(request, env, corsHeaders) {
     if (!id) {
       return jsonResponse({ ok: false, error: "Invalid viewer id" }, 400, corsHeaders);
     }
-    await env.VIEWER_PRESENCE.put(`${PRESENCE_KEY_PREFIX}${id}`, "1", {
-      expirationTtl: PRESENCE_TTL_SECONDS,
-    });
+    try {
+      await env.VIEWER_PRESENCE.put(`${PRESENCE_KEY_PREFIX}${id}`, "1", {
+        expirationTtl: PRESENCE_TTL_SECONDS,
+      });
+    } catch (err) {
+      return presenceStorageErrorResponse(err, corsHeaders);
+    }
   }
 
-  const viewers = await countPresenceKeys(env.VIEWER_PRESENCE);
+  let viewers;
+  try {
+    viewers = await countPresenceKeys(env.VIEWER_PRESENCE);
+  } catch (err) {
+    return presenceStorageErrorResponse(err, corsHeaders);
+  }
   return jsonResponse(
     { ok: true, viewers, ttlSeconds: PRESENCE_TTL_SECONDS },
     200,
@@ -302,6 +317,34 @@ async function handlePresence(request, env, corsHeaders) {
       ...corsHeaders,
       "Cache-Control": "no-store",
     }
+  );
+}
+
+function presenceStorageErrorResponse(err, corsHeaders) {
+  const rateLimited = isRateLimitError(err);
+  return jsonResponse(
+    {
+      ok: false,
+      error: rateLimited
+        ? "Presence storage is rate limited"
+        : "Presence storage is temporarily unavailable",
+    },
+    rateLimited ? 429 : 503,
+    {
+      ...corsHeaders,
+      "Retry-After": rateLimited ? "21600" : "1800",
+      "Cache-Control": "no-store",
+    }
+  );
+}
+
+function isRateLimitError(err) {
+  const message = String(err?.message || err || "").toLowerCase();
+  return (
+    message.includes("429") ||
+    message.includes("rate limit") ||
+    message.includes("daily limit") ||
+    message.includes("too many requests")
   );
 }
 
@@ -314,6 +357,14 @@ function sanitizePresenceId(value) {
 }
 
 async function countPresenceKeys(kv) {
+  const nowMs = Date.now();
+  if (
+    typeof presenceCountCache.value === "number" &&
+    presenceCountCache.expiresAt > nowMs
+  ) {
+    return presenceCountCache.value;
+  }
+
   let cursor;
   let count = 0;
   do {
@@ -325,6 +376,10 @@ async function countPresenceKeys(kv) {
     count += page.keys.length;
     cursor = page.list_complete ? undefined : page.cursor;
   } while (cursor);
+  presenceCountCache = {
+    value: count,
+    expiresAt: nowMs + PRESENCE_COUNT_CACHE_MS,
+  };
   return count;
 }
 

@@ -40,7 +40,7 @@ from scripts.validate_export import validate
 DEFAULT_PORT = 8090
 XLSX_DOWNLOAD_NAME = "Master WorldCup26.xlsx"
 MAX_XLSX_UPLOAD_BYTES = 30 * 1024 * 1024
-PRESENCE_TTL_SECONDS = 75
+PRESENCE_TTL_SECONDS = 600
 PRESENCE_ID_RE = re.compile(r"^[a-zA-Z0-9._:-]{8,80}$")
 VIEWER_PRESENCE: dict[str, float] = {}
 VIEWER_PRESENCE_LOCK = threading.Lock()
