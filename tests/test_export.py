@@ -9,7 +9,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.export_summary import _cell_int, _cell_number, _cell_text, build_export, write_export
+from scripts.export_summary import (
+    _cell_int,
+    _cell_number,
+    _cell_text,
+    _read_visible_summary_leaderboard,
+    build_export,
+    write_export,
+)
 from scripts.patch_match import clear_match_score, find_match_row, patch_match
 import inspect
 
@@ -53,6 +60,34 @@ class TestCellParsing(unittest.TestCase):
         self.assertIsNone(_cell_text("#N/A"))
         self.assertIsNone(_cell_text("#REF!"))
         self.assertEqual(_cell_text("France"), "France")
+
+
+class TestSummaryLeaderboardParsing(unittest.TestCase):
+    """Summary sheet range discovery."""
+
+    def test_visible_leaderboard_reads_past_legacy_row_80(self) -> None:
+        import openpyxl
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Summary"
+        raw_by_name = {}
+        for row in range(4, 92):
+            index = row - 3
+            name = f"Player{index}"
+            ws[f"A{row}"].value = index
+            ws[f"C{row}"].value = index
+            ws[f"D{row}"].value = name
+            ws[f"E{row}"].value = "France"
+            ws[f"F{row}"].value = 100 - index
+            raw_by_name[name] = {"id": str(index), "champion": "France", "picks": []}
+        ws["C96"].value = "#"
+        ws["D96"].value = "Name"
+
+        rows = _read_visible_summary_leaderboard(ws, raw_by_name)
+
+        self.assertEqual(len(rows), 88)
+        self.assertEqual(rows[-1]["name"], "Player88")
 
 
 class TestExportFromXlsx(unittest.TestCase):

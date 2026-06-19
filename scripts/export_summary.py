@@ -21,7 +21,6 @@ DEFAULT_XLSX = XLSX_PATH
 SUMMARY = "Summary"
 USER_ROW_START = 79
 USER_ROW_END = 200
-SUMMARY_RAW_ROW_START = 86
 SUMMARY_LEADERBOARD_ROW_START = 4
 SUMMARY_LEADERBOARD_ROW_END = 80
 CALC_SCORE_ROW_START = 238
@@ -435,9 +434,22 @@ def _read_leaderboard(
 ) -> list[dict[str, Any]]:
     raw_by_name = _read_raw_leaderboard_by_name(wb_data, ws_data, wb_formulas, matches)
     visible_rows = _read_visible_summary_leaderboard(ws_data, raw_by_name)
-    if visible_rows:
+    public_raw_count = sum(
+        1 for entry in raw_by_name.values() if not _is_test_user(entry["name"])
+    )
+    if visible_rows and len(visible_rows) >= public_raw_count:
         return visible_rows
     return _reconstructed_summary_leaderboard(list(raw_by_name.values()))
+
+
+def _summary_raw_header_row(ws: openpyxl.worksheet.worksheet.Worksheet) -> int | None:
+    """Find the raw user table header on Summary."""
+    max_row = min(ws.max_row + 1, USER_ROW_END)
+    for row in range(SUMMARY_LEADERBOARD_ROW_START, max_row):
+        marker = ws[f"C{row}"].value
+        if str(marker or "").strip() == "#" and _cell_text(ws[f"D{row}"].value) == "Name":
+            return row
+    return None
 
 
 def _read_raw_leaderboard_by_name(
@@ -447,7 +459,8 @@ def _read_raw_leaderboard_by_name(
     matches: list[dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for row in range(USER_ROW_START, USER_ROW_END):
+    raw_start = (_summary_raw_header_row(ws_data) or (USER_ROW_START - 1)) + 1
+    for row in range(raw_start, USER_ROW_END):
         uid = ws_data[f"C{row}"].value
         name = _cell_text(ws_data[f"D{row}"].value)
         if not name or name == "Name":
@@ -495,7 +508,13 @@ def _read_visible_summary_leaderboard(
 ) -> list[dict[str, Any]]:
     """Read the sorted leaderboard table displayed at the top of Summary."""
     rows: list[dict[str, Any]] = []
-    for row in range(SUMMARY_LEADERBOARD_ROW_START, SUMMARY_LEADERBOARD_ROW_END + 1):
+    raw_header = _summary_raw_header_row(ws_data)
+    end_row = (
+        raw_header - 1
+        if raw_header is not None
+        else min(SUMMARY_LEADERBOARD_ROW_END, ws_data.max_row)
+    )
+    for row in range(SUMMARY_LEADERBOARD_ROW_START, end_row + 1):
         name = _cell_text(ws_data[f"D{row}"].value)
         if not name or name == "Name":
             continue
