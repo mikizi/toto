@@ -35,6 +35,8 @@ PICK_HOME_COL = 6
 PICK_AWAY_COL = 7
 MATCH_RESULT_POINTS = 3.0
 EXACT_SCORE_POINTS = 2.0
+LATE_JOINER_PREFIX = "N_"
+LATE_JOINER_BASELINE_MATCH_COUNT = 24
 
 
 def _kickoff_to_iso(value: object) -> str | None:
@@ -175,6 +177,11 @@ def _is_test_user(name: str) -> bool:
     return name.lower().startswith("test")
 
 
+def _is_late_joiner(name: str) -> bool:
+    """Late entrants get average points for the first round, not historical picks."""
+    return name.strip().startswith(LATE_JOINER_PREFIX)
+
+
 def _public_leaderboard(
     raw: list[dict[str, Any]], previous: dict[str, Any] | None
 ) -> list[dict[str, Any]]:
@@ -240,6 +247,7 @@ def _score_from_user_sheet(
     ws_summary: openpyxl.worksheet.worksheet.Worksheet,
     row: int,
     matches: list[dict[str, Any]],
+    baseline_points: float | None = None,
 ) -> float | None:
     """Compute group-stage points from user picks when cached formulas are missing."""
     uid = ws_summary[f"C{row}"].value
@@ -260,9 +268,11 @@ def _score_from_user_sheet(
         except (TypeError, ValueError):
             continue
 
-    total = 0.0
+    total = baseline_points if _is_late_joiner(str(name)) and baseline_points is not None else 0.0
     for match in matches:
         if not match["played"]:
+            continue
+        if _is_late_joiner(str(name)) and int(match["id"]) <= LATE_JOINER_BASELINE_MATCH_COUNT:
             continue
         pick_row = pick_rows.get(int(match["id"]))
         if pick_row is None:
@@ -280,9 +290,11 @@ def _score_from_user_sheet_name(
     wb: openpyxl.Workbook,
     sheet_name: str,
     matches: list[dict[str, Any]],
+    baseline_points: float | None = None,
 ) -> float:
     """Compute group-stage points directly from a known user sheet name."""
     ws_user = wb[sheet_name]
+    name = sheet_name.split("_", 1)[1] if "_" in sheet_name else sheet_name
     pick_rows: dict[int, int] = {}
     for user_row in range(SCHEDULE_ROW_START, 200):
         match_id = ws_user.cell(user_row, SCHEDULE_MATCH_ID_COL).value
@@ -291,9 +303,11 @@ def _score_from_user_sheet_name(
         except (TypeError, ValueError):
             continue
 
-    total = 0.0
+    total = baseline_points if _is_late_joiner(name) and baseline_points is not None else 0.0
     for match in matches:
         if not match["played"]:
+            continue
+        if _is_late_joiner(name) and int(match["id"]) <= LATE_JOINER_BASELINE_MATCH_COUNT:
             continue
         pick_row = pick_rows.get(int(match["id"]))
         if pick_row is None:
@@ -314,6 +328,7 @@ def _player_picks_from_user_sheet(
 ) -> list[dict[str, Any]]:
     """Read one player's predictions for every known match."""
     ws_user = wb[sheet_name]
+    name = sheet_name.split("_", 1)[1] if "_" in sheet_name else sheet_name
     pick_rows: dict[int, int] = {}
     for user_row in range(SCHEDULE_ROW_START, 200):
         match_id = ws_user.cell(user_row, SCHEDULE_MATCH_ID_COL).value
@@ -334,6 +349,10 @@ def _player_picks_from_user_sheet(
         points = None
         if (
             match["played"]
+            and not (
+                _is_late_joiner(name)
+                and match_id <= LATE_JOINER_BASELINE_MATCH_COUNT
+            )
             and home_pick is not None
             and away_pick is not None
             and match["homeScore"] is not None
@@ -363,6 +382,7 @@ def _read_user_points(
     ws_data: openpyxl.worksheet.worksheet.Worksheet,
     row: int,
     matches: list[dict[str, Any]] | None = None,
+    baseline_points: float | None = None,
 ) -> float:
     """Read cached Summary points, falling back to Calc when Summary F is empty."""
     cached = _cell_number(ws_data[f"F{row}"].value)
@@ -376,7 +396,13 @@ def _read_user_points(
         if calc_val is not None:
             return round(calc_val, 2)
     if matches is not None:
-        computed = _score_from_user_sheet(wb_formulas, ws_data, row, matches)
+        computed = _score_from_user_sheet(
+            wb_formulas,
+            ws_data,
+            row,
+            matches,
+            baseline_points,
+        )
         if computed is not None:
             return computed
     return 0.0
@@ -460,6 +486,7 @@ def _read_raw_leaderboard_by_name(
 ) -> dict[str, dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     raw_start = (_summary_raw_header_row(ws_data) or (USER_ROW_START - 1)) + 1
+    late_joiner_baseline = _late_joiner_baseline_points(wb_formulas, ws_data, matches)
     for row in range(raw_start, USER_ROW_END):
         uid = ws_data[f"C{row}"].value
         name = _cell_text(ws_data[f"D{row}"].value)
@@ -470,11 +497,23 @@ def _read_raw_leaderboard_by_name(
             name = sheet_name.split("_", 1)[1]
         if not name or name == "Name":
             continue
-        points = _read_user_points(wb_data, wb_formulas, ws_data, row, matches)
+        points = _read_user_points(
+            wb_data,
+            wb_formulas,
+            ws_data,
+            row,
+            matches,
+            late_joiner_baseline,
+        )
         if points == 0.0:
             sheet_name = _user_sheet_for_uid(wb_formulas, uid)
             if sheet_name is not None:
-                points = _score_from_user_sheet_name(wb_formulas, sheet_name, matches)
+                points = _score_from_user_sheet_name(
+                    wb_formulas,
+                    sheet_name,
+                    matches,
+                    late_joiner_baseline,
+                )
         rank = _cell_int(ws_data[f"G{row}"].value)
         champion = _read_champion(wb_data, ws_data, row)
         if not champion:
@@ -500,6 +539,37 @@ def _read_raw_leaderboard_by_name(
             }
         )
     return {entry["name"]: entry for entry in rows}
+
+
+def _late_joiner_baseline_points(
+    wb: openpyxl.Workbook,
+    ws_summary: openpyxl.worksheet.worksheet.Worksheet,
+    matches: list[dict[str, Any]],
+) -> float | None:
+    """Average first-round score for original players, used as late-entry baseline."""
+    first_round = [
+        match
+        for match in matches
+        if int(match["id"]) <= LATE_JOINER_BASELINE_MATCH_COUNT and match["played"]
+    ]
+    if not first_round:
+        return None
+
+    scores: list[float] = []
+    raw_start = (_summary_raw_header_row(ws_summary) or (USER_ROW_START - 1)) + 1
+    for row in range(raw_start, USER_ROW_END):
+        uid = ws_summary[f"C{row}"].value
+        sheet_name = _user_sheet_for_uid(wb, uid)
+        if sheet_name is None:
+            continue
+        name = sheet_name.split("_", 1)[1]
+        if _is_test_user(name) or _is_late_joiner(name):
+            continue
+        scores.append(_score_from_user_sheet_name(wb, sheet_name, first_round))
+
+    if not scores:
+        return None
+    return round(sum(scores) / len(scores), 2)
 
 
 def _read_visible_summary_leaderboard(

@@ -136,6 +136,27 @@ class TestExportFromXlsx(unittest.TestCase):
         points = [entry["points"] for entry in payload["leaderboard"]]
         self.assertEqual(points, sorted(points, reverse=True))
 
+    def test_late_joiners_do_not_get_perfect_historical_pick_points(self) -> None:
+        payload = self.payload
+        late_joiners = [
+            entry for entry in payload["leaderboard"] if entry["name"].strip().startswith("N_")
+        ]
+        if not late_joiners:
+            self.skipTest("workbook has no late joiners")
+
+        self.assertFalse(
+            any(entry["points"] > 100 for entry in late_joiners),
+            "late joiners should use first-round average, not perfect historical picks",
+        )
+        historical_points = [
+            pick["points"]
+            for entry in late_joiners
+            for pick in entry["picks"]
+            if pick["matchId"] <= 24
+        ]
+        self.assertTrue(historical_points)
+        self.assertTrue(all(points is None for points in historical_points))
+
     def test_validate_latest_export(self) -> None:
         errors = validate(self.payload)
         self.assertEqual(errors, [], msg="; ".join(errors))
