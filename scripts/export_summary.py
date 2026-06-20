@@ -385,16 +385,6 @@ def _read_user_points(
     baseline_points: float | None = None,
 ) -> float:
     """Read cached Summary points, falling back to Calc when Summary F is empty."""
-    cached = _cell_number(ws_data[f"F{row}"].value)
-    if cached is not None:
-        return round(cached, 2)
-
-    formula = wb_formulas[SUMMARY][f"F{row}"].value
-    if isinstance(formula, str) and formula.upper().startswith("=CALC!"):
-        calc_ref = formula.split("!", 1)[1].strip()
-        calc_val = _cell_number(wb_data["Calc"][calc_ref].value)
-        if calc_val is not None:
-            return round(calc_val, 2)
     if matches is not None:
         computed = _score_from_user_sheet(
             wb_formulas,
@@ -405,6 +395,17 @@ def _read_user_points(
         )
         if computed is not None:
             return computed
+
+    cached = _cell_number(ws_data[f"F{row}"].value)
+    if cached is not None:
+        return round(cached, 2)
+
+    formula = wb_formulas[SUMMARY][f"F{row}"].value
+    if isinstance(formula, str) and formula.upper().startswith("=CALC!"):
+        calc_ref = formula.split("!", 1)[1].strip()
+        calc_val = _cell_number(wb_data["Calc"][calc_ref].value)
+        if calc_val is not None:
+            return round(calc_val, 2)
     return 0.0
 
 
@@ -459,6 +460,9 @@ def _read_leaderboard(
     matches: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     raw_by_name = _read_raw_leaderboard_by_name(wb_data, ws_data, wb_formulas, matches)
+    if raw_by_name:
+        return _reconstructed_summary_leaderboard(list(raw_by_name.values()))
+
     visible_rows = _read_visible_summary_leaderboard(ws_data, raw_by_name)
     public_raw_count = sum(
         1 for entry in raw_by_name.values() if not _is_test_user(entry["name"])
