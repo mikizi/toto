@@ -2088,6 +2088,14 @@ body {
     background: rgba(232, 185, 35, 0.035);
 }
 
+.player-bet-row--focus {
+    background:
+        linear-gradient(90deg, rgba(232, 185, 35, 0.14), rgba(30, 136, 229, 0.08)),
+        rgba(13, 17, 23, 0.52);
+    border-left-color: var(--gold);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
 .player-bet-row--full {
     border-left-color: #4ade80;
 }
@@ -5245,7 +5253,7 @@ body {
         align-items: stretch;
         min-height: 0;
         margin-top: 1.85rem;
-        padding: 1.35rem 1.2rem 1.55rem;
+        padding: 1.35rem 0.9rem 1.55rem;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-left-color: rgba(255, 255, 255, 0.08);
         border-radius: var(--radius);
@@ -5263,6 +5271,16 @@ body {
 
     .player-bet-row--played {
         background: rgba(28, 36, 44, 0.94);
+    }
+
+    .player-bet-row--focus {
+        background:
+            linear-gradient(135deg, rgba(232, 185, 35, 0.16), rgba(30, 136, 229, 0.1)),
+            rgba(28, 36, 44, 0.94);
+        border-color: rgba(232, 185, 35, 0.42);
+        box-shadow:
+            0 10px 26px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
     .player-bet-match {
@@ -5313,11 +5331,12 @@ body {
     }
 
     .player-bet-teams {
-        width: min(100%, 19rem);
+        width: 100%;
+        max-width: 22rem;
         margin: 0 auto;
         display: grid;
-        grid-template-columns: minmax(4.25rem, 1fr) minmax(8.35rem, 9rem) minmax(4.25rem, 1fr);
-        gap: 0.45rem;
+        grid-template-columns: minmax(5.65rem, 1fr) minmax(6.75rem, 8rem) minmax(5.65rem, 1fr);
+        gap: 0.35rem;
         align-items: center;
         justify-content: center;
     }
@@ -5326,7 +5345,7 @@ body {
         flex-direction: column;
         justify-content: center;
         gap: 0.65rem;
-        overflow: hidden;
+        overflow: visible;
         text-align: center;
     }
 
@@ -5349,8 +5368,11 @@ body {
 
     .player-bet-team-name {
         max-width: 100%;
+        overflow: visible;
         font-size: 0.92rem;
         line-height: 1.15;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
         white-space: normal;
     }
 

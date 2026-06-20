@@ -13,6 +13,8 @@ from scripts.export_summary import (
     _cell_int,
     _cell_number,
     _cell_text,
+    _movement,
+    _reconstructed_summary_leaderboard,
     _read_visible_summary_leaderboard,
     build_export,
     write_export,
@@ -88,6 +90,96 @@ class TestSummaryLeaderboardParsing(unittest.TestCase):
 
         self.assertEqual(len(rows), 88)
         self.assertEqual(rows[-1]["name"], "Player88")
+
+    def test_visible_leaderboard_uses_excel_real_rank_for_ties(self) -> None:
+        import openpyxl
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Summary"
+        ws["A4"].value = 1
+        ws["C4"].value = 1
+        ws["D4"].value = "LeaderA"
+        ws["F4"].value = 10
+        ws["A5"].value = 2
+        ws["C5"].value = "-"
+        ws["D5"].value = "LeaderB"
+        ws["F5"].value = 10
+        ws["C6"].value = "#"
+        ws["D6"].value = "Name"
+
+        rows = _read_visible_summary_leaderboard(
+            ws,
+            {
+                "LeaderA": {"rank": 1, "champion": "France", "picks": []},
+                "LeaderB": {"rank": 1, "champion": "Spain", "picks": []},
+            },
+        )
+
+        self.assertEqual([row["rank"] for row in rows], [1, 1])
+        self.assertEqual([row["rankLabel"] for row in rows], ["1", "1"])
+
+    def test_visible_leaderboard_inherits_rank_when_tie_label_has_no_raw_rank(self) -> None:
+        import openpyxl
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Summary"
+        ws["A4"].value = 1
+        ws["C4"].value = 1
+        ws["D4"].value = "LeaderA"
+        ws["F4"].value = 10
+        ws["A5"].value = 2
+        ws["C5"].value = "-"
+        ws["D5"].value = "LeaderB"
+        ws["F5"].value = 10
+        ws["C6"].value = "#"
+        ws["D6"].value = "Name"
+
+        rows = _read_visible_summary_leaderboard(ws, {})
+
+        self.assertEqual([row["rank"] for row in rows], [1, 1])
+        self.assertEqual([row["rankLabel"] for row in rows], ["1", "1"])
+
+    def test_reconstructed_leaderboard_preserves_excel_real_rank(self) -> None:
+        rows = _reconstructed_summary_leaderboard(
+            [
+                {"name": "LeaderA", "points": 10, "rank": 1, "summaryOrder": 1},
+                {"name": "LeaderB", "points": 10, "rank": 1, "summaryOrder": 2},
+                {"name": "Third", "points": 8, "rank": 3, "summaryOrder": 3},
+            ]
+        )
+
+        self.assertEqual([row["rank"] for row in rows], [1, 1, 3])
+        self.assertEqual([row["rankLabel"] for row in rows], ["1", "1", "3"])
+
+    def test_reconstructed_leaderboard_uses_rank_eq_fallback_for_ties(self) -> None:
+        rows = _reconstructed_summary_leaderboard(
+            [
+                {"name": "LeaderA", "points": 10, "summaryOrder": 1},
+                {"name": "LeaderB", "points": 10, "summaryOrder": 2},
+                {"name": "Third", "points": 8, "summaryOrder": 3},
+            ]
+        )
+
+        self.assertEqual([row["rank"] for row in rows], [1, 1, 3])
+        self.assertEqual([row["rankLabel"] for row in rows], ["1", "1", "3"])
+
+    def test_movement_compares_inherited_previous_tie_rank(self) -> None:
+        previous = {
+            "leaderboard": [
+                {"name": "LeaderA", "rank": 1, "rankLabel": "1"},
+                {"name": "LeaderB", "rank": 2, "rankLabel": "-"},
+            ]
+        }
+        current = [
+            {"name": "LeaderA", "rank": 1, "rankLabel": "1"},
+            {"name": "LeaderB", "rank": 1, "rankLabel": "1"},
+        ]
+
+        rows = _movement(current, previous)
+
+        self.assertEqual([row["movement"] for row in rows], ["same", "same"])
 
 
 class TestExportFromXlsx(unittest.TestCase):

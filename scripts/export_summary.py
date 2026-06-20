@@ -460,9 +460,6 @@ def _read_leaderboard(
     matches: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     raw_by_name = _read_raw_leaderboard_by_name(wb_data, ws_data, wb_formulas, matches)
-    if raw_by_name:
-        return _reconstructed_summary_leaderboard(list(raw_by_name.values()))
-
     visible_rows = _read_visible_summary_leaderboard(ws_data, raw_by_name)
     public_raw_count = sum(
         1 for entry in raw_by_name.values() if not _is_test_user(entry["name"])
@@ -597,10 +594,14 @@ def _read_visible_summary_leaderboard(
             continue
 
         rank_label = _cell_text(ws_data[f"C{row}"].value)
-        rank = _cell_int(ws_data[f"A{row}"].value)
+        raw = raw_by_name.get(name_text, {})
+        rank = raw.get("rank") or _cell_int(ws_data[f"A{row}"].value)
         points = _cell_number(ws_data[f"F{row}"].value)
         champion = _cell_text(ws_data[f"E{row}"].value)
-        raw = raw_by_name.get(name_text, {})
+        if rank_label == "-" and rows:
+            rank = rows[-1]["rank"]
+        if rank_label == "-" and rank is not None:
+            rank_label = str(rank)
         rows.append(
             {
                 "id": str(raw.get("id") or ""),
@@ -622,15 +623,37 @@ def _reconstructed_summary_leaderboard(raw_rows: list[dict[str, Any]]) -> list[d
 
     rows: list[dict[str, Any]] = []
     previous_points: float | None = None
+    previous_rank: int | None = None
     for index, entry in enumerate(pool, start=1):
         points = float(entry.get("points") or 0)
-        rank_label = str(index) if previous_points is None or points != previous_points else "-"
+        rank = entry.get("rank")
+        if rank is None:
+            rank = previous_rank if previous_points is not None and points == previous_points else index
+        rank_label = str(rank)
         previous_points = points
+        previous_rank = rank
         public_entry = {k: v for k, v in entry.items() if k != "summaryOrder"}
-        public_entry["rank"] = index
+        public_entry["rank"] = rank
         public_entry["rankLabel"] = rank_label
         rows.append(public_entry)
     return rows
+
+
+def _effective_rank(entry: dict[str, Any], leaderboard: list[dict[str, Any]], index: int) -> int | None:
+    label = str(entry.get("rankLabel") or "").strip()
+    if label and label != "-":
+        parsed = _cell_int(label)
+        if parsed is not None:
+            return parsed
+    if label == "-":
+        for previous in reversed(leaderboard[:index]):
+            previous_label = str(previous.get("rankLabel") or "").strip()
+            if previous_label and previous_label != "-":
+                parsed = _cell_int(previous_label)
+                if parsed is not None:
+                    return parsed
+    rank = entry.get("rank")
+    return rank if isinstance(rank, int) else _cell_int(rank)
 
 
 def _movement(
@@ -638,13 +661,20 @@ def _movement(
 ) -> list[dict[str, Any]]:
     prev_ranks: dict[str, int | None] = {}
     if previous:
-        for entry in previous.get("leaderboard", []):
-            prev_ranks[str(entry.get("name"))] = entry.get("rank")
+        previous_leaderboard = previous.get("leaderboard", [])
+        if isinstance(previous_leaderboard, list):
+            for index, entry in enumerate(previous_leaderboard):
+                if isinstance(entry, dict):
+                    prev_ranks[str(entry.get("name"))] = _effective_rank(
+                        entry,
+                        previous_leaderboard,
+                        index,
+                    )
 
     result: list[dict[str, Any]] = []
-    for entry in current:
+    for index, entry in enumerate(current):
         name = entry["name"]
-        rank = entry.get("rank")
+        rank = _effective_rank(entry, current, index)
         prev = prev_ranks.get(name)
         if prev is None or rank is None:
             move = "same"

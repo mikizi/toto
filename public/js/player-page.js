@@ -104,30 +104,83 @@ function playerRankText(player, leaderboard) {
     (entry.name && player.name && entry.name === player.name)
   ));
   if (index >= 0) {
+    const entry = leaderboard[index];
+    const label = String(entry.rankLabel || "").trim();
+    if (label && label !== "-") {
+      return label;
+    }
+    if (label === "-") {
+      for (let i = index - 1; i >= 0; i -= 1) {
+        const previousLabel = String(leaderboard[i].rankLabel || "").trim();
+        if (previousLabel && previousLabel !== "-") {
+          return previousLabel;
+        }
+      }
+    }
+    if (entry.rank) {
+      return String(entry.rank);
+    }
     return String(index + 1);
   }
   return player.rank ? String(player.rank) : "-";
 }
 
-/** @param {any} player @param {any[]} matches */
-function renderBets(player, matches) {
+/** @param {any[]} matches @param {number | null} focusMatchId */
+function focusOrderedMatches(matches, focusMatchId) {
+  const sortedMatches = typeof chronologicalMatches === "function"
+    ? chronologicalMatches(matches)
+    : [...matches].sort((a, b) => Number(a.id) - Number(b.id));
+  return sortedMatches;
+}
+
+/** @param {any} data */
+function focusedMatchId(data) {
+  const liveIds = typeof heroLiveMatchIds === "function" ? heroLiveMatchIds(data) : [];
+  if (liveIds.length > 0) {
+    return Number(liveIds[0]);
+  }
+  const next = typeof nextUnplayedMatch === "function"
+    ? nextUnplayedMatch(data)
+    : focusOrderedMatches(data.matches || [], null).find((match) => !match.played);
+  if (next) {
+    return Number(next.id);
+  }
+  const sortedMatches = focusOrderedMatches(data.matches || [], null);
+  const latest = sortedMatches[sortedMatches.length - 1];
+  return latest ? Number(latest.id) : null;
+}
+
+/** @param {number | null} focusMatchId */
+function positionFocusedBet(focusMatchId) {
+  if (!focusMatchId) {
+    return;
+  }
+  const row = document.querySelector(".player-bet-row--focus");
+  if (!(row instanceof HTMLElement)) {
+    return;
+  }
+  const top = row.getBoundingClientRect().top + window.scrollY - 12;
+  window.scrollTo(0, Math.max(0, top));
+}
+
+/** @param {any} player @param {any[]} matches @param {number | null} focusMatchId */
+function renderBets(player, matches, focusMatchId) {
   const list = document.getElementById("playerBetsList");
   if (!list) {
     return;
   }
   const picks = new Map((player.picks || []).map((pick) => [Number(pick.matchId), pick]));
-  const sortedMatches = typeof chronologicalMatches === "function"
-    ? chronologicalMatches(matches)
-    : [...matches].sort((a, b) => Number(a.id) - Number(b.id));
+  const sortedMatches = focusOrderedMatches(matches, focusMatchId);
   list.innerHTML = sortedMatches
     .map((match) => {
       const pick = picks.get(Number(match.id)) || {};
       const points = pick.points;
       const playedClass = match.played ? " player-bet-row--played" : "";
+      const focusClass = Number(match.id) === focusMatchId ? " player-bet-row--focus" : "";
       const resultClass = rowResultClass(Boolean(match.played), points);
       const pointClass = pointsClass(points);
       return `
-        <div class="player-bet-row${playedClass} ${resultClass}">
+        <div class="player-bet-row${playedClass}${focusClass} ${resultClass}">
           <div class="player-bet-match">
             <div class="player-bet-meta">
               <span class="player-bet-match-num">Match ${match.id}</span>
@@ -171,6 +224,7 @@ function renderBets(player, matches) {
         </div>`;
     })
     .join("");
+  positionFocusedBet(focusMatchId);
 }
 
 /** @param {any} player @param {any} data */
@@ -197,7 +251,7 @@ function renderPlayer(player, data) {
   if (champion) {
     champion.innerHTML = `${flagHtml(player.champion || "", "sm")} <span>${escapeHtml(player.champion || "-")}</span>`;
   }
-  renderBets(player, data.matches || []);
+  renderBets(player, data.matches || [], focusedMatchId(data));
 }
 
 async function loadPlayerPage() {

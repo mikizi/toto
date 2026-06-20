@@ -1500,6 +1500,48 @@ function playerHref(entry) {
   return `player.html?${id ? `${id}&` : ""}${name}`;
 }
 
+/**
+ * @param {LeaderboardEntry} entry
+ * @param {LeaderboardEntry[]} leaderboard
+ * @returns {string | null}
+ */
+function inheritedRankLabel(entry, leaderboard) {
+  const index = leaderboard.indexOf(entry);
+  if (index <= 0) {
+    return null;
+  }
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const label = String(leaderboard[i].rankLabel || "").trim();
+    if (label && label !== "-") {
+      return label;
+    }
+  }
+  return null;
+}
+
+/**
+ * @param {LeaderboardEntry} entry
+ * @param {TotoData} data
+ * @param {number} fallbackRank
+ */
+function leaderboardRankDisplay(entry, data, fallbackRank) {
+  const label = String(entry.rankLabel || "").trim();
+  const displayLabel = label && label !== "-"
+    ? label
+    : inheritedRankLabel(entry, data.leaderboard) || "";
+  const dataRank = Number(entry.rank);
+  const rankFromLabel = Number(displayLabel);
+  const displayRank = Number.isFinite(rankFromLabel) && rankFromLabel > 0
+    ? rankFromLabel
+    : Number.isFinite(dataRank) && dataRank > 0
+      ? dataRank
+      : fallbackRank;
+  return {
+    rank: displayRank,
+    label: displayLabel || String(displayRank),
+  };
+}
+
 /** @param {string | null | undefined} tab */
 function normalizeLeaderboardTab(tab) {
   return tab && LEADERBOARD_TABS.has(tab) ? tab : "full";
@@ -1724,11 +1766,11 @@ function renderLeaderboard(container, data, animate = false) {
   } else {
     container.innerHTML = sorted
       .map((entry, index) => {
-      const dataRank = Number(entry.rank);
-      const displayRank = Number.isFinite(dataRank) && dataRank > 0
-        ? dataRank
-        : data.leaderboard.indexOf(entry) + 1;
-      const rankLabel = String(displayRank);
+      const { rank: displayRank, label: rankLabel } = leaderboardRankDisplay(
+        entry,
+        data,
+        data.leaderboard.indexOf(entry) + 1
+      );
       const rankClass = displayRank <= 5 ? `rank-${displayRank}` : "rank-default";
       const rowClass = displayRank <= 5 ? `rank-${displayRank}` : "";
       const crown = displayRank === 1 ? CROWN_SVG : "";
