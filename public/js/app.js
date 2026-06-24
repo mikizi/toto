@@ -28,7 +28,9 @@ const STAR_SVG = `<svg class="lb-follow-icon" viewBox="0 0 24 24" fill="currentC
 /** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string, picks?: PlayerPick[] }} LeaderboardEntry */
 /** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null }} MatchEntry */
 /** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
-/** @typedef {{ version: string, generatedAt: string, gamesPlayed: number, lastResult: object | null, leaderboard: LeaderboardEntry[], matches: MatchEntry[], broadcast?: BroadcastState, registration?: unknown }} TotoData */
+/** @typedef {{ id: string, label: string, expected: number, points: number }} KnockoutRound */
+/** @typedef {{ rounds?: KnockoutRound[], actual?: Record<string, string[]> }} KnockoutState */
+/** @typedef {{ version: string, generatedAt: string, gamesPlayed: number, lastResult: object | null, leaderboard: LeaderboardEntry[], matches: MatchEntry[], knockout?: KnockoutState, broadcast?: BroadcastState, registration?: unknown }} TotoData */
 
 /** @type {number | undefined} */
 let countdownTimerId;
@@ -1383,6 +1385,70 @@ function predictionScoreHtml(score, match) {
 }
 
 /**
+ * @param {TotoData} data
+ * @returns {{ id: string, label: string, expected: number, points: number, teams: string[] }[]}
+ */
+function knockoutActualRounds(data) {
+  const knockout = data.knockout;
+  if (!knockout || !Array.isArray(knockout.rounds) || !knockout.actual) {
+    return [];
+  }
+  return knockout.rounds
+    .map((round) => {
+      const rawTeams = knockout.actual?.[round.id] || [];
+      const teams = Array.isArray(rawTeams)
+        ? rawTeams.filter((team) => String(team || "").trim())
+        : [];
+      return { ...round, teams };
+    })
+    .filter((round) => round.teams.length > 0);
+}
+
+/** @param {string} team */
+function knockoutQualifiedTeamHtml(team) {
+  return `
+    <span class="qualified-team">
+      ${flagHtml(team, "sm")}
+      <span>${escapeHtml(shortTeamName(team))}</span>
+    </span>`;
+}
+
+/** @param {TotoData} data */
+function renderKnockoutQualifiedPanel(data) {
+  const rounds = knockoutActualRounds(data);
+  if (!rounds.length) {
+    return "";
+  }
+  const total = rounds.reduce((sum, round) => sum + round.teams.length, 0);
+  return `
+    <section class="qualified-panel glass-panel" aria-label="Qualified teams">
+      <div class="predictions-head qualified-head">
+        <div>
+          <h2 class="predictions-title">Qualified teams</h2>
+          <p class="predictions-sub">Confirmed from the workbook knockout columns</p>
+        </div>
+        <span class="predictions-count">${total} teams</span>
+      </div>
+      <div class="qualified-rounds">
+        ${rounds
+          .map(
+            (round) => `
+              <article class="qualified-round">
+                <div class="qualified-round-head">
+                  <span>${escapeHtml(round.label)}</span>
+                  <span>${round.teams.length}/${round.expected}</span>
+                </div>
+                <div class="qualified-teams">
+                  ${round.teams.map(knockoutQualifiedTeamHtml).join("")}
+                </div>
+              </article>`
+          )
+          .join("")}
+      </div>
+    </section>`;
+}
+
+/**
  * @param {HTMLElement | null} panel
  * @param {TotoData | null} data
  */
@@ -1394,9 +1460,10 @@ function renderPredictionsPanel(panel, data) {
 
   const match = predictionMatch(data);
   const stats = match ? predictionStats(data, match) : null;
+  const knockoutHtml = renderKnockoutQualifiedPanel(data);
   if (!match || !stats) {
-    panel.classList.add("hidden");
-    panel.innerHTML = "";
+    panel.classList.toggle("hidden", !knockoutHtml);
+    panel.innerHTML = knockoutHtml;
     return;
   }
 
@@ -1410,6 +1477,7 @@ function renderPredictionsPanel(panel, data) {
     : `<span>${stats.unique.count} players</span>`;
 
   panel.innerHTML = `
+    ${knockoutHtml}
     <div class="predictions-summary glass-panel">
       <div class="predictions-head">
         <div>
@@ -1470,17 +1538,37 @@ function renderLeaderboardComingSoon(container) {
   container.style.removeProperty("--lb-scroll-collapsed-h");
 }
 
+/** @param {MatchEntry[]} matches */
+function updateLivePickHeader(matches) {
+  const header = document.querySelector(".lb-col-pick");
+  if (!header) {
+    return;
+  }
+  if (!matches.length) {
+    header.innerHTML = '<span class="lb-h-long">Pick</span><span class="lb-h-short">Pick</span>';
+    return;
+  }
+  header.innerHTML = `
+    <span class="lb-pick-head-list">
+      ${matches.map((match, index) => `
+        <span class="lb-pick-head-item" title="${escapeAttribute(`Match ${match.id}: ${match.home} vs ${match.away}`)}">Pick ${index + 1}</span>
+      `).join("")}
+    </span>`;
+}
+
 /**
  * @param {LeaderboardEntry} entry
- * @param {number | null} matchId
+ * @param {MatchEntry} match
  */
-function livePredictionHtml(entry, matchId) {
-  if (!matchId) {
-    return "";
-  }
-  const pick = (entry.picks || []).find((item) => Number(item.matchId) === Number(matchId));
+function livePredictionPillHtml(entry, match) {
+  const matchId = Number(match.id);
+  const matchup = `${match.home} vs ${match.away}`;
+  const pick = (entry.picks || []).find((item) => Number(item.matchId) === matchId);
   if (!pick || pick.homePick === null || pick.awayPick === null) {
-    return '<span class="lb-pick-pill lb-pick-pill--empty">No pick</span>';
+    return `
+      <span class="lb-pick-pill lb-pick-pill--empty" title="${escapeAttribute(`Match ${matchId}: ${matchup} - no pick`)}" aria-label="${escapeAttribute(`Match ${matchId}: no pick`)}">
+        <span class="lb-pick-score">--</span>
+      </span>`;
   }
   const points = Number(pick.points);
   const accuracyClass = Number.isFinite(points)
@@ -1490,7 +1578,25 @@ function livePredictionHtml(entry, matchId) {
         ? " lb-pick-pill--some"
         : " lb-pick-pill--zero"
     : "";
-  return `<span class="lb-pick-pill${accuracyClass}">${pick.homePick}&nbsp;–&nbsp;${pick.awayPick}</span>`;
+  const score = `${pick.homePick}-${pick.awayPick}`;
+  return `
+    <span class="lb-pick-pill${accuracyClass}" title="${escapeAttribute(`Match ${matchId}: ${matchup} - ${score}`)}" aria-label="${escapeAttribute(`Match ${matchId}: ${score}`)}">
+      <span class="lb-pick-score">${escapeHtml(score)}</span>
+    </span>`;
+}
+
+/**
+ * @param {LeaderboardEntry} entry
+ * @param {MatchEntry[]} matches
+ */
+function livePredictionsHtml(entry, matches) {
+  if (!matches.length) {
+    return "";
+  }
+  return `
+    <div class="lb-pick-list">
+      ${matches.map((match) => livePredictionPillHtml(entry, match)).join("")}
+    </div>`;
 }
 
 /** @param {LeaderboardEntry} entry */
@@ -1755,9 +1861,13 @@ function renderLeaderboard(container, data, animate = false) {
   const championOptions = syncChampionFilter(data);
   updateLeaderboardControls(data, followed, championOptions);
   const sorted = visibleLeaderboardEntries(data, followed);
-  const liveMatchId = manualLiveMatchIds(data)[0] ?? null;
+  const liveMatchIds = manualLiveMatchIds(data);
+  const liveMatches = liveMatchIds
+    .map((matchId) => data.matches.find((match) => Number(match.id) === Number(matchId)))
+    .filter((match) => match !== undefined);
   const leaderboardPanel = container.closest(".leaderboard");
-  leaderboardPanel?.classList.toggle("has-live-picks", liveMatchId !== null);
+  leaderboardPanel?.classList.toggle("has-live-picks", liveMatches.length > 0);
+  updateLivePickHeader(liveMatches);
 
   const standingsBtn = document.getElementById("viewStandingsBtn");
 
@@ -1791,7 +1901,7 @@ function renderLeaderboard(container, data, animate = false) {
         ? `Champion pick: ${entry.champion}`
         : "";
       const href = playerHref(entry);
-      const livePick = livePredictionHtml(entry, liveMatchId);
+      const livePick = livePredictionsHtml(entry, liveMatches);
 
       return `
     <div class="lb-row ${rowClass}${championClass}${enterClass}" role="link" tabindex="0" data-href="${escapeAttribute(href)}" data-rank="${displayRank}" data-points="${entry.points.toFixed(0)}" data-has-champion="${entry.champion ? "true" : "false"}" title="${escapeAttribute(rowTitle)}" aria-label="${escapeAttribute(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}"${stagger}>

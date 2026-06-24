@@ -916,6 +916,82 @@ body {
     padding: 1rem 1.1rem 1.15rem;
 }
 
+.qualified-panel {
+    padding: 1rem 1.1rem 1.15rem;
+    border-radius: 8px;
+    border: 1px solid rgba(34, 197, 94, 0.22);
+    overflow: hidden;
+}
+
+.qualified-head {
+    margin-bottom: 0.85rem;
+}
+
+.qualified-rounds {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.qualified-round {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.7rem;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.42);
+}
+
+.qualified-round-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--gold);
+    font-size: 0.62rem;
+    font-weight: 850;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.qualified-round-head span:last-child {
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+}
+
+.qualified-teams {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.qualified-team {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    max-width: 100%;
+    min-height: 2rem;
+    padding: 0.26rem 0.55rem 0.26rem 0.32rem;
+    border-radius: 999px;
+    border: 1px solid rgba(34, 197, 94, 0.32);
+    background: linear-gradient(135deg, rgba(20, 83, 45, 0.62), rgba(15, 23, 42, 0.58));
+    color: var(--text);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.qualified-team span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.qualified-team .team-flag--sm {
+    width: 1.35rem;
+    height: 1.35rem;
+    flex: 0 0 auto;
+}
+
 .predictions-head {
     display: flex;
     align-items: flex-start;
@@ -1309,7 +1385,7 @@ body {
 }
 
 .leaderboard.has-live-picks {
-    --lb-cols: 2.75rem 2rem minmax(0, 1fr) 4.75rem 2.5rem 3.5rem;
+    --lb-cols: 2.75rem 2rem minmax(0, 1fr) 6.8rem 2.5rem 3.5rem;
 }
 
 .leaderboard:not(.glass-panel) {
@@ -1461,14 +1537,17 @@ body {
 }
 
 .leaderboard.has-live-picks .lb-col-pick {
-    display: block;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
 }
 
 .leaderboard.has-live-picks .lb-pick-cell {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 0;
 }
 
 .lb-h-short {
@@ -1769,20 +1848,54 @@ body {
     grid-column: auto;
 }
 
+.lb-pick-list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.42rem;
+    min-width: 0;
+    width: 100%;
+}
+
+.lb-pick-head-list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.42rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.lb-pick-head-item {
+    flex: 0 0 3rem;
+    min-width: 0;
+    text-align: center;
+    white-space: nowrap;
+}
+
 .lb-pick-pill {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 3.45rem;
-    padding: 0.22rem 0.45rem;
+    min-width: 3rem;
+    min-height: 1.72rem;
+    padding: 0.2rem 0.42rem;
     border-radius: 999px;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 800;
     line-height: 1;
     color: var(--text);
     background: rgba(232, 185, 35, 0.12);
     border: 1px solid rgba(232, 185, 35, 0.32);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.lb-pick-score {
+    flex: 0 0 auto;
+    min-width: 1.55rem;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .lb-pick-pill--full {
@@ -1807,11 +1920,14 @@ body {
 }
 
 .lb-pick-pill--empty {
-    min-width: 3.8rem;
-    font-size: 0.58rem;
+    min-width: 3rem;
     color: var(--text-muted);
     background: rgba(255, 255, 255, 0.04);
     border-color: rgba(255, 255, 255, 0.12);
+}
+
+.lb-pick-pill--empty .lb-pick-score {
+    letter-spacing: 0.08em;
 }
 
 .lb-row:last-child {
@@ -2236,6 +2352,53 @@ body {
     background: rgba(255, 255, 255, 0.06);
 }
 
+.player-back-to-top {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 6.4rem;
+    z-index: calc(var(--z-music-player) - 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.85rem;
+    height: 2.85rem;
+    padding: 0;
+    border: 1px solid rgba(232, 185, 35, 0.38);
+    border-radius: 50%;
+    color: var(--gold);
+    background: rgba(13, 20, 31, 0.9);
+    box-shadow:
+        0 10px 26px rgba(0, 0, 0, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(0.65rem) scale(0.96);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.player-back-to-top.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+.player-back-to-top:hover,
+.player-back-to-top:focus-visible {
+    border-color: rgba(232, 185, 35, 0.72);
+    background: rgba(20, 29, 43, 0.96);
+    outline: none;
+}
+
+.player-back-to-top svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
 /* ── Flags ── */
 
 .team-flag {
@@ -2316,6 +2479,19 @@ body {
 
     .predictions-summary {
         padding: 0.9rem 0.85rem 1rem;
+    }
+
+    .qualified-panel {
+        padding: 0.85rem;
+    }
+
+    .qualified-round {
+        padding: 0.62rem;
+    }
+
+    .qualified-team {
+        max-width: 100%;
+        font-size: 0.72rem;
     }
 
     .predictions-head {
@@ -2459,8 +2635,8 @@ body {
     }
 
     .leaderboard.has-live-picks {
-        --lb-cols: 2rem 1.45rem minmax(0, 1fr) 3.15rem 1.85rem 2.35rem;
-        --lb-gap: 0.45rem;
+        --lb-cols: 1.85rem 1.35rem minmax(0, 1fr) 5.35rem 1.65rem 2.15rem;
+        --lb-gap: 0.32rem;
     }
 
     .lb-tabs {
@@ -2516,9 +2692,23 @@ body {
     }
 
     .lb-pick-pill {
-        min-width: 3rem;
-        padding: 0.2rem 0.32rem;
-        font-size: 0.66rem;
+        min-width: 2.45rem;
+        min-height: 1.34rem;
+        padding: 0.14rem 0.22rem;
+        font-size: 0.68rem;
+    }
+
+    .lb-pick-list,
+    .lb-pick-head-list {
+        gap: 0.24rem;
+    }
+
+    .lb-pick-head-item {
+        flex-basis: 2.45rem;
+    }
+
+    .lb-pick-score {
+        min-width: 1.28rem;
     }
 
     .lb-follow-btn {
@@ -4615,6 +4805,13 @@ body {
         padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
     }
 
+    .player-back-to-top {
+        right: 0.85rem;
+        bottom: calc(4.45rem + env(safe-area-inset-bottom, 0px));
+        width: 2.65rem;
+        height: 2.65rem;
+    }
+
     .glass-panel {
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
@@ -5460,6 +5657,10 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
     .update-toast {
+        transition: opacity 0.2s ease;
+    }
+
+    .player-back-to-top {
         transition: opacity 0.2s ease;
     }
 }

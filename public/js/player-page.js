@@ -163,6 +163,26 @@ function positionFocusedBet(focusMatchId) {
   window.scrollTo(0, Math.max(0, top));
 }
 
+function syncBackToTopButton() {
+  const button = document.getElementById("playerBackToTop");
+  if (!button) {
+    return;
+  }
+  button.classList.toggle("is-visible", window.scrollY > 420);
+}
+
+function initBackToTopButton() {
+  const button = document.getElementById("playerBackToTop");
+  if (!button) {
+    return;
+  }
+  button.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  window.addEventListener("scroll", syncBackToTopButton, { passive: true });
+  syncBackToTopButton();
+}
+
 /** @param {any} player @param {any[]} matches @param {number | null} focusMatchId */
 function renderBets(player, matches, focusMatchId) {
   const list = document.getElementById("playerBetsList");
@@ -291,5 +311,6 @@ async function loadPlayerPage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initBackToTopButton();
   void loadPlayerPage();
 });

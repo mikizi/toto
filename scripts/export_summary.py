@@ -37,6 +37,50 @@ MATCH_RESULT_POINTS = 3.0
 EXACT_SCORE_POINTS = 2.0
 LATE_JOINER_PREFIX = "N_"
 LATE_JOINER_BASELINE_MATCH_COUNT = 24
+KNOCKOUT_ROUNDS = (
+    {
+        "id": "r32",
+        "label": "Round of 32",
+        "range": "P4:P35",
+        "expected": 32,
+        "points": 5,
+    },
+    {
+        "id": "r16",
+        "label": "Round of 16",
+        "range": "R4:R19",
+        "expected": 16,
+        "points": 8,
+    },
+    {
+        "id": "quarter",
+        "label": "Quarter-finals",
+        "range": "R22:R29",
+        "expected": 8,
+        "points": 8,
+    },
+    {
+        "id": "semi",
+        "label": "Semi-finals",
+        "range": "R32:R35",
+        "expected": 4,
+        "points": 18,
+    },
+    {
+        "id": "final",
+        "label": "Final",
+        "range": "R38:R39",
+        "expected": 2,
+        "points": 25,
+    },
+    {
+        "id": "champion",
+        "label": "Winner",
+        "range": "R42:R42",
+        "expected": 1,
+        "points": 30,
+    },
+)
 
 
 def _kickoff_to_iso(value: object) -> str | None:
@@ -170,6 +214,45 @@ def _read_matches(
             }
         )
     return matches
+
+
+def _read_cell_range_text(
+    ws: openpyxl.worksheet.worksheet.Worksheet, cell_range: str
+) -> list[str]:
+    """Read non-empty, non-error text values from an Excel range."""
+    teams: list[str] = []
+    for row in ws[cell_range]:
+        for cell in row:
+            team = _cell_text(cell.value)
+            if team:
+                teams.append(team)
+    return teams
+
+
+def _read_knockout(
+    ws: openpyxl.worksheet.worksheet.Worksheet,
+) -> dict[str, Any]:
+    """Read actual knockout qualifiers entered in the Summary sheet."""
+    rounds = [
+        {
+            "id": round_def["id"],
+            "label": round_def["label"],
+            "expected": round_def["expected"],
+            "points": round_def["points"],
+        }
+        for round_def in KNOCKOUT_ROUNDS
+    ]
+    return {
+        "rounds": rounds,
+        "actual": {
+            str(round_def["id"]): _read_cell_range_text(ws, str(round_def["range"]))
+            for round_def in KNOCKOUT_ROUNDS
+        },
+        "points": {
+            str(round_def["id"]): round_def["points"]
+            for round_def in KNOCKOUT_ROUNDS
+        },
+    }
 
 
 def _is_test_user(name: str) -> bool:
@@ -385,17 +468,6 @@ def _read_user_points(
     baseline_points: float | None = None,
 ) -> float:
     """Read cached Summary points, falling back to Calc when Summary F is empty."""
-    if matches is not None:
-        computed = _score_from_user_sheet(
-            wb_formulas,
-            ws_data,
-            row,
-            matches,
-            baseline_points,
-        )
-        if computed is not None:
-            return computed
-
     cached = _cell_number(ws_data[f"F{row}"].value)
     if cached is not None:
         return round(cached, 2)
@@ -406,6 +478,17 @@ def _read_user_points(
         calc_val = _cell_number(wb_data["Calc"][calc_ref].value)
         if calc_val is not None:
             return round(calc_val, 2)
+
+    if matches is not None:
+        computed = _score_from_user_sheet(
+            wb_formulas,
+            ws_data,
+            row,
+            matches,
+            baseline_points,
+        )
+        if computed is not None:
+            return computed
     return 0.0
 
 
@@ -730,6 +813,7 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
         "lastResult": _last_result(matches),
         "leaderboard": leaderboard,
         "matches": matches,
+        "knockout": _read_knockout(ws),
         "broadcast": broadcast,
         "registration": registration,
     }

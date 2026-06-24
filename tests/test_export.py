@@ -15,6 +15,8 @@ from scripts.export_summary import (
     _cell_text,
     _movement,
     _reconstructed_summary_leaderboard,
+    _read_knockout,
+    _read_user_points,
     _read_visible_summary_leaderboard,
     build_export,
     write_export,
@@ -62,6 +64,46 @@ class TestCellParsing(unittest.TestCase):
         self.assertIsNone(_cell_text("#N/A"))
         self.assertIsNone(_cell_text("#REF!"))
         self.assertEqual(_cell_text("France"), "France")
+
+
+class TestKnockoutExport(unittest.TestCase):
+    """Knockout qualifier parsing from Summary."""
+
+    def test_read_knockout_reads_actual_qualified_teams(self) -> None:
+        import openpyxl
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Summary"
+        ws["P4"].value = "Mexico"
+        ws["P5"].value = "#N/A"
+        ws["R4"].value = "Brazil"
+        ws["R42"].value = "France"
+
+        knockout = _read_knockout(ws)
+
+        self.assertEqual(knockout["actual"]["r32"], ["Mexico"])
+        self.assertEqual(knockout["actual"]["r16"], ["Brazil"])
+        self.assertEqual(knockout["actual"]["champion"], ["France"])
+        self.assertEqual(knockout["points"]["r32"], 5)
+
+    def test_user_points_prefers_cached_summary_total(self) -> None:
+        import openpyxl
+
+        wb_data = openpyxl.Workbook()
+        ws_data = wb_data.active
+        ws_data.title = "Summary"
+        ws_data["F79"].value = 123
+        wb_data.create_sheet("Calc")
+        wb_data["Calc"]["A1"].value = 9
+
+        wb_formulas = openpyxl.Workbook()
+        ws_formulas = wb_formulas.active
+        ws_formulas.title = "Summary"
+        ws_formulas["F79"].value = "=Calc!A1"
+        wb_formulas.create_sheet("Calc")
+
+        self.assertEqual(_read_user_points(wb_data, wb_formulas, ws_data, 79), 123)
 
 
 class TestSummaryLeaderboardParsing(unittest.TestCase):
@@ -197,6 +239,17 @@ class TestExportFromXlsx(unittest.TestCase):
         self.assertGreater(len(payload["matches"]), 0)
         self.assertIn("version", payload)
         self.assertIn("gamesPlayed", payload)
+        self.assertIn("knockout", payload)
+
+    def test_build_export_has_knockout_rounds(self) -> None:
+        payload = self.payload
+        knockout = payload["knockout"]
+        self.assertEqual(
+            [round_def["id"] for round_def in knockout["rounds"]],
+            ["r32", "r16", "quarter", "semi", "final", "champion"],
+        )
+        self.assertEqual(knockout["rounds"][0]["expected"], 32)
+        self.assertEqual(knockout["points"]["champion"], 30)
 
     def test_build_export_has_unique_scheduled_matches(self) -> None:
         payload = self.payload
