@@ -3119,6 +3119,37 @@ body {
     font-size: 0.85em;
 }
 
+.admin-publish-match-list {
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.admin-publish-match-item {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 0;
+    padding: 0.55rem;
+    border: 1px solid rgba(232, 185, 35, 0.28);
+    border-radius: 10px;
+    background: rgba(9, 14, 22, 0.34);
+}
+
+.admin-publish-match-list.is-empty {
+    min-height: 3rem;
+    border: 1px dashed rgba(148, 163, 184, 0.24);
+    border-radius: 10px;
+}
+
+.admin-publish-match-badge {
+    justify-self: center;
+    color: var(--gold);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .admin-sr-only {
     position: absolute;
     width: 1px;
@@ -3443,6 +3474,53 @@ body {
 .admin-match-card.is-live.is-selected {
     box-shadow: inset 3px 0 0 #ef4444;
     background: rgba(239, 68, 68, 0.08);
+}
+
+.admin-back-to-top {
+    position: fixed;
+    right: 1.25rem;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 60;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.85rem;
+    height: 2.85rem;
+    padding: 0;
+    border: 1px solid rgba(232, 185, 35, 0.38);
+    border-radius: 50%;
+    color: var(--gold);
+    background: rgba(13, 20, 31, 0.92);
+    box-shadow:
+        0 10px 26px rgba(0, 0, 0, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(0.65rem) scale(0.96);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.admin-back-to-top.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+.admin-back-to-top:hover,
+.admin-back-to-top:focus-visible {
+    border-color: rgba(232, 185, 35, 0.72);
+    background: rgba(20, 29, 43, 0.96);
+    outline: none;
+}
+
+.admin-back-to-top svg {
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 .admin-match-num {
@@ -4155,6 +4233,13 @@ body {
 
 /* Mobile: title row + four header buttons on one line */
 @media (max-width: 767px) {
+    .admin-back-to-top {
+        right: 0.85rem;
+        bottom: calc(4.65rem + env(safe-area-inset-bottom, 0px));
+        width: 2.65rem;
+        height: 2.65rem;
+    }
+
     .admin-header {
         flex-direction: column;
         align-items: stretch;
@@ -5661,6 +5746,10 @@ body {
     }
 
     .player-back-to-top {
+        transition: opacity 0.2s ease;
+    }
+
+    .admin-back-to-top {
         transition: opacity 0.2s ease;
     }
 }

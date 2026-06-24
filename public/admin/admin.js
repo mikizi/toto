@@ -89,6 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("regPlayerNameInput")?.addEventListener("keydown", onRegistrationNameKeydown);
   document.getElementById("regPlayerNameInput")?.addEventListener("paste", onRegistrationNamePaste);
   document.getElementById("regPlayerChips")?.addEventListener("click", onRegistrationChipClick);
+  initAdminBackToTopButton();
   document.getElementById("refreshApiScoresBtn")?.addEventListener("click", () => {
     void loadApiScores();
   });
@@ -297,6 +298,7 @@ async function loadData() {
       status.textContent = `${data.gamesPlayed} game(s) played · version ${data.version}`;
     }
     applySelectedMatch();
+    scheduleFocusedMatchScroll();
   } catch (err) {
     console.error(err);
     if (status) {
@@ -318,35 +320,20 @@ function selectMatch(matchId, options = {}) {
 }
 
 function applySelectedMatch(focusScores = false) {
-  const match = cachedMatches.find((m) => m.id === selectedMatchId);
-  const homeInput = document.getElementById("homeScore");
-  const awayInput = document.getElementById("awayScore");
+  const publishMatches = getPublishMatches();
   const publishBtn = document.getElementById("publishBtn");
   const publishRow = document.getElementById("publishRow");
   const publishEmpty = document.getElementById("publishEmpty");
-  renderPublishMatch(match);
-  publishRow?.classList.toggle("is-empty", !match);
-  publishEmpty?.classList.toggle("hidden", Boolean(match));
+  renderPublishMatches(publishMatches);
+  publishRow?.classList.toggle("is-empty", !publishMatches.length);
+  publishEmpty?.classList.toggle("hidden", Boolean(publishMatches.length));
   updateMatchRowHighlights();
   if (publishBtn) {
-    publishBtn.disabled = !match;
+    publishBtn.disabled = !publishMatches.length;
+    publishBtn.textContent = publishMatches.length > 1 ? `Publish ${publishMatches.length}` : "Publish";
   }
-  if (homeInput && awayInput) {
-    homeInput.disabled = !match;
-    awayInput.disabled = !match;
-  }
-  if (!match || !homeInput || !awayInput) {
-    return;
-  }
-  if (match.played) {
-    homeInput.value = String(match.homeScore ?? 0);
-    awayInput.value = String(match.awayScore ?? 0);
-    return;
-  }
-  homeInput.value = "";
-  awayInput.value = "";
   if (focusScores) {
-    homeInput.focus();
+    document.querySelector("#publishRow input")?.focus();
   }
 }
 
@@ -438,6 +425,49 @@ function scrollToPublish() {
   document.querySelector(".admin-publish-sticky")?.scrollIntoView({ block: "start", behavior: "smooth" });
 }
 
+function syncAdminBackToTopButton() {
+  const button = document.getElementById("adminBackToTop");
+  if (!button) {
+    return;
+  }
+  const appVisible = !document.getElementById("adminApp")?.classList.contains("hidden");
+  button.classList.toggle("is-visible", appVisible && window.scrollY > 420);
+}
+
+function initAdminBackToTopButton() {
+  const button = document.getElementById("adminBackToTop");
+  if (!button) {
+    return;
+  }
+  button.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  window.addEventListener("scroll", syncAdminBackToTopButton, { passive: true });
+  syncAdminBackToTopButton();
+}
+
+function scrollFocusedMatchIntoView() {
+  if (activeAdminTab !== "match" || !selectedMatchId) {
+    return;
+  }
+  const card = document.querySelector(`#matchesList .admin-match-card[data-match-id="${selectedMatchId}"]`);
+  if (!(card instanceof HTMLElement)) {
+    return;
+  }
+  const sticky = document.querySelector(".admin-publish-sticky");
+  const stickyHeight = sticky instanceof HTMLElement ? sticky.getBoundingClientRect().height : 0;
+  const targetTop = card.getBoundingClientRect().top + window.scrollY - stickyHeight - 14;
+  window.scrollTo(0, Math.max(0, targetTop));
+  syncAdminBackToTopButton();
+}
+
+function scheduleFocusedMatchScroll() {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(scrollFocusedMatchIntoView);
+  });
+  window.setTimeout(scrollFocusedMatchIntoView, 180);
+}
+
 function updateMatchRowHighlights() {
   const nextUnplayed = getNextUnplayedMatch(cachedMatches);
   const openIds = new Set(cachedBroadcast?.openMatchIds || []);
@@ -516,23 +546,76 @@ function adminPublishEndHtml(teamName) {
   return `<span class="admin-publish-flag">${flagHtml(teamName, "sm")}</span><span class="admin-publish-team-name" title="${escapeHtml(teamName)}">${escapeHtml(teamName)}</span>`;
 }
 
-/** @param {AdminMatch | undefined} match */
-function renderPublishMatch(match) {
+/** @returns {AdminMatch[]} */
+function getPublishMatches() {
+  const selected = cachedMatches.find((match) => match.id === selectedMatchId);
+  const matchById = new Map(cachedMatches.map((match) => [match.id, match]));
+  const openMatches = orderedAdminMatchIds(cachedBroadcast?.openMatchIds || [])
+    .map((matchId) => matchById.get(matchId))
+    .filter(Boolean);
+  if (openMatches.length && (!selected || openMatches.some((match) => match.id === selected.id))) {
+    return openMatches;
+  }
+  return selected ? [selected] : [];
+}
+
+/**
+ * @param {number} matchId
+ * @param {"home" | "away"} side
+ */
+function publishScoreInputId(matchId, side) {
+  return `publish-${side}-score-${matchId}`;
+}
+
+/**
+ * @param {AdminMatch} match
+ * @param {number} index
+ * @param {number} total
+ */
+function adminPublishMatchHtml(match, index, total) {
+  const homeId = publishScoreInputId(match.id, "home");
+  const awayId = publishScoreInputId(match.id, "away");
+  const homeValue = match.homeScore === null || match.homeScore === undefined ? "" : String(match.homeScore);
+  const awayValue = match.awayScore === null || match.awayScore === undefined ? "" : String(match.awayScore);
+  const badgeText = total > 1 ? `Game ${index + 1} · #${match.id}` : `#${match.id}`;
+  return `<div class="admin-publish-match-item" data-publish-match-id="${match.id}">
+    <span class="admin-publish-match-badge">${escapeHtml(badgeText)}</span>
+    <div class="admin-publish-match">
+      <div class="admin-publish-team admin-publish-team--home">${adminPublishEndHtml(match.home)}</div>
+      <div class="admin-publish-scores">
+        <label class="admin-sr-only" for="${homeId}">${escapeHtml(match.home)} score</label>
+        <input id="${homeId}" type="number" min="0" max="99" class="admin-score-input admin-score-input--inline" inputmode="numeric" placeholder="0" value="${escapeHtml(homeValue)}" required>
+        <span class="admin-score-sep" aria-hidden="true">–</span>
+        <label class="admin-sr-only" for="${awayId}">${escapeHtml(match.away)} score</label>
+        <input id="${awayId}" type="number" min="0" max="99" class="admin-score-input admin-score-input--inline" inputmode="numeric" placeholder="0" value="${escapeHtml(awayValue)}" required>
+      </div>
+      <div class="admin-publish-team admin-publish-team--away">${adminPublishEndHtml(match.away)}</div>
+    </div>
+  </div>`;
+}
+
+/** @param {AdminMatch[]} matches */
+function renderPublishMatches(matches) {
   const num = document.getElementById("publishNum");
-  const home = document.getElementById("publishHome");
-  const away = document.getElementById("publishAway");
-  if (!num || !home || !away) {
+  const row = document.getElementById("publishRow");
+  if (!num || !row) {
     return;
   }
-  if (!match) {
+  if (!matches.length) {
     num.textContent = "—";
-    home.innerHTML = "";
-    away.innerHTML = "";
+    row.innerHTML = "";
     return;
   }
-  num.textContent = `#${match.id}`;
-  home.innerHTML = adminPublishEndHtml(match.home);
-  away.innerHTML = adminPublishEndHtml(match.away);
+  num.textContent = matches.length > 1 ? matches.map((match) => `#${match.id}`).join(" + ") : `#${matches[0].id}`;
+  row.innerHTML = matches.map((match, index) => adminPublishMatchHtml(match, index, matches.length)).join("");
+}
+
+/** @param {AdminMatch} match */
+function adminMatchScoreText(match) {
+  if (match.homeScore !== null && match.homeScore !== undefined && match.awayScore !== null && match.awayScore !== undefined) {
+    return `${match.homeScore}–${match.awayScore}`;
+  }
+  return "—";
 }
 
 const LIVE_PLAY_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7L8 5z"/></svg>`;
@@ -798,35 +881,57 @@ function apiKickoffLabel(value) {
 /** @param {SubmitEvent} event */
 async function onPublish(event) {
   event.preventDefault();
-  const matchId = selectedMatchId;
-  const homeScore = Number(document.getElementById("homeScore")?.value);
-  const awayScore = Number(document.getElementById("awayScore")?.value);
   const msg = document.getElementById("publishMsg");
+  const results = collectPublishResults();
 
-  if (!matchId) {
+  if (!results.length) {
     setMessage(msg, "Pick a match first.", "error");
     return;
   }
-  if (Number.isNaN(homeScore) || Number.isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
-    setMessage(msg, "Enter valid scores (0 or more).", "error");
+  const invalid = results.find((result) => !result.isValid);
+  if (invalid) {
+    setMessage(msg, `Enter valid scores for match #${invalid.matchId}.`, "error");
     return;
   }
 
   if (IS_LOCAL) {
-    await publishLocally(matchId, homeScore, awayScore, msg);
+    await publishLocally(results, msg);
     return;
   }
 
-  await publishViaProxy(matchId, homeScore, awayScore, msg);
+  await publishViaProxy(results, msg);
 }
 
 /**
- * @param {number} matchId
- * @param {number} homeScore
- * @param {number} awayScore
+ * @returns {Array<{ matchId: number, homeScore: number, awayScore: number, isValid: boolean }>}
+ */
+function collectPublishResults() {
+  return [...document.querySelectorAll("#publishRow [data-publish-match-id]")].map((row) => {
+    const matchId = Number(row.getAttribute("data-publish-match-id"));
+    const homeInput = row.querySelector('input[id^="publish-home-score-"]');
+    const awayInput = row.querySelector('input[id^="publish-away-score-"]');
+    const homeRaw = homeInput instanceof HTMLInputElement ? homeInput.value.trim() : "";
+    const awayRaw = awayInput instanceof HTMLInputElement ? awayInput.value.trim() : "";
+    const homeScore = Number(homeRaw);
+    const awayScore = Number(awayRaw);
+    const isValid = Number.isInteger(matchId)
+      && homeRaw !== ""
+      && awayRaw !== ""
+      && Number.isInteger(homeScore)
+      && Number.isInteger(awayScore)
+      && homeScore >= 0
+      && awayScore >= 0
+      && homeScore <= 99
+      && awayScore <= 99;
+    return { matchId, homeScore, awayScore, isValid };
+  });
+}
+
+/**
+ * @param {Array<{ matchId: number, homeScore: number, awayScore: number }>} results
  * @param {HTMLElement | null} msg
  */
-async function publishViaProxy(matchId, homeScore, awayScore, msg) {
+async function publishViaProxy(results, msg) {
   if (!isProxyConfigured()) {
     setMessage(msg, "Admin proxy is not configured yet. Deploy the Cloudflare Worker first.", "error");
     return;
@@ -845,36 +950,41 @@ async function publishViaProxy(matchId, homeScore, awayScore, msg) {
   }
 
   try {
-    const response = await fetch(PUBLISH_PROXY_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Admin-Password": password,
-      },
-      body: JSON.stringify({
-        matchId,
-        homeScore,
-        awayScore,
-      }),
-    });
-    if (!response.ok) {
-      if (response.status === 401) {
-        clearSavedAdminPassword();
-        showLoginScreen("Wrong password. Try again.");
-        throw new Error("Wrong admin password.");
+    for (const result of results) {
+      setMessage(msg, `Publishing match #${result.matchId}…`, "");
+      const response = await fetch(PUBLISH_PROXY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Password": password,
+        },
+        body: JSON.stringify({
+          matchId: result.matchId,
+          homeScore: result.homeScore,
+          awayScore: result.awayScore,
+        }),
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearSavedAdminPassword();
+          showLoginScreen("Wrong password. Try again.");
+          throw new Error("Wrong admin password.");
+        }
+        const text = await response.text();
+        throw new Error(`${response.status}: ${text}`);
       }
-      const text = await response.text();
-      throw new Error(`${response.status}: ${text}`);
+      trackAdminAnalytics("match_result_published", matchAnalyticsProps(result.matchId, {
+        home_score: result.homeScore,
+        away_score: result.awayScore,
+      }));
     }
     setMessage(
       msg,
-      "Queued! Check GitHub Actions, then refresh the scoreboard in ~2 min.",
+      results.length > 1
+        ? `Queued ${results.length} matches. Check GitHub Actions, then refresh the scoreboard in ~2 min.`
+        : "Queued! Check GitHub Actions, then refresh the scoreboard in ~2 min.",
       "success"
     );
-    trackAdminAnalytics("match_result_published", matchAnalyticsProps(matchId, {
-      home_score: homeScore,
-      away_score: awayScore,
-    }));
   } catch (err) {
     console.error(err);
     if (err instanceof Error && err.message === "Wrong admin password.") {
@@ -999,6 +1109,7 @@ function applyRestoredMatch(matchId) {
   });
   renderMatches(cachedMatches, cachedBroadcast);
   applySelectedMatch();
+  scheduleFocusedMatchScroll();
 }
 
 function isProxyConfigured() {
@@ -1194,38 +1305,41 @@ async function uploadXlsx(file) {
 }
 
 /**
- * @param {number} matchId
- * @param {number} homeScore
- * @param {number} awayScore
+ * @param {Array<{ matchId: number, homeScore: number, awayScore: number }>} results
  * @param {HTMLElement | null} msg
  */
-async function publishLocally(matchId, homeScore, awayScore, msg) {
-  setMessage(msg, "Publishing locally (patch → recalc → export)…", "");
+async function publishLocally(results, msg) {
+  setMessage(msg, results.length > 1 ? `Publishing ${results.length} matches locally…` : "Publishing locally (patch → recalc → export)…", "");
   const publishBtn = document.getElementById("publishBtn");
   if (publishBtn) {
     publishBtn.disabled = true;
   }
 
   try {
-    const response = await fetch(LOCAL_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        match_id: matchId,
-        home_score: homeScore,
-        away_score: awayScore,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || `HTTP ${response.status}`);
+    const labels = [];
+    for (const result of results) {
+      setMessage(msg, `Publishing match #${result.matchId} locally…`, "");
+      const response = await fetch(LOCAL_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          match_id: result.matchId,
+          home_score: result.homeScore,
+          away_score: result.awayScore,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+      labels.push(`${data.teams} ${data.score}`);
+      trackAdminAnalytics("match_result_published", matchAnalyticsProps(result.matchId, {
+        home_score: result.homeScore,
+        away_score: result.awayScore,
+      }));
     }
     await loadData();
-    setMessage(msg, `Published ${data.teams} ${data.score}. Open scoreboard to verify.`, "success");
-    trackAdminAnalytics("match_result_published", matchAnalyticsProps(matchId, {
-      home_score: homeScore,
-      away_score: awayScore,
-    }));
+    setMessage(msg, `Published ${labels.join(" · ")}. Open scoreboard to verify.`, "success");
   } catch (err) {
     console.error(err);
     setMessage(
@@ -1383,6 +1497,7 @@ function applyQueuedBroadcast(openMatchIds) {
   });
   renderMatches(cachedMatches, cachedBroadcast);
   applySelectedMatch();
+  scheduleFocusedMatchScroll();
 }
 
 /**
