@@ -10,6 +10,7 @@ from typing import Any
 
 from scripts.export_summary import build_export, write_export
 from scripts.knockout import (
+    KNOCKOUT_ROUNDS,
     KNOCKOUT_SCHEDULE,
     NEXT_MATCH_SIDES,
     is_placeholder_fixture_team,
@@ -87,6 +88,68 @@ def _apply_round_of_32_scoring(knockout: dict[str, Any], xlsx_path: Path) -> Non
     knockout["scoringApplied"] = scoring_applied
 
 
+def _normalize_eliminated_payload(value: Any) -> dict[str, list[str]]:
+    valid_rounds = {str(round_def["id"]) for round_def in KNOCKOUT_ROUNDS}
+    if value is None:
+        return {}
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return {}
+        value = json.loads(text)
+    if not isinstance(value, dict):
+        raise ValueError("eliminated must be a round-to-teams object")
+    normalized: dict[str, list[str]] = {}
+    for round_id, teams in value.items():
+        round_key = str(round_id)
+        if round_key not in valid_rounds:
+            raise ValueError(f"Unknown knockout round for eliminated teams: {round_key}")
+        if not isinstance(teams, list):
+            raise ValueError(f"Eliminated teams for {round_key} must be a list")
+        seen: set[str] = set()
+        clean: list[str] = []
+        for raw_team in teams:
+            team = str(raw_team or "").strip()
+            if not team or team in seen:
+                continue
+            seen.add(team)
+            clean.append(team)
+        if clean:
+            normalized[round_key] = clean
+    return normalized
+
+
+def _group_stage_teams(payload: dict[str, Any]) -> set[str]:
+    teams: set[str] = set()
+    for match in payload.get("matches") or []:
+        if not isinstance(match, dict):
+            continue
+        try:
+            match_id = int(match.get("id") or 0)
+        except (TypeError, ValueError):
+            continue
+        if match_id > 72:
+            continue
+        for side in ("home", "away"):
+            team = str(match.get(side) or "").strip()
+            if team and not is_placeholder_fixture_team(team):
+                teams.add(team)
+    return teams
+
+
+def _filter_eliminated_to_group_stage_teams(
+    eliminated: dict[str, list[str]],
+    valid_teams: set[str],
+) -> dict[str, list[str]]:
+    if not valid_teams:
+        return eliminated
+    return {
+        round_id: [team for team in teams if team in valid_teams]
+        for round_id, teams in eliminated.items()
+        if [team for team in teams if team in valid_teams]
+    }
+
+
 def _write_payload(payload: dict[str, Any], *, xlsx_path: Path = XLSX_PATH) -> dict[str, Any]:
     recalc(xlsx_path, require_cached=False)
     rebuilt = build_export(xlsx_path, payload)
@@ -106,6 +169,7 @@ def update_knockout(
     home_score: int | None = None,
     away_score: int | None = None,
     winner: str | None = None,
+    eliminated: Any = None,
     xlsx_path: Path = XLSX_PATH,
 ) -> dict[str, Any]:
     previous = _load_previous()
@@ -123,6 +187,13 @@ def update_knockout(
 
     if action == "sync_fixtures":
         knockout["apiSync"] = sync_knockout_fixtures_from_espn(knockout)
+        return _write_payload(previous, xlsx_path=xlsx_path)
+
+    if action == "set_eliminated":
+        knockout["eliminated"] = _filter_eliminated_to_group_stage_teams(
+            _normalize_eliminated_payload(eliminated),
+            _group_stage_teams(previous),
+        )
         return _write_payload(previous, xlsx_path=xlsx_path)
 
     if match_id is None:
@@ -176,13 +247,14 @@ def update_knockout(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Update knockout state")
-    parser.add_argument("action", choices=["migrate_scoring", "apply_r32_scoring", "sync_fixtures", "lock_fixture", "live_score", "stop_live", "confirm_winner"])
+    parser.add_argument("action", choices=["migrate_scoring", "apply_r32_scoring", "sync_fixtures", "set_eliminated", "lock_fixture", "live_score", "stop_live", "confirm_winner"])
     parser.add_argument("--match-id", type=int)
     parser.add_argument("--home")
     parser.add_argument("--away")
     parser.add_argument("--home-score", type=int)
     parser.add_argument("--away-score", type=int)
     parser.add_argument("--winner")
+    parser.add_argument("--eliminated-json")
     parser.add_argument("--xlsx", type=Path, default=XLSX_PATH)
     args = parser.parse_args()
     payload = update_knockout(
@@ -193,6 +265,7 @@ def main() -> None:
         home_score=args.home_score,
         away_score=args.away_score,
         winner=args.winner,
+        eliminated=args.eliminated_json,
         xlsx_path=args.xlsx,
     )
     print(f"Updated knockout ({args.action}) · version {payload['version']}")

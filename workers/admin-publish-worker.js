@@ -127,7 +127,7 @@ export default {
 
     if (url.pathname === "/knockout") {
       const action = typeof payload.action === "string" ? payload.action : "";
-      if (!["migrate_scoring", "apply_r32_scoring", "sync_fixtures", "lock_fixture", "live_score", "stop_live", "confirm_winner"].includes(action)) {
+      if (!["migrate_scoring", "apply_r32_scoring", "sync_fixtures", "set_eliminated", "lock_fixture", "live_score", "stop_live", "confirm_winner"].includes(action)) {
         return jsonResponse({ ok: false, error: "Invalid knockout action" }, 400, corsHeaders);
       }
       const githubResponse = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
@@ -143,6 +143,7 @@ export default {
             homeScore: payload.homeScore,
             awayScore: payload.awayScore,
             winner: payload.winner,
+            eliminated: payload.eliminated,
           },
         }),
       });

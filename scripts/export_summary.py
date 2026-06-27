@@ -295,6 +295,15 @@ def _knockout_eliminated(
 ) -> dict[str, list[str]]:
     qualifiers = _round_qualifier_sets(knockout)
     eliminated: dict[str, set[str]] = {str(round_def["id"]): set() for round_def in KNOCKOUT_ROUNDS}
+    manual_eliminated = knockout.get("eliminated") if isinstance(knockout.get("eliminated"), dict) else {}
+    for round_id, teams in manual_eliminated.items():
+        if not isinstance(teams, list):
+            continue
+        eliminated.setdefault(str(round_id), set()).update(
+            team
+            for value in teams
+            if (team := _concrete_team(value))
+        )
     tournament_teams = set(_tournament_teams(matches))
 
     r32 = qualifiers.get("r32", set())

@@ -49,6 +49,9 @@ let selectedMatchId = null;
 /** @type {number | null} */
 let selectedKnockoutMatchId = null;
 
+/** @type {Record<string, string[]>} */
+let knockoutEliminatedDraft = {};
+
 /** @type {"match" | "players" | "knockout" | "standings"} */
 let activeAdminTab = "match";
 
@@ -108,6 +111,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("applyR32ScoringBtn")?.addEventListener("click", () => {
     void postKnockoutAction({ action: "apply_r32_scoring" }, document.getElementById("knockoutMsg"));
   });
+  document.getElementById("knockoutEliminatedRound")?.addEventListener("change", renderKnockoutEliminatedEditor);
+  document.getElementById("knockoutEliminatedTeams")?.addEventListener("click", onKnockoutEliminatedTeamClick);
+  document.getElementById("clearKnockoutEliminatedBtn")?.addEventListener("click", clearKnockoutEliminatedRound);
+  document.getElementById("saveKnockoutEliminatedBtn")?.addEventListener("click", saveKnockoutEliminated);
   document.getElementById("saveRegBtn")?.addEventListener("click", saveRegistration);
   document.getElementById("addRegPlayerBtn")?.addEventListener("click", addRegistrationNameFromInput);
   document.getElementById("regPlayerNameInput")?.addEventListener("keydown", onRegistrationNameKeydown);
@@ -371,6 +378,7 @@ async function loadData() {
     cachedBroadcast = normalizeBroadcast(data.broadcast);
     cachedRegistration = normalizeRegistration(data.registration, data.matches);
     cachedKnockout = data.knockout || null;
+    syncKnockoutEliminatedDraft(cachedKnockout);
     renderAutopilotToggle(cachedBroadcast);
     renderRegistration(cachedRegistration);
     renderMatches(data.matches, cachedBroadcast);
@@ -828,6 +836,138 @@ function adminTeamOptions() {
   return [...teams].sort((a, b) => a.localeCompare(b));
 }
 
+function adminGroupStageTeamOptions() {
+  const teams = new Set();
+  for (const match of cachedMatches || []) {
+    const matchId = Number(match.id);
+    if (!Number.isFinite(matchId) || matchId > 72) {
+      continue;
+    }
+    if (adminIsConcreteKnockoutTeam(match.home)) {
+      teams.add(String(match.home));
+    }
+    if (adminIsConcreteKnockoutTeam(match.away)) {
+      teams.add(String(match.away));
+    }
+  }
+  return [...teams].sort((a, b) => a.localeCompare(b));
+}
+
+function adminKnockoutRoundOptions() {
+  const rounds = Array.isArray(cachedKnockout?.rounds)
+    ? cachedKnockout.rounds
+    : [
+      { id: "r32", label: "Round of 32" },
+      { id: "r16", label: "Round of 16" },
+      { id: "quarter", label: "Quarter-finals" },
+      { id: "semi", label: "Semi-finals" },
+      { id: "final", label: "Final" },
+      { id: "champion", label: "Winner" },
+    ];
+  return rounds.filter((round) => round?.id && round?.label);
+}
+
+/** @param {unknown} team */
+function adminIsConcreteKnockoutTeam(team) {
+  const value = String(team || "").trim();
+  return Boolean(value && !/^(winner|loser|runner-up|best 3rd|round of \d+|match \d+)/i.test(value));
+}
+
+/** @param {unknown} knockout */
+function syncKnockoutEliminatedDraft(knockout) {
+  const source = knockout && typeof knockout === "object" && knockout.eliminated && typeof knockout.eliminated === "object"
+    ? knockout.eliminated
+    : {};
+  const groupTeams = new Set(adminGroupStageTeamOptions());
+  knockoutEliminatedDraft = {};
+  for (const [roundId, teams] of Object.entries(source)) {
+    if (!Array.isArray(teams)) {
+      continue;
+    }
+    knockoutEliminatedDraft[roundId] = [...new Set(teams.map((team) => String(team || "").trim()).filter((team) => groupTeams.has(team)))];
+  }
+}
+
+function selectedKnockoutEliminatedRoundId() {
+  const select = document.getElementById("knockoutEliminatedRound");
+  const rounds = adminKnockoutRoundOptions();
+  if (select instanceof HTMLSelectElement && select.value) {
+    return select.value;
+  }
+  return String(rounds[0]?.id || "r32");
+}
+
+/** @param {string} roundId */
+function adminEliminatedTeamOptions(roundId) {
+  return adminGroupStageTeamOptions();
+}
+
+function renderKnockoutEliminatedEditor() {
+  const roundSelect = document.getElementById("knockoutEliminatedRound");
+  const grid = document.getElementById("knockoutEliminatedTeams");
+  const count = document.getElementById("knockoutEliminatedCount");
+  if (!(roundSelect instanceof HTMLSelectElement) || !grid) {
+    return;
+  }
+  const rounds = adminKnockoutRoundOptions();
+  const previousValue = roundSelect.value || String(rounds[0]?.id || "r32");
+  roundSelect.innerHTML = rounds
+    .map((round) => `<option value="${escapeAttribute(round.id)}"${String(round.id) === previousValue ? " selected" : ""}>${escapeHtml(round.label)}</option>`)
+    .join("");
+  if (!roundSelect.value && rounds[0]) {
+    roundSelect.value = String(rounds[0].id);
+  }
+  const roundId = selectedKnockoutEliminatedRoundId();
+  const selected = new Set(knockoutEliminatedDraft[roundId] || []);
+  const teams = adminEliminatedTeamOptions(roundId);
+  if (count) {
+    count.textContent = `${selected.size} team${selected.size === 1 ? "" : "s"}`;
+  }
+  grid.innerHTML = teams.map((team) => {
+    const isSelected = selected.has(team);
+    return `<button type="button" class="admin-knockout-eliminated-chip${isSelected ? " is-selected" : ""}" data-team="${escapeAttribute(team)}" aria-pressed="${isSelected ? "true" : "false"}">
+      ${flagHtml(team, "sm")}
+      <span>${escapeHtml(adminShortTeamName(team))}</span>
+    </button>`;
+  }).join("");
+}
+
+/** @param {MouseEvent} event */
+function onKnockoutEliminatedTeamClick(event) {
+  const button = event.target instanceof Element ? event.target.closest(".admin-knockout-eliminated-chip") : null;
+  if (!(button instanceof HTMLButtonElement)) {
+    return;
+  }
+  const team = button.getAttribute("data-team") || "";
+  const roundId = selectedKnockoutEliminatedRoundId();
+  const selected = new Set(knockoutEliminatedDraft[roundId] || []);
+  if (selected.has(team)) {
+    selected.delete(team);
+  } else if (team) {
+    selected.add(team);
+  }
+  knockoutEliminatedDraft[roundId] = [...selected].sort((a, b) => a.localeCompare(b));
+  renderKnockoutEliminatedEditor();
+}
+
+function clearKnockoutEliminatedRound() {
+  const roundId = selectedKnockoutEliminatedRoundId();
+  knockoutEliminatedDraft[roundId] = [];
+  renderKnockoutEliminatedEditor();
+}
+
+function saveKnockoutEliminated() {
+  const eliminated = {};
+  const groupTeams = new Set(adminGroupStageTeamOptions());
+  for (const [roundId, teams] of Object.entries(knockoutEliminatedDraft)) {
+    const clean = [...new Set((teams || []).map((team) => String(team || "").trim()).filter((team) => groupTeams.has(team)))];
+    if (clean.length) {
+      eliminated[roundId] = clean;
+    }
+  }
+  void postKnockoutAction({ action: "set_eliminated", eliminated }, document.getElementById("knockoutMsg"));
+}
+
 /**
  * @param {string} value
  * @param {string} label
@@ -985,6 +1125,7 @@ function renderKnockout(knockout) {
     applyR32Btn.disabled = r32Applied;
     applyR32Btn.textContent = r32Applied ? "R32 points applied" : "Apply R32 points";
   }
+  renderKnockoutEliminatedEditor();
   const matches = Array.isArray(knockout?.matches)
     ? orderedAdminMatches(knockout.matches)
     : [];
@@ -1213,15 +1354,20 @@ async function postKnockoutAction(payload, msg) {
       ? "knockout_fixture_locked"
       : payload.action === "confirm_winner"
         ? "knockout_winner_confirmed"
-        : payload.action === "live_score" || payload.action === "stop_live"
-          ? "knockout_live_changed"
-          : "";
+        : payload.action === "set_eliminated"
+          ? "knockout_eliminations_saved"
+          : payload.action === "live_score" || payload.action === "stop_live"
+            ? "knockout_live_changed"
+            : "";
     if (eventName) {
       trackAdminAnalytics(eventName, {
         match_id: payload.matchId,
         home_team: payload.home || "",
         away_team: payload.away || "",
         winner: payload.winner || "",
+        eliminated_count: payload.eliminated && typeof payload.eliminated === "object"
+          ? Object.values(payload.eliminated).reduce((sum, teams) => sum + (Array.isArray(teams) ? teams.length : 0), 0)
+          : 0,
       });
     }
     if (IS_LOCAL) {

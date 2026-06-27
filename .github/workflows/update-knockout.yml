@@ -11,6 +11,7 @@ on:
           - migrate_scoring
           - apply_r32_scoring
           - sync_fixtures
+          - set_eliminated
           - lock_fixture
           - live_score
           - stop_live
@@ -35,6 +36,9 @@ on:
         type: number
       winner:
         description: Advancing winner
+        required: false
+      eliminated_json:
+        description: Eliminated teams JSON by round
         required: false
   repository_dispatch:
     types: [update-knockout]
@@ -64,6 +68,7 @@ jobs:
           DISPATCH_HOME_SCORE: ${{ github.event.client_payload.homeScore }}
           DISPATCH_AWAY_SCORE: ${{ github.event.client_payload.awayScore }}
           DISPATCH_WINNER: ${{ github.event.client_payload.winner }}
+          DISPATCH_ELIMINATED: ${{ toJson(github.event.client_payload.eliminated) }}
         run: |
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "action=${{ inputs.action }}" >> "$GITHUB_OUTPUT"
@@ -73,6 +78,7 @@ jobs:
             echo "home_score=${{ inputs.home_score }}" >> "$GITHUB_OUTPUT"
             echo "away_score=${{ inputs.away_score }}" >> "$GITHUB_OUTPUT"
             echo "winner=${{ inputs.winner }}" >> "$GITHUB_OUTPUT"
+            echo "eliminated_json=${{ inputs.eliminated_json }}" >> "$GITHUB_OUTPUT"
           else
             echo "action=${DISPATCH_ACTION}" >> "$GITHUB_OUTPUT"
             echo "match_id=${DISPATCH_MATCH_ID}" >> "$GITHUB_OUTPUT"
@@ -81,6 +87,7 @@ jobs:
             echo "home_score=${DISPATCH_HOME_SCORE}" >> "$GITHUB_OUTPUT"
             echo "away_score=${DISPATCH_AWAY_SCORE}" >> "$GITHUB_OUTPUT"
             echo "winner=${DISPATCH_WINNER}" >> "$GITHUB_OUTPUT"
+            echo "eliminated_json=${DISPATCH_ELIMINATED}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Refresh latest state
@@ -106,6 +113,7 @@ jobs:
           if [ -n "${{ steps.inputs.outputs.home_score }}" ]; then args+=("--home-score" "${{ steps.inputs.outputs.home_score }}"); fi
           if [ -n "${{ steps.inputs.outputs.away_score }}" ]; then args+=("--away-score" "${{ steps.inputs.outputs.away_score }}"); fi
           if [ -n "${{ steps.inputs.outputs.winner }}" ]; then args+=("--winner" "${{ steps.inputs.outputs.winner }}"); fi
+          if [ -n "${{ steps.inputs.outputs.eliminated_json }}" ]; then args+=("--eliminated-json" "${{ steps.inputs.outputs.eliminated_json }}"); fi
           PYTHONPATH=. python3 -u scripts/update_knockout.py "${args[@]}"
 
       - name: Commit and push

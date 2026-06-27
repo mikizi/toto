@@ -249,6 +249,7 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                     home_score=int(data["homeScore"]) if data.get("homeScore") is not None else None,
                     away_score=int(data["awayScore"]) if data.get("awayScore") is not None else None,
                     winner=str(data["winner"]).strip() if data.get("winner") is not None else None,
+                    eliminated=data.get("eliminated"),
                 )
             except Exception as exc:
                 self._send_json(500, {"ok": False, "error": str(exc)})

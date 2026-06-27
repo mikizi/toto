@@ -60,6 +60,7 @@ The admin page uses a shared password, so it must not identify admins as a share
 | `knockout_fixture_locked` | Admin locks a knockout fixture team pairing | `match_id`, `home_team`, `away_team`, `winner` | `public/admin/admin.js` |
 | `knockout_live_changed` | Admin starts, updates, or stops a knockout live score | `match_id`, `home_team`, `away_team`, `winner` | `public/admin/admin.js` |
 | `knockout_winner_confirmed` | Admin confirms the advancing knockout team | `match_id`, `home_team`, `away_team`, `winner` | `public/admin/admin.js` |
+| `knockout_eliminations_saved` | Admin saves bulk eliminated teams by knockout round | `eliminated_count` | `public/admin/admin.js` |
 
 ## Rules For Future Events
 

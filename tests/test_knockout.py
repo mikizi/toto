@@ -19,6 +19,7 @@ from scripts.knockout import (
     update_scoring_constants,
     validate_knockout_fixture_lock,
 )
+from scripts.update_knockout import _normalize_eliminated_payload
 
 
 class TestKnockoutState(unittest.TestCase):
@@ -111,6 +112,21 @@ class TestKnockoutState(unittest.TestCase):
 
         validate_knockout_fixture_lock(match, "Brazil", "Canada")
         validate_knockout_fixture_lock(match, "South Africa", "Canada")
+
+    def test_eliminated_payload_normalizes_bulk_round_lists(self) -> None:
+        payload = _normalize_eliminated_payload(
+            {
+                "r32": ["France", "Brazil", "France", ""],
+                "r16": ["Canada"],
+                "quarter": [],
+            }
+        )
+
+        self.assertEqual(payload, {"r32": ["France", "Brazil"], "r16": ["Canada"]})
+
+    def test_eliminated_payload_rejects_unknown_round(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unknown knockout round"):
+            _normalize_eliminated_payload({"group": ["France"]})
 
 
 class TestKnockoutScoring(unittest.TestCase):

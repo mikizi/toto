@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="../css/styles.css?v=89">
+    <link rel="stylesheet" href="../css/styles.css?v=90">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-KPTMQ0C1KJ"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -223,6 +223,22 @@
                         </div>
                     </div>
                     <p id="knockoutMsg" class="admin-msg admin-panel-msg" role="status" aria-live="polite"></p>
+                    <section class="admin-knockout-eliminated" aria-label="Bulk eliminated teams">
+                        <div class="admin-knockout-eliminated-head">
+                            <div>
+                                <h3 class="admin-panel-title">Eliminated</h3>
+                                <p class="admin-panel-sub">Choose many teams, then save once</p>
+                            </div>
+                            <span id="knockoutEliminatedCount" class="admin-mode-chip">0 teams</span>
+                        </div>
+                        <div class="admin-knockout-eliminated-controls">
+                            <label class="admin-sr-only" for="knockoutEliminatedRound">Eliminated round</label>
+                            <select id="knockoutEliminatedRound" class="admin-knockout-winner" aria-label="Eliminated round"></select>
+                            <button id="clearKnockoutEliminatedBtn" type="button" class="btn-refresh btn-refresh--compact">Clear</button>
+                            <button id="saveKnockoutEliminatedBtn" type="button" class="btn-gold btn-gold--compact">Save eliminated</button>
+                        </div>
+                        <div id="knockoutEliminatedTeams" class="admin-knockout-eliminated-grid" role="group" aria-label="Teams to mark eliminated"></div>
+                    </section>
                     <div id="knockoutList" class="admin-knockout-list" role="list"></div>
                 </section>
             </section>
@@ -249,6 +265,6 @@
 <script src="../js/live.js?v=5"></script>
 <script src="../js/analytics.js?v=7"></script>
 <script src="../js/ga.js?v=2"></script>
-<script src="admin.js?v=29"></script>
+<script src="admin.js?v=31"></script>
 </body>
 </html>
