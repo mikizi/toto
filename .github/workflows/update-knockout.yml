@@ -61,6 +61,14 @@ jobs:
         id: inputs
         env:
           EVENT_NAME: ${{ github.event_name }}
+          INPUT_ACTION: ${{ inputs.action }}
+          INPUT_MATCH_ID: ${{ inputs.match_id }}
+          INPUT_HOME: ${{ inputs.home }}
+          INPUT_AWAY: ${{ inputs.away }}
+          INPUT_HOME_SCORE: ${{ inputs.home_score }}
+          INPUT_AWAY_SCORE: ${{ inputs.away_score }}
+          INPUT_WINNER: ${{ inputs.winner }}
+          INPUT_ELIMINATED: ${{ inputs.eliminated_json }}
           DISPATCH_ACTION: ${{ github.event.client_payload.action }}
           DISPATCH_MATCH_ID: ${{ github.event.client_payload.matchId }}
           DISPATCH_HOME: ${{ github.event.client_payload.home }}
@@ -70,24 +78,35 @@ jobs:
           DISPATCH_WINNER: ${{ github.event.client_payload.winner }}
           DISPATCH_ELIMINATED: ${{ toJson(github.event.client_payload.eliminated) }}
         run: |
+          write_output() {
+            local name="$1"
+            local value="${2:-}"
+            local delimiter="EOF_${name}_$RANDOM"
+            {
+              echo "${name}<<${delimiter}"
+              printf '%s\n' "${value}"
+              echo "${delimiter}"
+            } >> "$GITHUB_OUTPUT"
+          }
+
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "action=${{ inputs.action }}" >> "$GITHUB_OUTPUT"
-            echo "match_id=${{ inputs.match_id }}" >> "$GITHUB_OUTPUT"
-            echo "home=${{ inputs.home }}" >> "$GITHUB_OUTPUT"
-            echo "away=${{ inputs.away }}" >> "$GITHUB_OUTPUT"
-            echo "home_score=${{ inputs.home_score }}" >> "$GITHUB_OUTPUT"
-            echo "away_score=${{ inputs.away_score }}" >> "$GITHUB_OUTPUT"
-            echo "winner=${{ inputs.winner }}" >> "$GITHUB_OUTPUT"
-            echo "eliminated_json=${{ inputs.eliminated_json }}" >> "$GITHUB_OUTPUT"
+            write_output "action" "${INPUT_ACTION}"
+            write_output "match_id" "${INPUT_MATCH_ID}"
+            write_output "home" "${INPUT_HOME}"
+            write_output "away" "${INPUT_AWAY}"
+            write_output "home_score" "${INPUT_HOME_SCORE}"
+            write_output "away_score" "${INPUT_AWAY_SCORE}"
+            write_output "winner" "${INPUT_WINNER}"
+            write_output "eliminated_json" "${INPUT_ELIMINATED}"
           else
-            echo "action=${DISPATCH_ACTION}" >> "$GITHUB_OUTPUT"
-            echo "match_id=${DISPATCH_MATCH_ID}" >> "$GITHUB_OUTPUT"
-            echo "home=${DISPATCH_HOME}" >> "$GITHUB_OUTPUT"
-            echo "away=${DISPATCH_AWAY}" >> "$GITHUB_OUTPUT"
-            echo "home_score=${DISPATCH_HOME_SCORE}" >> "$GITHUB_OUTPUT"
-            echo "away_score=${DISPATCH_AWAY_SCORE}" >> "$GITHUB_OUTPUT"
-            echo "winner=${DISPATCH_WINNER}" >> "$GITHUB_OUTPUT"
-            echo "eliminated_json=${DISPATCH_ELIMINATED}" >> "$GITHUB_OUTPUT"
+            write_output "action" "${DISPATCH_ACTION}"
+            write_output "match_id" "${DISPATCH_MATCH_ID}"
+            write_output "home" "${DISPATCH_HOME}"
+            write_output "away" "${DISPATCH_AWAY}"
+            write_output "home_score" "${DISPATCH_HOME_SCORE}"
+            write_output "away_score" "${DISPATCH_AWAY_SCORE}"
+            write_output "winner" "${DISPATCH_WINNER}"
+            write_output "eliminated_json" "${DISPATCH_ELIMINATED}"
           fi
 
       - name: Refresh latest state
@@ -105,15 +124,23 @@ jobs:
         env:
           HOME: /tmp
           SAL_USE_VCLPLUGIN: gen
+          KNOCKOUT_ACTION: ${{ steps.inputs.outputs.action }}
+          MATCH_ID: ${{ steps.inputs.outputs.match_id }}
+          HOME_TEAM: ${{ steps.inputs.outputs.home }}
+          AWAY_TEAM: ${{ steps.inputs.outputs.away }}
+          HOME_SCORE: ${{ steps.inputs.outputs.home_score }}
+          AWAY_SCORE: ${{ steps.inputs.outputs.away_score }}
+          WINNER: ${{ steps.inputs.outputs.winner }}
+          ELIMINATED_JSON: ${{ steps.inputs.outputs.eliminated_json }}
         run: |
-          args=("${{ steps.inputs.outputs.action }}")
-          if [ -n "${{ steps.inputs.outputs.match_id }}" ]; then args+=("--match-id" "${{ steps.inputs.outputs.match_id }}"); fi
-          if [ -n "${{ steps.inputs.outputs.home }}" ]; then args+=("--home" "${{ steps.inputs.outputs.home }}"); fi
-          if [ -n "${{ steps.inputs.outputs.away }}" ]; then args+=("--away" "${{ steps.inputs.outputs.away }}"); fi
-          if [ -n "${{ steps.inputs.outputs.home_score }}" ]; then args+=("--home-score" "${{ steps.inputs.outputs.home_score }}"); fi
-          if [ -n "${{ steps.inputs.outputs.away_score }}" ]; then args+=("--away-score" "${{ steps.inputs.outputs.away_score }}"); fi
-          if [ -n "${{ steps.inputs.outputs.winner }}" ]; then args+=("--winner" "${{ steps.inputs.outputs.winner }}"); fi
-          if [ -n "${{ steps.inputs.outputs.eliminated_json }}" ]; then args+=("--eliminated-json" "${{ steps.inputs.outputs.eliminated_json }}"); fi
+          args=("${KNOCKOUT_ACTION}")
+          if [ -n "${MATCH_ID}" ]; then args+=("--match-id" "${MATCH_ID}"); fi
+          if [ -n "${HOME_TEAM}" ]; then args+=("--home" "${HOME_TEAM}"); fi
+          if [ -n "${AWAY_TEAM}" ]; then args+=("--away" "${AWAY_TEAM}"); fi
+          if [ -n "${HOME_SCORE}" ]; then args+=("--home-score" "${HOME_SCORE}"); fi
+          if [ -n "${AWAY_SCORE}" ]; then args+=("--away-score" "${AWAY_SCORE}"); fi
+          if [ -n "${WINNER}" ]; then args+=("--winner" "${WINNER}"); fi
+          if [ -n "${ELIMINATED_JSON}" ] && [ "${ELIMINATED_JSON}" != "null" ]; then args+=("--eliminated-json" "${ELIMINATED_JSON}"); fi
           PYTHONPATH=. python3 -u scripts/update_knockout.py "${args[@]}"
 
       - name: Commit and push

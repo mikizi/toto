@@ -8,9 +8,18 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def server_port(base_url: str) -> str:
+    """Return the port that should serve the supplied base URL."""
+    parsed = urlparse(base_url)
+    if parsed.port:
+        return str(parsed.port)
+    return "443" if parsed.scheme == "https" else "80"
 
 
 def wait_for_server(base_url: str, timeout_sec: float = 15.0) -> None:
@@ -91,7 +100,14 @@ def main() -> None:
     server: subprocess.Popen[bytes] | None = None
     if args.start_server:
         server = subprocess.Popen(
-            [sys.executable, "-m", "http.server", "8080", "--directory", str(ROOT / "public")],
+            [
+                sys.executable,
+                "-m",
+                "http.server",
+                server_port(args.url),
+                "--directory",
+                str(ROOT / "public"),
+            ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )

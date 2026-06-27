@@ -15,6 +15,7 @@ from scripts.simulate_kickoff import patch_json_kickoff
 
 
 def _sample_payload(kickoff_at: str | None, *, games_played: int = 0) -> dict:
+    next_kickoff = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
     return {
         "gamesPlayed": games_played,
         "matches": [
@@ -26,7 +27,7 @@ def _sample_payload(kickoff_at: str | None, *, games_played: int = 0) -> dict:
             {
                 "id": 2,
                 "played": False,
-                "kickoffAt": "2026-06-12T02:00:00+00:00",
+                "kickoffAt": next_kickoff,
             },
         ],
     }
@@ -75,7 +76,13 @@ class TestSimulateKickoffJson(unittest.TestCase):
             with patch("scripts.simulate_kickoff.LATEST_PATH", latest):
                 iso = patch_json_kickoff(minutes=5.0 / 60.0)
             payload = json.loads(latest.read_text(encoding="utf-8"))
+            self.assertEqual(payload["gamesPlayed"], 0)
+            self.assertIsNone(payload["lastResult"])
+            self.assertEqual(payload["broadcast"]["openMatchIds"], [])
             self.assertEqual(payload["matches"][0]["kickoffAt"], iso)
+            self.assertFalse(payload["matches"][0]["played"])
+            self.assertIsNone(payload["matches"][0]["homeScore"])
+            self.assertIsNone(payload["matches"][0]["awayScore"])
             kickoff = parse_iso(iso)
             assert kickoff is not None
             self.assertGreater(kickoff, datetime.now(timezone.utc))

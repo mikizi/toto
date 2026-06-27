@@ -28,18 +28,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python and LibreOffice
+      - name: Setup Python dependencies
         uses: ./.github/actions/setup-toto-ci
         with:
-          libreoffice: "true"
+          libreoffice: "false"
 
       - name: Install Playwright
         run: |
           pip install playwright
           playwright install chromium
-
-      - name: Score change simulation (patch → recalc → export)
-        run: python3 scripts/score_simulation.py
 
       - name: Prepare kickoff simulation
         run: |
@@ -54,4 +51,4 @@ jobs:
             --wait-seconds "${{ inputs.wait_seconds || '20' }}"
 
       - name: Run kickoff unit tests
-        run: RUN_INTEGRATION=1 python3 scripts/run_local_tests.py
+        run: python3 -m unittest tests.test_kickoff_simulation

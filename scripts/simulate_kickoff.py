@@ -44,18 +44,37 @@ def kickoff_iso(minutes: float) -> str:
 
 
 def patch_json_kickoff(minutes: float, match_id: int = 1) -> str:
-    """Patch latest.json kickoff for match_id. Returns new kickoff ISO."""
+    """Patch latest.json into a day-zero kickoff simulation. Returns kickoff ISO."""
     if not LATEST_PATH.exists():
         raise FileNotFoundError(LATEST_PATH)
 
     payload = json.loads(LATEST_PATH.read_text(encoding="utf-8"))
     iso = kickoff_iso(minutes)
+    kickoff_dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    payload["gamesPlayed"] = 0
+    payload["lastResult"] = None
+    payload["broadcast"] = {
+        "mode": "auto",
+        "openMatchIds": [],
+        "suppressAuto": False,
+        "autoPilot": True,
+    }
     updated = False
-    for match in payload.get("matches", []):
-        if int(match.get("id", -1)) == match_id:
+    for index, match in enumerate(payload.get("matches", []), start=1):
+        try:
+            mid = int(match.get("id", -1))
+        except (TypeError, ValueError):
+            mid = -1
+        match["played"] = False
+        match["homeScore"] = None
+        match["awayScore"] = None
+        if mid == match_id:
             match["kickoffAt"] = iso
             updated = True
-            break
+        else:
+            match["kickoffAt"] = (
+                kickoff_dt + timedelta(hours=max(index, 1))
+            ).replace(microsecond=0).isoformat()
     if not updated:
         raise ValueError(f"Match {match_id} not found in {LATEST_PATH}")
 
