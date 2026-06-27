@@ -849,7 +849,7 @@ function fixtureItemHtml(match, index = 0, animate = false, isNext = false, isLi
   const playedClass = match.played ? " next-game-item--played" : "";
   const nextClass = isNext ? " next-game-item--next" : "";
   const knockoutClass = match.isKnockout ? " next-game-item--knockout" : "";
-  const draftClass = match.isKnockout && !match.isLocked ? " next-game-item--draft" : "";
+  const pendingClass = match.isKnockout && !match.isLocked ? " next-game-item--pending" : "";
   const stagger = animate ? ` style="--enter-i: ${index}"` : "";
 
   let centerBadge;
@@ -877,7 +877,7 @@ function fixtureItemHtml(match, index = 0, animate = false, isNext = false, isLi
     : "next-game-vs-badge";
 
   return `
-    <div class="next-game-item${enterClass}${playedClass}${nextClass}${knockoutClass}${draftClass}" data-played="${match.played ? "1" : "0"}" data-current="${isLive ? "1" : "0"}"${stagger}>
+    <div class="next-game-item${enterClass}${playedClass}${nextClass}${knockoutClass}${pendingClass}" data-played="${match.played ? "1" : "0"}" data-current="${isLive ? "1" : "0"}"${stagger}>
       <div class="next-game-matchup">
         <div class="next-game-team next-game-team--home" title="${escapeAttribute(match.home)}">
           ${flagHtml(match.home, "sm")}
@@ -1767,10 +1767,10 @@ function knockoutMatchCardHtml(match) {
     : match.isLive
       ? "Live"
       : match.isLocked
-        ? "Locked"
-        : "Draft";
+        ? "Ready"
+        : "Pending teams";
   return `
-    <article class="knockout-match-card${match.isLive ? " is-live" : ""}${match.winner ? " is-confirmed" : ""}${isReady ? "" : " is-draft"}">
+    <article class="knockout-match-card${match.isLive ? " is-live" : ""}${match.winner ? " is-confirmed" : ""}${isReady ? "" : " is-pending"}">
       <div class="knockout-match-meta">
         <span>Match ${match.id}</span>
         <span>${escapeHtml(match.kickoffAt ? formatNextGameKickoff(match.kickoffAt) : "TBD")}</span>

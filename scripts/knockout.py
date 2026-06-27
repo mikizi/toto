@@ -309,9 +309,27 @@ def sync_knockout_fixtures_from_espn(
         match["apiAwayScore"] = event.away_score
         if kickoff:
             match["kickoffAt"] = kickoff
-        if not match.get("isLocked") and not match.get("winner"):
+        should_apply_api_teams = (
+            not match.get("winner")
+            and (
+                not match.get("isLocked")
+                or is_placeholder_fixture_team(match.get("home"))
+                or is_placeholder_fixture_team(match.get("away"))
+                or (
+                    normalize_team_name(str(match.get("home") or "")) == normalize_team_name(str(previous[1] or ""))
+                    and normalize_team_name(str(match.get("away") or "")) == normalize_team_name(str(previous[2] or ""))
+                )
+            )
+        )
+        if should_apply_api_teams:
             match["home"] = home
             match["away"] = away
+        match["isLocked"] = bool(
+            match.get("home")
+            and match.get("away")
+            and not is_placeholder_fixture_team(match.get("home"))
+            and not is_placeholder_fixture_team(match.get("away"))
+        )
         current = (
             match.get("apiEventId"),
             match.get("apiHome"),
@@ -338,15 +356,6 @@ def sync_knockout_fixtures_from_espn(
 def validate_knockout_fixture_lock(match: dict[str, Any], home: str, away: str) -> None:
     if is_placeholder_fixture_team(home) or is_placeholder_fixture_team(away):
         raise ValueError("Fixture still has placeholder teams. Fill actual teams before locking.")
-
-    api_home = str(match.get("apiHome") or "").strip()
-    api_away = str(match.get("apiAway") or "").strip()
-    if api_home and not is_placeholder_fixture_team(api_home):
-        if normalize_team_name(home) != normalize_team_name(api_home):
-            raise ValueError(f"Home team does not match ESPN fixture ({api_home})")
-    if api_away and not is_placeholder_fixture_team(api_away):
-        if normalize_team_name(away) != normalize_team_name(api_away):
-            raise ValueError(f"Away team does not match ESPN fixture ({api_away})")
 
 
 def read_actual_qualifiers(ws: openpyxl.worksheet.worksheet.Worksheet) -> dict[str, list[str]]:

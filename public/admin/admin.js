@@ -793,7 +793,7 @@ function renderKnockout(knockout) {
     .map((match) => {
       const scoreHome = match.homeScore === null || match.homeScore === undefined ? "" : String(match.homeScore);
       const scoreAway = match.awayScore === null || match.awayScore === undefined ? "" : String(match.awayScore);
-      const locked = match.isLocked ? "Locked" : "Draft";
+      const locked = match.isLocked ? "Ready" : "Pending teams";
       const live = match.isLive ? '<span class="admin-match-live-badge">LIVE</span>' : "";
       const winnerOptions = [match.home, match.away].filter(Boolean);
       const apiMeta = match.apiSource || match.apiEventId
@@ -828,7 +828,7 @@ function renderKnockout(knockout) {
           </select>
         </div>
         <div class="admin-knockout-actions">
-          <button type="button" class="btn-refresh btn-refresh--compact" data-knockout-action="lock_fixture">Lock fixture</button>
+          <button type="button" class="btn-refresh btn-refresh--compact" data-knockout-action="lock_fixture">Save teams</button>
           <button type="button" class="btn-refresh btn-refresh--compact" data-knockout-action="live_score">Live score</button>
           <button type="button" class="btn-refresh btn-refresh--compact" data-knockout-action="stop_live">Stop live</button>
           <button type="button" class="btn-gold btn-gold--compact" data-knockout-action="confirm_winner">Confirm advancing team</button>
@@ -924,7 +924,7 @@ async function postKnockoutAction(payload, msg) {
     if (IS_LOCAL) {
       await loadData();
       const successMessage = payload.action === "sync_fixtures"
-        ? "ESPN fixtures filled as draft. Review each card, then lock the correct fixtures."
+        ? "ESPN fixtures updated. Real team pairings are ready automatically."
         : "Knockout updated.";
       setMessage(msg, successMessage, "success");
     } else {

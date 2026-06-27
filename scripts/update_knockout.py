@@ -12,6 +12,7 @@ from scripts.export_summary import build_export, write_export
 from scripts.knockout import (
     KNOCKOUT_SCHEDULE,
     NEXT_MATCH_SIDES,
+    is_placeholder_fixture_team,
     normalize_knockout_state,
     qualifier_target_for_match,
     set_actual_qualifier,
@@ -47,7 +48,12 @@ def _propagate_winner(knockout: dict[str, Any], match: dict[str, Any], winner: s
         return
     next_match = _find_match(knockout, int(next_id))
     next_match[side] = winner
-    next_match["isLocked"] = bool(next_match.get("home") and next_match.get("away") and next_match.get("isLocked"))
+    next_match["isLocked"] = bool(
+        next_match.get("home")
+        and next_match.get("away")
+        and not is_placeholder_fixture_team(next_match.get("home"))
+        and not is_placeholder_fixture_team(next_match.get("away"))
+    )
 
 
 def _locked_round_of_32_matches(knockout: dict[str, Any]) -> list[dict[str, Any]]:

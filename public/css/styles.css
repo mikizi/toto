@@ -565,7 +565,7 @@ body {
     box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.12);
 }
 
-.knockout-match-card.is-draft {
+.knockout-match-card.is-pending {
     opacity: 0.78;
 }
 
@@ -748,11 +748,11 @@ body {
     background: rgba(232, 185, 35, 0.035);
 }
 
-.next-game-item--draft .next-game-team {
+.next-game-item--pending .next-game-team {
     color: var(--text-muted);
 }
 
-.next-game-item--draft .next-game-vs-badge {
+.next-game-item--pending .next-game-vs-badge {
     color: var(--gold);
     border-color: rgba(232, 185, 35, 0.22);
     background: rgba(232, 185, 35, 0.08);

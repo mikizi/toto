@@ -42,7 +42,7 @@ class TestKnockoutState(unittest.TestCase):
 
         self.assertEqual(target, ("r16", 0))
 
-    def test_espn_sync_fills_draft_fixture_without_locking(self) -> None:
+    def test_espn_sync_locks_real_fixture_teams(self) -> None:
         state = normalize_knockout_state()
         payload = {
             "events": [
@@ -71,7 +71,7 @@ class TestKnockoutState(unittest.TestCase):
         self.assertEqual(match["apiEventId"], "760486")
         self.assertEqual(match["apiHomeScore"], 0)
         self.assertEqual(match["apiAwayScore"], 0)
-        self.assertFalse(match["isLocked"])
+        self.assertTrue(match["isLocked"])
 
     def test_espn_sync_normalizes_placeholders(self) -> None:
         state = normalize_knockout_state()
@@ -98,6 +98,7 @@ class TestKnockoutState(unittest.TestCase):
         match = next(item for item in state["matches"] if item["id"] == 74)
         self.assertEqual(match["home"], "Germany")
         self.assertEqual(match["away"], "Best 3rd A/B/C/D/F")
+        self.assertFalse(match["isLocked"])
 
     def test_lock_validation_rejects_placeholders_and_api_mismatch(self) -> None:
         match = {"apiHome": "South Africa", "apiAway": "Canada"}
@@ -108,9 +109,7 @@ class TestKnockoutState(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "placeholder"):
             validate_knockout_fixture_lock(match, "Semifinal 1 Winner", "Canada")
 
-        with self.assertRaisesRegex(ValueError, "Home team"):
-            validate_knockout_fixture_lock(match, "Brazil", "Canada")
-
+        validate_knockout_fixture_lock(match, "Brazil", "Canada")
         validate_knockout_fixture_lock(match, "South Africa", "Canada")
 
 
