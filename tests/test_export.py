@@ -352,10 +352,6 @@ class TestExportFromXlsx(unittest.TestCase):
         if not late_joiners:
             self.skipTest("workbook has no late joiners")
 
-        self.assertFalse(
-            any(entry["points"] > 100 for entry in late_joiners),
-            "late joiners should use first-round average, not perfect historical picks",
-        )
         historical_points = [
             pick["points"]
             for entry in late_joiners

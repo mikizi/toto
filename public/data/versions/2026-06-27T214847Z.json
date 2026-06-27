@@ -1,6 +1,6 @@
 {
-  "version": "2026-06-27T214905Z",
-  "generatedAt": "2026-06-27T21:49:05.119246+00:00",
+  "version": "2026-06-27T214847Z",
+  "generatedAt": "2026-06-27T21:48:47.588490+00:00",
   "gamesPlayed": 68,
   "lastResult": {
     "matchId": 68,
@@ -73607,10 +73607,7 @@
   },
   "broadcast": {
     "mode": "auto",
-    "openMatchIds": [
-      67,
-      68
-    ],
+    "openMatchIds": [],
     "suppressAuto": false,
     "autoPilot": true
   },
