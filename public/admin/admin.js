@@ -123,6 +123,7 @@ function onAdminTabClick(event) {
   const tab = btn.getAttribute("data-tab");
   if (tab === "match" || tab === "players" || tab === "knockout" || tab === "standings") {
     setAdminTab(tab);
+    scrollAdminTabToTop(tab);
     trackAdminAnalytics("admin_tab_changed", {
       tab_name: tab,
     });
@@ -158,6 +159,22 @@ function setAdminTab(tab) {
       button.setAttribute("aria-selected", String(isActive));
     }
   }
+}
+
+/** @param {"match" | "players" | "knockout" | "standings"} tab */
+function scrollAdminTabToTop(tab) {
+  const dashboard = document.getElementById("adminDashboard");
+  const header = document.querySelector(".admin-header");
+  const targetTop = dashboard instanceof HTMLElement
+    ? dashboard.getBoundingClientRect().top + window.scrollY
+    : 0;
+  const headerHeight = header instanceof HTMLElement ? header.getBoundingClientRect().height : 0;
+  const top = Math.max(0, targetTop - headerHeight - 8);
+  window.scrollTo({
+    top,
+    behavior: tab === "knockout" ? "auto" : "smooth",
+  });
+  syncAdminBackToTopButton();
 }
 
 function initAuth() {
