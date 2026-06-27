@@ -38,31 +38,6 @@
 <body>
 <div class="page-bg" role="presentation" aria-hidden="true"></div>
 <div class="app">
-    <section class="scoreboard-card glass-panel">
-        <header class="top-bar">
-            <div class="last-updated">
-                <span id="topBarLabel" class="update-label">Next match</span>
-                <div class="last-updated-row">
-                    <span id="statusDot" class="status-dot" aria-hidden="true"></span>
-                    <time id="topBarDatetime">—</time>
-                </div>
-            </div>
-            <div class="top-bar-actions">
-                <span id="viewerCount" class="viewer-count hidden" aria-live="polite"></span>
-                <span id="liveBadge" class="live-badge hidden" aria-label="Live">Live</span>
-                <button id="refreshBtn" type="button" class="btn-refresh hidden" aria-label="Refresh">
-                    <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
-                        <polyline points="21 3 21 9 15 9"/>
-                    </svg>
-                    Refresh
-                </button>
-            </div>
-        </header>
-        <div id="gameInfo" class="hero-body" aria-live="polite"></div>
-        <div id="countdown" class="countdown-panel" aria-live="polite"></div>
-    </section>
-
     <section id="comingSoon" class="coming-soon glass-panel hidden" aria-label="Coming soon">
         <div id="regCounter" class="reg-counter hidden" aria-label="Registration progress">
             <div class="reg-counter-layout">
@@ -152,6 +127,31 @@
             </section>
 
             <section id="scoreboardSwipePanel" class="swipe-screen scoreboard-screen" aria-label="Scoreboard">
+                <section class="scoreboard-card glass-panel">
+                    <header class="top-bar">
+                        <div class="last-updated">
+                            <span id="topBarLabel" class="update-label">Next match</span>
+                            <div class="last-updated-row">
+                                <span id="statusDot" class="status-dot" aria-hidden="true"></span>
+                                <time id="topBarDatetime">—</time>
+                            </div>
+                        </div>
+                        <div class="top-bar-actions">
+                            <span id="viewerCount" class="viewer-count hidden" aria-live="polite"></span>
+                            <span id="liveBadge" class="live-badge hidden" aria-label="Live">Live</span>
+                            <button id="refreshBtn" type="button" class="btn-refresh hidden" aria-label="Refresh">
+                                <svg class="btn-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+                                    <polyline points="21 3 21 9 15 9"/>
+                                </svg>
+                                Refresh
+                            </button>
+                        </div>
+                    </header>
+                    <div id="gameInfo" class="hero-body" aria-live="polite"></div>
+                    <div id="countdown" class="countdown-panel" aria-live="polite"></div>
+                </section>
+
                 <section id="predictionsPanel" class="predictions-panel hidden" aria-label="Match predictions"></section>
 
                 <div class="title-row">
