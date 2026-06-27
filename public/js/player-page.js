@@ -1,4 +1,17 @@
 const PLAYER_DATA_URL = "data/latest.json";
+const KNOCKOUT_QUALIFIER_ROUND_BY_FIXTURE_ROUND = {
+  r32_match: "r16",
+  r16_match: "quarter",
+  quarter_match: "semi",
+  semi_match: "final",
+  final_match: "champion",
+};
+
+/** @type {number | undefined} */
+let playerKnockoutTrackTimerId;
+
+/** @type {number | null} */
+let activePlayerKnockoutIndex = null;
 
 /** @param {string} text */
 function escapeHtml(text) {
@@ -66,6 +79,56 @@ function rowResultClass(played, points) {
   return "player-bet-row--zero";
 }
 
+/**
+ * @param {number | null | undefined} home
+ * @param {number | null | undefined} away
+ * @returns {"home" | "draw" | "away" | ""}
+ */
+function resultDirection(home, away) {
+  if (home === null || home === undefined || away === null || away === undefined) {
+    return "";
+  }
+  const homeNum = Number(home);
+  const awayNum = Number(away);
+  if (!Number.isFinite(homeNum) || !Number.isFinite(awayNum)) {
+    return "";
+  }
+  if (homeNum > awayNum) {
+    return "home";
+  }
+  if (awayNum > homeNum) {
+    return "away";
+  }
+  return "draw";
+}
+
+/** @param {any} player @param {any[]} matches */
+function playerAccuracyStats(player, matches) {
+  const picks = new Map((player.picks || []).map((pick) => [Number(pick.matchId), pick]));
+  return (matches || []).reduce((stats, match) => {
+    if (!match?.played) {
+      return stats;
+    }
+    const pick = picks.get(Number(match.id));
+    if (!pick) {
+      return stats;
+    }
+    const pickDirection = resultDirection(pick.homePick, pick.awayPick);
+    const actualDirection = resultDirection(match.homeScore, match.awayScore);
+    if (!pickDirection || !actualDirection) {
+      return stats;
+    }
+    stats.played += 1;
+    if (Number(pick.homePick) === Number(match.homeScore) && Number(pick.awayPick) === Number(match.awayScore)) {
+      stats.exact += 1;
+    }
+    if (pickDirection === actualDirection) {
+      stats.direction += 1;
+    }
+    return stats;
+  }, { played: 0, exact: 0, direction: 0 });
+}
+
 /** @param {string | null | undefined} iso */
 function matchDate(iso) {
   if (!iso) {
@@ -87,6 +150,11 @@ function formatPoints(value) {
   }
   const num = Number(value);
   return Number.isInteger(num) ? String(num) : num.toFixed(1);
+}
+
+/** @param {string} text */
+function escapeAttribute(text) {
+  return escapeHtml(String(text)).replace(/"/g, "&quot;");
 }
 
 /**
@@ -135,24 +203,29 @@ function focusOrderedMatches(matches, focusMatchId) {
 
 /** @param {any} data */
 function focusedMatchId(data) {
+  const matches = Array.isArray(data.matches) ? data.matches : [];
+  const groupMatchIds = new Set(matches.map((match) => Number(match.id)));
   const liveIds = typeof heroLiveMatchIds === "function" ? heroLiveMatchIds(data) : [];
-  if (liveIds.length > 0) {
-    return Number(liveIds[0]);
+  const liveGroupMatchId = liveIds.find((id) => groupMatchIds.has(Number(id)));
+  if (liveGroupMatchId) {
+    return Number(liveGroupMatchId);
+  }
+  if (matches.length > 0 && matches.every((match) => match.played)) {
+    return null;
   }
   const next = typeof nextUnplayedMatch === "function"
     ? nextUnplayedMatch(data)
-    : focusOrderedMatches(data.matches || [], null).find((match) => !match.played);
-  if (next) {
+    : focusOrderedMatches(matches, null).find((match) => !match.played);
+  if (next && groupMatchIds.has(Number(next.id))) {
     return Number(next.id);
   }
-  const sortedMatches = focusOrderedMatches(data.matches || [], null);
-  const latest = sortedMatches[sortedMatches.length - 1];
-  return latest ? Number(latest.id) : null;
+  return null;
 }
 
 /** @param {number | null} focusMatchId */
 function positionFocusedBet(focusMatchId) {
   if (!focusMatchId) {
+    window.scrollTo(0, 0);
     return;
   }
   const row = document.querySelector(".player-bet-row--focus");
@@ -181,6 +254,323 @@ function initBackToTopButton() {
   });
   window.addEventListener("scroll", syncBackToTopButton, { passive: true });
   syncBackToTopButton();
+}
+
+/** @param {any} match */
+function liveKnockoutWinner(match) {
+  if (!match?.isLive || !match.home || !match.away) {
+    return "";
+  }
+  const home = Number(match.homeScore);
+  const away = Number(match.awayScore);
+  if (!Number.isFinite(home) || !Number.isFinite(away) || home === away) {
+    return "";
+  }
+  return home > away ? match.home : match.away;
+}
+
+/** @param {any} data */
+function knockoutResultSets(data) {
+  const actual = data.knockout?.actual || {};
+  /** @type {Map<string, Set<string>>} */
+  const resultSets = new Map();
+  if (Array.isArray(data.knockout?.rounds)) {
+    for (const round of data.knockout.rounds) {
+      const teams = Array.isArray(actual[round.id]) ? actual[round.id].filter(Boolean) : [];
+      resultSets.set(round.id, new Set(teams));
+    }
+  }
+  if (Array.isArray(data.knockout?.matches)) {
+    for (const match of data.knockout.matches) {
+      const winner = liveKnockoutWinner(match);
+      const qualifierRoundId = KNOCKOUT_QUALIFIER_ROUND_BY_FIXTURE_ROUND[match.roundId] || match.roundId;
+      if (!winner || !qualifierRoundId) {
+        continue;
+      }
+      if (!resultSets.has(qualifierRoundId)) {
+        resultSets.set(qualifierRoundId, new Set());
+      }
+      resultSets.get(qualifierRoundId)?.add(winner);
+    }
+  }
+  return resultSets;
+}
+
+/** @param {any} data */
+function knockoutVisualResultSets(data) {
+  const resultSets = knockoutResultSets(data);
+  const r32Set = resultSets.get("r32") || new Set();
+  if (Array.isArray(data.knockout?.matches)) {
+    for (const match of data.knockout.matches) {
+      if (match.roundId !== "r32_match") {
+        continue;
+      }
+      if (isConcreteKnockoutTeam(match.home)) {
+        r32Set.add(match.home);
+      }
+      if (isConcreteKnockoutTeam(match.away)) {
+        r32Set.add(match.away);
+      }
+    }
+  }
+  if (r32Set.size > 0) {
+    resultSets.set("r32", r32Set);
+  }
+  return resultSets;
+}
+
+/** @param {any} data */
+function knockoutEliminatedSets(data) {
+  const eliminated = data.knockout?.eliminated || {};
+  /** @type {Map<string, Set<string>>} */
+  const resultSets = new Map();
+  if (Array.isArray(data.knockout?.rounds)) {
+    for (const round of data.knockout.rounds) {
+      const teams = Array.isArray(eliminated[round.id]) ? eliminated[round.id].filter(Boolean) : [];
+      resultSets.set(round.id, new Set(teams));
+    }
+  }
+  return resultSets;
+}
+
+/** @param {unknown} team */
+function isConcreteKnockoutTeam(team) {
+  const value = String(team || "").trim();
+  if (!value || value === "TBD") {
+    return false;
+  }
+  return !/^(winner|runner-up|best 3rd|round of \d+|match \d+)/i.test(value);
+}
+
+/** @param {any} roundPick @param {Set<string> | undefined} resultSet */
+function playerKnockoutRoundPoints(roundPick, resultSet) {
+  const durable = Number(roundPick.points || 0);
+  if (!resultSet || resultSet.size === 0) {
+    return durable;
+  }
+  const pointValue = Number(roundPick.pointsPerTeam || 0);
+  const liveOrActual = (roundPick.teams || []).reduce((sum, item) => (
+    resultSet.has(item.team) ? sum + pointValue : sum
+  ), 0);
+  return Math.max(durable, liveOrActual);
+}
+
+/**
+ * @param {any} item
+ * @param {Set<string> | undefined} visualSet
+ * @param {Set<string> | undefined} eliminatedSet
+ * @param {number} expected
+ * @returns {"correct" | "missed" | "pending"}
+ */
+function playerKnockoutTeamStatus(item, visualSet, eliminatedSet, expected) {
+  const team = String(item.team || "");
+  if (item.isCorrect || item.isLiveCorrect || visualSet?.has(team)) {
+    return "correct";
+  }
+  const hasFinishedRound = Boolean(visualSet && expected > 0 && visualSet.size >= expected);
+  if (item.isEliminated || item.isMissed || eliminatedSet?.has(team) || hasFinishedRound) {
+    return "missed";
+  }
+  return "pending";
+}
+
+/**
+ * @param {any[]} teams
+ * @param {Set<string> | undefined} visualSet
+ * @param {Set<string> | undefined} eliminatedSet
+ * @param {number} expected
+ */
+function playerKnockoutStatusCounts(teams, visualSet, eliminatedSet, expected) {
+  return teams.reduce((counts, item) => {
+    const status = playerKnockoutTeamStatus(item, visualSet, eliminatedSet, expected);
+    counts[status] += 1;
+    return counts;
+  }, { correct: 0, missed: 0, pending: 0 });
+}
+
+/**
+ * @param {any[]} picks
+ * @param {Map<string, Set<string>>} visualResultSets
+ * @param {Map<string, Set<string>>} eliminatedSets
+ * @param {Map<string, any>} roundDefinitions
+ */
+function playerKnockoutCorrectSummary(picks, visualResultSets, eliminatedSets, roundDefinitions) {
+  return (picks || []).reduce((summary, roundPick) => {
+    const roundId = String(roundPick.roundId || "");
+    const teams = Array.isArray(roundPick.teams) ? roundPick.teams : [];
+    const expected = Number(roundDefinitions.get(roundId)?.expected || teams.length || 0);
+    const visualSet = visualResultSets.get(roundId);
+    const eliminatedSet = eliminatedSets.get(roundId);
+    for (const item of teams) {
+      const status = playerKnockoutTeamStatus(item, visualSet, eliminatedSet, expected);
+      if (status === "pending") {
+        continue;
+      }
+      summary.decided += 1;
+      if (status === "correct") {
+        summary.correct += 1;
+      }
+    }
+    return summary;
+  }, { correct: 0, decided: 0 });
+}
+
+/**
+ * @param {any} roundPick
+ * @param {Set<string> | undefined} scoringSet
+ * @param {Set<string> | undefined} visualSet
+ * @param {Set<string> | undefined} eliminatedSet
+ * @param {{ expected?: number } | undefined} roundDefinition
+ * @param {{ pick?: any, visualSet?: Set<string>, eliminatedSet?: Set<string>, definition?: { expected?: number } } | undefined} championContext
+ */
+function playerKnockoutRoundHtml(roundPick, scoringSet, visualSet, eliminatedSet, roundDefinition, championContext) {
+  const points = playerKnockoutRoundPoints(roundPick, scoringSet);
+  const teams = Array.isArray(roundPick.teams) ? roundPick.teams : [];
+  const roundId = String(roundPick.roundId || "");
+  const pointValue = Number(roundPick.pointsPerTeam || 0);
+  const championPick = championContext?.pick;
+  const championItem = championPick?.teams?.[0];
+  const championTeam = String(championItem?.team || "");
+  const championStatus = championTeam
+    ? playerKnockoutTeamStatus(
+      championItem,
+      championContext?.visualSet,
+      championContext?.eliminatedSet,
+      Number(championContext?.definition?.expected || 1)
+    )
+    : "";
+  const expected = Number(roundDefinition?.expected || teams.length || 0);
+  const maxPoints = pointValue * teams.length;
+  const counts = playerKnockoutStatusCounts(teams, visualSet, eliminatedSet, expected);
+  const sizeClass = roundId === "final"
+      ? " player-knockout-round--final"
+      : roundId === "semi"
+        ? " player-knockout-round--semi"
+        : roundId === "quarter"
+          ? " player-knockout-round--quarter"
+          : "";
+  return `
+    <details class="player-knockout-round${sizeClass}" data-knockout-round-id="${escapeAttribute(roundId)}" data-knockout-round-label="${escapeAttribute(roundPick.label || "")}" open>
+      <summary class="player-knockout-round-head">
+        <span class="player-knockout-round-icon" aria-hidden="true"></span>
+        <span class="player-knockout-title-block">
+          <span class="player-knockout-kicker">${escapeHtml(formatPoints(pointValue))} pts per correct qualifier</span>
+          <span class="player-knockout-title">${escapeHtml(roundPick.label || "Knockout")}</span>
+        </span>
+        <span class="player-knockout-summary">
+          <span class="player-knockout-points">
+            <strong>${escapeHtml(formatPoints(points))}</strong>
+            <span>/ ${escapeHtml(formatPoints(maxPoints))} pts</span>
+          </span>
+          <span class="player-knockout-counts" aria-label="${counts.correct} correct, ${counts.missed} missed, ${counts.pending} pending">
+            <span class="player-knockout-count player-knockout-count--correct">${counts.correct} Correct</span>
+            <span class="player-knockout-count player-knockout-count--missed">${counts.missed} Missed</span>
+            <span class="player-knockout-count player-knockout-count--pending">${counts.pending} Pending</span>
+          </span>
+        </span>
+        <span class="player-knockout-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="player-knockout-legend" aria-label="Knockout prediction status legend">
+        <span class="player-knockout-legend-item player-knockout-legend-item--pending">
+          <span><strong>Pending</strong><small>Not decided yet</small></span>
+        </span>
+        <span class="player-knockout-legend-item player-knockout-legend-item--correct">
+          <span><strong>Qualified</strong><small>Your prediction was correct</small></span>
+        </span>
+        <span class="player-knockout-legend-item player-knockout-legend-item--missed">
+          <span><strong>Eliminated</strong><small>Your prediction was wrong</small></span>
+        </span>
+      </div>
+      <div class="player-knockout-teams${teams.length ? "" : " is-empty"}">
+        ${teams.length ? teams.map((item) => {
+          const status = playerKnockoutTeamStatus(item, visualSet, eliminatedSet, expected);
+          const stateClass = ` is-${status}`;
+          return `<span class="player-knockout-team${stateClass}">
+            ${flagHtml(item.team || "", "sm")}
+            <span class="player-knockout-team-name">${escapeHtml(shortTeamName(item.team || ""))}</span>
+          </span>`;
+        }).join("") : "<p>No picks in this round.</p>"}
+      </div>
+      ${championTeam ? `
+        <div class="player-knockout-winner-pick" aria-label="Winner pick">
+          <span class="player-knockout-winner-label">Winner pick</span>
+          <span class="player-knockout-team player-knockout-team--winner is-${championStatus || "pending"}">
+            ${flagHtml(championTeam, "sm")}
+            <span class="player-knockout-team-name">${escapeHtml(shortTeamName(championTeam))}</span>
+          </span>
+        </div>` : ""}
+    </details>`;
+}
+
+/** @param {any} player @param {any} data */
+function renderPlayerKnockout(player, data) {
+  const wrap = document.getElementById("playerKnockoutCarousel");
+  const total = document.getElementById("playerKnockoutTotal");
+  if (!wrap) {
+    return;
+  }
+  const picks = Array.isArray(player.knockoutPicks) ? player.knockoutPicks : [];
+  const scoringResultSets = knockoutResultSets(data);
+  const visualResultSets = knockoutVisualResultSets(data);
+  const eliminatedSets = knockoutEliminatedSets(data);
+  const roundDefinitions = new Map(
+    (Array.isArray(data.knockout?.rounds) ? data.knockout.rounds : []).map((round) => [round.id, round])
+  );
+  const points = picks.reduce((sum, roundPick) => (
+    sum + playerKnockoutRoundPoints(roundPick, scoringResultSets.get(roundPick.roundId))
+  ), 0);
+  const championPick = picks.find((roundPick) => roundPick.roundId === "champion");
+  const visiblePicks = picks.filter((roundPick) => roundPick.roundId !== "champion");
+  if (total) {
+    total.textContent = `${formatPoints(points)} pts`;
+  }
+  if (!visiblePicks.length) {
+    wrap.innerHTML = '<p class="player-knockout-empty">No knockout picks loaded yet.</p>';
+    return;
+  }
+  wrap.innerHTML = visiblePicks
+    .map((roundPick) => playerKnockoutRoundHtml(
+      roundPick,
+      scoringResultSets.get(roundPick.roundId),
+      visualResultSets.get(roundPick.roundId),
+      eliminatedSets.get(roundPick.roundId),
+      roundDefinitions.get(roundPick.roundId),
+      roundPick.roundId === "final"
+        ? {
+          pick: championPick,
+          visualSet: visualResultSets.get("champion"),
+          eliminatedSet: eliminatedSets.get("champion"),
+          definition: roundDefinitions.get("champion"),
+        }
+        : undefined
+    ))
+    .join("");
+}
+
+function trackPlayerKnockoutRound() {
+  const wrap = document.getElementById("playerKnockoutCarousel");
+  if (!(wrap instanceof HTMLElement) || wrap.clientWidth <= 0) {
+    return;
+  }
+  const index = Math.round(wrap.scrollLeft / wrap.clientWidth);
+  if (index === activePlayerKnockoutIndex) {
+    return;
+  }
+  activePlayerKnockoutIndex = index;
+  const round = wrap.querySelectorAll(".player-knockout-round")[index];
+  trackAnalytics("knockout_round_changed", {
+    round_id: round instanceof HTMLElement ? round.dataset.knockoutRoundId || "" : "",
+    round_label: round instanceof HTMLElement ? round.dataset.knockoutRoundLabel || "" : "",
+    round_index: index,
+    source: "player_page",
+  });
+}
+
+function handlePlayerKnockoutScroll() {
+  if (playerKnockoutTrackTimerId !== undefined) {
+    window.clearTimeout(playerKnockoutTrackTimerId);
+  }
+  playerKnockoutTrackTimerId = window.setTimeout(trackPlayerKnockoutRound, 140);
 }
 
 /** @param {any} player @param {any[]} matches @param {number | null} focusMatchId */
@@ -254,7 +644,18 @@ function renderPlayer(player, data) {
   const summary = document.getElementById("playerSummary");
   const rank = document.getElementById("playerRank");
   const points = document.getElementById("playerPoints");
+  const exactScores = document.getElementById("playerExactScores");
+  const directions = document.getElementById("playerDirections");
   const champion = document.getElementById("playerChampion");
+  const knockoutCorrect = document.getElementById("playerKnockoutCorrect");
+  const accuracy = playerAccuracyStats(player, data.matches || []);
+  const picks = Array.isArray(player.knockoutPicks) ? player.knockoutPicks : [];
+  const visualResultSets = knockoutVisualResultSets(data);
+  const eliminatedSets = knockoutEliminatedSets(data);
+  const roundDefinitions = new Map(
+    (Array.isArray(data.knockout?.rounds) ? data.knockout.rounds : []).map((round) => [round.id, round])
+  );
+  const knockoutSummary = playerKnockoutCorrectSummary(picks, visualResultSets, eliminatedSets, roundDefinitions);
 
   if (name) {
     name.textContent = player.name;
@@ -268,9 +669,19 @@ function renderPlayer(player, data) {
   if (points) {
     points.textContent = formatPoints(player.points);
   }
+  if (exactScores) {
+    exactScores.textContent = `${accuracy.exact}/${accuracy.played}`;
+  }
+  if (directions) {
+    directions.textContent = `${accuracy.direction}/${accuracy.played}`;
+  }
   if (champion) {
     champion.innerHTML = `${flagHtml(player.champion || "", "sm")} <span>${escapeHtml(player.champion || "-")}</span>`;
   }
+  if (knockoutCorrect) {
+    knockoutCorrect.textContent = `${knockoutSummary.correct}/${knockoutSummary.decided}`;
+  }
+  renderPlayerKnockout(player, data);
   renderBets(player, data.matches || [], focusedMatchId(data));
 }
 
@@ -312,5 +723,6 @@ async function loadPlayerPage() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initBackToTopButton();
+  document.getElementById("playerKnockoutCarousel")?.addEventListener("scroll", handlePlayerKnockoutScroll);
   void loadPlayerPage();
 });

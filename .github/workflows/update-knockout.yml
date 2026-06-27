@@ -1,0 +1,121 @@
+name: Update knockout
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Knockout action
+        required: true
+        type: choice
+        options:
+          - migrate_scoring
+          - apply_r32_scoring
+          - sync_fixtures
+          - lock_fixture
+          - live_score
+          - stop_live
+          - confirm_winner
+      match_id:
+        description: Knockout match id
+        required: false
+        type: number
+      home:
+        description: Home team
+        required: false
+      away:
+        description: Away team
+        required: false
+      home_score:
+        description: Home score
+        required: false
+        type: number
+      away_score:
+        description: Away score
+        required: false
+        type: number
+      winner:
+        description: Advancing winner
+        required: false
+  repository_dispatch:
+    types: [update-knockout]
+
+concurrency:
+  group: toto-data-writes
+  cancel-in-progress: false
+
+jobs:
+  knockout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve inputs
+        id: inputs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_ACTION: ${{ github.event.client_payload.action }}
+          DISPATCH_MATCH_ID: ${{ github.event.client_payload.matchId }}
+          DISPATCH_HOME: ${{ github.event.client_payload.home }}
+          DISPATCH_AWAY: ${{ github.event.client_payload.away }}
+          DISPATCH_HOME_SCORE: ${{ github.event.client_payload.homeScore }}
+          DISPATCH_AWAY_SCORE: ${{ github.event.client_payload.awayScore }}
+          DISPATCH_WINNER: ${{ github.event.client_payload.winner }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "action=${{ inputs.action }}" >> "$GITHUB_OUTPUT"
+            echo "match_id=${{ inputs.match_id }}" >> "$GITHUB_OUTPUT"
+            echo "home=${{ inputs.home }}" >> "$GITHUB_OUTPUT"
+            echo "away=${{ inputs.away }}" >> "$GITHUB_OUTPUT"
+            echo "home_score=${{ inputs.home_score }}" >> "$GITHUB_OUTPUT"
+            echo "away_score=${{ inputs.away_score }}" >> "$GITHUB_OUTPUT"
+            echo "winner=${{ inputs.winner }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "action=${DISPATCH_ACTION}" >> "$GITHUB_OUTPUT"
+            echo "match_id=${DISPATCH_MATCH_ID}" >> "$GITHUB_OUTPUT"
+            echo "home=${DISPATCH_HOME}" >> "$GITHUB_OUTPUT"
+            echo "away=${DISPATCH_AWAY}" >> "$GITHUB_OUTPUT"
+            echo "home_score=${DISPATCH_HOME_SCORE}" >> "$GITHUB_OUTPUT"
+            echo "away_score=${DISPATCH_AWAY_SCORE}" >> "$GITHUB_OUTPUT"
+            echo "winner=${DISPATCH_WINNER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Refresh latest state
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+
+      - name: Setup Python and LibreOffice
+        uses: ./.github/actions/setup-toto-ci
+        with:
+          libreoffice: "true"
+
+      - name: Update knockout
+        env:
+          HOME: /tmp
+          SAL_USE_VCLPLUGIN: gen
+        run: |
+          args=("${{ steps.inputs.outputs.action }}")
+          if [ -n "${{ steps.inputs.outputs.match_id }}" ]; then args+=("--match-id" "${{ steps.inputs.outputs.match_id }}"); fi
+          if [ -n "${{ steps.inputs.outputs.home }}" ]; then args+=("--home" "${{ steps.inputs.outputs.home }}"); fi
+          if [ -n "${{ steps.inputs.outputs.away }}" ]; then args+=("--away" "${{ steps.inputs.outputs.away }}"); fi
+          if [ -n "${{ steps.inputs.outputs.home_score }}" ]; then args+=("--home-score" "${{ steps.inputs.outputs.home_score }}"); fi
+          if [ -n "${{ steps.inputs.outputs.away_score }}" ]; then args+=("--away-score" "${{ steps.inputs.outputs.away_score }}"); fi
+          if [ -n "${{ steps.inputs.outputs.winner }}" ]; then args+=("--winner" "${{ steps.inputs.outputs.winner }}"); fi
+          PYTHONPATH=. python3 -u scripts/update_knockout.py "${args[@]}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add xlsx/Master\ WorldCup26.xlsx public/data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Knockout: ${{ steps.inputs.outputs.action }}"
+          git push

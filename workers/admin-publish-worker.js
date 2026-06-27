@@ -4,6 +4,7 @@ const DISPATCH_EVENT_TYPE = "update-score";
 const RESTORE_EVENT_TYPE = "restore-score";
 const BROADCAST_EVENT_TYPE = "update-broadcast";
 const REGISTRATION_EVENT_TYPE = "update-registration";
+const KNOCKOUT_EVENT_TYPE = "update-knockout";
 const XLSX_SYNC_EVENT_TYPE = "sync-xlsx-upload";
 const XLSX_REPO_PATH = "xlsx/Master WorldCup26.xlsx";
 const XLSX_DOWNLOAD_NAME = "Master WorldCup26.xlsx";
@@ -36,7 +37,7 @@ export default {
       return handlePresence(request, env, corsHeaders);
     }
 
-    const allowedPaths = ["/publish", "/restore", "/broadcast", "/registration", "/xlsx"];
+    const allowedPaths = ["/publish", "/restore", "/broadcast", "/registration", "/knockout", "/xlsx"];
     if (!allowedPaths.includes(url.pathname)) {
       return jsonResponse({ ok: false, error: "Not found" }, 404, corsHeaders);
     }
@@ -122,6 +123,40 @@ export default {
       }
 
       return jsonResponse({ ok: true, message: "Queued registration update" }, 202, corsHeaders);
+    }
+
+    if (url.pathname === "/knockout") {
+      const action = typeof payload.action === "string" ? payload.action : "";
+      if (!["migrate_scoring", "apply_r32_scoring", "sync_fixtures", "lock_fixture", "live_score", "stop_live", "confirm_winner"].includes(action)) {
+        return jsonResponse({ ok: false, error: "Invalid knockout action" }, 400, corsHeaders);
+      }
+      const githubResponse = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+        method: "POST",
+        headers: githubJsonHeaders(env),
+        body: JSON.stringify({
+          event_type: KNOCKOUT_EVENT_TYPE,
+          client_payload: {
+            action,
+            matchId: payload.matchId,
+            home: payload.home,
+            away: payload.away,
+            homeScore: payload.homeScore,
+            awayScore: payload.awayScore,
+            winner: payload.winner,
+          },
+        }),
+      });
+
+      if (!githubResponse.ok) {
+        const errorText = await githubResponse.text();
+        return jsonResponse(
+          { ok: false, error: `GitHub dispatch failed: ${githubResponse.status} ${errorText}` },
+          502,
+          corsHeaders
+        );
+      }
+
+      return jsonResponse({ ok: true, message: "Queued knockout update" }, 202, corsHeaders);
     }
 
     if (url.pathname === "/restore") {

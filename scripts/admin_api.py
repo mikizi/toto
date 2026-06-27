@@ -34,6 +34,7 @@ from scripts.live_state import normalize_broadcast
 from scripts.paths import LATEST_PATH, XLSX_PATH
 from scripts.publish_match import publish_match, restore_match
 from scripts.update_broadcast import update_broadcast
+from scripts.update_knockout import update_knockout
 from scripts.update_registration import update_registration
 from scripts.validate_export import validate
 
@@ -130,7 +131,7 @@ class AdminApiHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path not in ("/publish", "/broadcast", "/registration", "/restore", "/xlsx", "/presence"):
+        if path not in ("/publish", "/broadcast", "/registration", "/restore", "/xlsx", "/presence", "/knockout"):
             self._send_json(404, {"ok": False, "error": "Not found"})
             return
 
@@ -235,6 +236,32 @@ class AdminApiHandler(BaseHTTPRequestHandler):
                 self._send_json(500, {"ok": False, "error": str(exc)})
                 return
             self._send_json(200, {"ok": True, "registration": payload.get("registration")})
+            return
+
+        if path == "/knockout":
+            action = str(data.get("action") or "").strip()
+            try:
+                payload = update_knockout(
+                    action,
+                    match_id=int(data["matchId"]) if data.get("matchId") is not None else None,
+                    home=str(data["home"]).strip() if data.get("home") is not None else None,
+                    away=str(data["away"]).strip() if data.get("away") is not None else None,
+                    home_score=int(data["homeScore"]) if data.get("homeScore") is not None else None,
+                    away_score=int(data["awayScore"]) if data.get("awayScore") is not None else None,
+                    winner=str(data["winner"]).strip() if data.get("winner") is not None else None,
+                )
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "version": payload.get("version"),
+                    "knockout": payload.get("knockout"),
+                    "leaderboard": payload.get("leaderboard", [])[:5],
+                },
+            )
             return
 
         if path == "/restore":

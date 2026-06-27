@@ -5,6 +5,7 @@ const SHOW_LEADERBOARD_ROWS = true;
 const LEADERBOARD_TAB_STORAGE_KEY = "wc26-leaderboard-tab";
 const CHAMPION_FILTER_STORAGE_KEY = "wc26-champion-filter";
 const FOLLOWED_PLAYERS_STORAGE_KEY = "wc26-followed-players";
+const MOBILE_SWIPE_HINT_STORAGE_KEY = "wc26-mobile-swipe-hint-v1";
 const LEADERBOARD_TABS = new Set(["full", "following", "champion"]);
 
 const DATA_URL = "data/latest.json";
@@ -23,13 +24,22 @@ const UPDATE_TOAST_MS = 6000;
 
 const CROWN_SVG = `<svg class="crown-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18h16l1-11-5.2 4.1L12 4 8.2 11.1 3 7l1 11Z" fill="currentColor"/><path d="M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 const STAR_SVG = `<svg class="lb-follow-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2.6 2.86 5.8 6.4.93-4.63 4.52 1.1 6.38L12 17.22l-5.73 3.01 1.1-6.38-4.63-4.52 6.4-.93L12 2.6Z"/></svg>`;
+const KNOCKOUT_FIXTURE_ROUND_IDS = {
+  r32: ["r32_match"],
+  r16: ["r16_match"],
+  quarter: ["quarter_match"],
+  semi: ["semi_match"],
+  final: ["final_match"],
+  champion: [],
+};
 
 /** @typedef {{ matchId: number, homePick: number | null, awayPick: number | null, points: number | null }} PlayerPick */
 /** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string, picks?: PlayerPick[] }} LeaderboardEntry */
-/** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null }} MatchEntry */
+/** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null, isKnockout?: boolean, isLocked?: boolean, roundLabel?: string }} MatchEntry */
 /** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ id: string, label: string, expected: number, points: number }} KnockoutRound */
-/** @typedef {{ rounds?: KnockoutRound[], actual?: Record<string, string[]> }} KnockoutState */
+/** @typedef {{ id: number, roundId: string, roundLabel: string, kickoffAt: string | null, homeSlot: string, awaySlot: string, home: string, away: string, homeScore: number | null, awayScore: number | null, isLive: boolean, isLocked: boolean, winner: string, isScoring?: boolean }} KnockoutMatch */
+/** @typedef {{ rounds?: KnockoutRound[], actual?: Record<string, string[]>, matches?: KnockoutMatch[] }} KnockoutState */
 /** @typedef {{ version: string, generatedAt: string, gamesPlayed: number, lastResult: object | null, leaderboard: LeaderboardEntry[], matches: MatchEntry[], knockout?: KnockoutState, broadcast?: BroadcastState, registration?: unknown }} TotoData */
 
 /** @type {number | undefined} */
@@ -63,6 +73,26 @@ let updateToastTimerId;
 
 /** @type {boolean} */
 let entrancePlayed = false;
+
+/** @type {boolean} */
+let mainSwipePositioned = false;
+
+/** @type {number | null} */
+let activeSwipeIndex = null;
+
+/** @type {number | undefined} */
+let swipeTrackTimerId;
+
+/** @type {boolean} */
+let mainSwipeSettling = false;
+
+/** @type {boolean} */
+let fixturesExpanded = false;
+
+const mobileSwipeHintState = {
+  active: false,
+  hasPrompted: false,
+};
 
 /** @returns {boolean} */
 function shouldPlayEntrance() {
@@ -100,7 +130,7 @@ function shouldShowLiveBadge(data) {
   if (isDebugMode()) {
     return false;
   }
-  return manualLiveMatchIds(data).length > 0;
+  return manualLiveMatchIds(data).length > 0 || knockoutLiveMatches(data).length > 0;
 }
 
 /** @param {TotoData} data */
@@ -132,6 +162,7 @@ function applyViewMode(data) {
     if (topBarLabel) {
       topBarLabel.textContent = "Last updated";
     }
+    ensureMainSwipeStart();
     return;
   }
 
@@ -141,6 +172,198 @@ function applyViewMode(data) {
   if (topBarLabel) {
     topBarLabel.textContent = "Next match";
   }
+}
+
+function ensureMainSwipeStart() {
+  const scoreboardApp = document.getElementById("scoreboardApp");
+  const swipe = document.getElementById("mainSwipe");
+  if (!(swipe instanceof HTMLElement)) {
+    scoreboardApp?.classList.add("is-swipe-ready");
+    return;
+  }
+  if (mainSwipePositioned) {
+    scoreboardApp?.classList.add("is-swipe-ready");
+    return;
+  }
+
+  swipe.classList.add("is-positioning");
+  swipe.scrollLeft = mainSwipeTargetLeft(swipe, 1);
+  mainSwipePositioned = true;
+  activeSwipeIndex = 1;
+
+  requestAnimationFrame(() => {
+    swipe.scrollLeft = mainSwipeTargetLeft(swipe, 1);
+    mainSwipePositioned = true;
+    activeSwipeIndex = 1;
+    swipe.classList.remove("is-positioning");
+    scoreboardApp?.classList.add("is-swipe-ready");
+  });
+}
+
+/** @param {HTMLElement} swipe */
+function mainSwipeScreens(swipe) {
+  return Array.from(swipe.querySelectorAll(".swipe-screen")).filter(
+    (screen) => screen instanceof HTMLElement
+  );
+}
+
+/**
+ * @param {HTMLElement} swipe
+ * @param {number} index
+ */
+function mainSwipeTargetLeft(swipe, index) {
+  const screens = mainSwipeScreens(swipe);
+  const screen = screens[index];
+  const first = screens[0];
+  if (!(screen instanceof HTMLElement) || !(first instanceof HTMLElement)) {
+    return swipe.clientWidth * index;
+  }
+  return Math.max(0, screen.offsetLeft - first.offsetLeft);
+}
+
+/** @param {HTMLElement} swipe */
+function nearestMainSwipeIndex(swipe) {
+  const screens = mainSwipeScreens(swipe);
+  if (screens.length === 0) {
+    return 0;
+  }
+
+  let nearestIndex = 0;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  screens.forEach((screen, index) => {
+    if (!(screen instanceof HTMLElement)) {
+      return;
+    }
+    const target = mainSwipeTargetLeft(swipe, index);
+    const distance = Math.abs(swipe.scrollLeft - target);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestIndex = index;
+    }
+  });
+  return nearestIndex;
+}
+
+/** @returns {number | null} */
+function settleMainSwipePosition() {
+  const swipe = document.getElementById("mainSwipe");
+  if (!(swipe instanceof HTMLElement) || swipe.classList.contains("is-positioning")) {
+    return null;
+  }
+
+  const index = nearestMainSwipeIndex(swipe);
+  const target = mainSwipeTargetLeft(swipe, index);
+  if (Math.abs(swipe.scrollLeft - target) <= 1) {
+    return index;
+  }
+
+  mainSwipeSettling = true;
+  swipe.scrollTo({ left: target, behavior: "smooth" });
+  window.setTimeout(() => {
+    mainSwipeSettling = false;
+  }, 260);
+  return index;
+}
+
+function syncMainSwipeHeight() {
+  const scoreboardApp = document.getElementById("scoreboardApp");
+  const swipe = document.getElementById("mainSwipe");
+  if (!(scoreboardApp instanceof HTMLElement) || !(swipe instanceof HTMLElement)) {
+    return;
+  }
+
+  if (window.matchMedia("(min-width: 800px)").matches) {
+    scoreboardApp.style.removeProperty("--swipe-screen-height");
+    return;
+  }
+
+  const rect = swipe.getBoundingClientRect();
+  const viewportHeight = window.visualViewport?.height || window.innerHeight;
+  const musicWrap = document.getElementById("musicPlayerWrap");
+  const musicHeight =
+    document.body.classList.contains("music-player-visible") && musicWrap instanceof HTMLElement
+      ? musicWrap.getBoundingClientRect().height
+      : 0;
+  const availableHeight = viewportHeight - rect.top - musicHeight - 10;
+  const screenHeight = Math.max(300, Math.floor(availableHeight));
+  scoreboardApp.style.setProperty("--swipe-screen-height", `${screenHeight}px`);
+}
+
+function queueMainSwipeHeightSync() {
+  syncMainSwipeHeight();
+  requestAnimationFrame(syncMainSwipeHeight);
+}
+
+/** @returns {boolean} */
+function shouldForceMobileSwipeHint() {
+  const hint = new URLSearchParams(window.location.search).get("hint");
+  return hint === "1" || hint === "true";
+}
+
+/** @returns {boolean} */
+function isMobileSwipeHintViewport() {
+  return window.matchMedia("(max-width: 760px)").matches;
+}
+
+/** @returns {boolean} */
+function hasSeenMobileSwipeHint() {
+  try {
+    return window.localStorage.getItem(MOBILE_SWIPE_HINT_STORAGE_KEY) === "done";
+  } catch (err) {
+    return false;
+  }
+}
+
+function markMobileSwipeHintSeen() {
+  try {
+    window.localStorage.setItem(MOBILE_SWIPE_HINT_STORAGE_KEY, "done");
+  } catch (err) {
+    // Ignore storage failures; the current session still dismisses the hint.
+  }
+}
+
+/** @param {boolean} [remember] */
+function closeMobileSwipeHint(remember = true) {
+  const hint = document.getElementById("mobileSwipeHint");
+  mobileSwipeHintState.active = false;
+  mobileSwipeHintState.hasPrompted = true;
+  hint?.classList.add("hidden");
+  if (hint instanceof HTMLElement) {
+    hint.hidden = true;
+  }
+  if (remember) {
+    markMobileSwipeHintSeen();
+  }
+}
+
+function startMobileSwipeHint() {
+  const hint = document.getElementById("mobileSwipeHint");
+  if (!(hint instanceof HTMLElement)) {
+    return;
+  }
+  mobileSwipeHintState.active = true;
+  mobileSwipeHintState.hasPrompted = true;
+  hint.hidden = false;
+  hint.classList.remove("hidden");
+}
+
+/** @param {TotoData} data */
+function maybeStartMobileSwipeHint(data) {
+  if (mobileSwipeHintState.active || mobileSwipeHintState.hasPrompted) {
+    return;
+  }
+  if (!isScoreboardLive(data, isDebugMode())) {
+    return;
+  }
+  const forced = shouldForceMobileSwipeHint();
+  if (!isMobileSwipeHintViewport() || (!forced && hasSeenMobileSwipeHint())) {
+    return;
+  }
+  window.setTimeout(() => {
+    if (!mobileSwipeHintState.active && isMobileSwipeHintViewport()) {
+      startMobileSwipeHint();
+    }
+  }, 450);
 }
 
 /** @param {number} value @param {number} goal */
@@ -313,7 +536,7 @@ function trackAnalytics(eventName, properties = {}) {
  */
 function scoreboardAnalyticsProps(data) {
   const registration = normalizeRegistration(data.registration, data.matches);
-  const liveMatchIds = heroLiveMatchIds(data);
+  const liveMatchIds = heroLiveMatchesWithKnockout(data).map((match) => match.id);
   return {
     view_mode: isScoreboardLive(data, isDebugMode()) ? "scoreboard" : "countdown",
     games_played: data.gamesPlayed,
@@ -386,13 +609,21 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("betsTable")?.addEventListener("keydown", handleLeaderboardBodyKeydown);
   document.getElementById("leaderboardTabs")?.addEventListener("click", handleLeaderboardTabClick);
   document.getElementById("championFilterSelect")?.addEventListener("change", handleChampionFilterChange);
+  document.getElementById("mobileSwipeHintClose")?.addEventListener("click", () => closeMobileSwipeHint(true));
   document.getElementById("nextGamesScroll")?.addEventListener("scroll", (event) => {
     const scroll = event.currentTarget;
     if (scroll instanceof HTMLElement) {
       updateNextGamesScrollHint(scroll);
     }
   });
+  document.getElementById("mainSwipe")?.addEventListener("scroll", handleMainSwipeScroll);
   document.getElementById("updateToastDismiss")?.addEventListener("click", hideUpdateToast);
+  window.addEventListener("resize", queueMainSwipeHeightSync);
+  window.visualViewport?.addEventListener("resize", queueMainSwipeHeightSync);
+  new MutationObserver(queueMainSwipeHeightSync).observe(document.body, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopLivePolling();
@@ -527,7 +758,7 @@ function stopPresencePolling() {
 
 /** @param {TotoData} data @param {number} [limit] */
 function upcomingMatches(data, limit = 3) {
-  return data.matches
+  return publicFixtureMatches(data)
     .filter((m) => !m.played)
     .sort(compareMatchesByKickoff)
     .slice(0, limit);
@@ -535,14 +766,79 @@ function upcomingMatches(data, limit = 3) {
 
 /** @param {TotoData} data */
 function allUpcomingMatches(data) {
-  return data.matches
+  return publicFixtureMatches(data)
     .filter((m) => !m.played)
     .sort(compareMatchesByKickoff);
 }
 
 /** @param {TotoData} data @returns {MatchEntry[]} */
 function allFixturesMatches(data) {
-  return chronologicalMatches(data.matches || []);
+  return chronologicalMatches(publicFixtureMatches(data));
+}
+
+/** @param {TotoData} data @returns {KnockoutMatch[]} */
+function lockedKnockoutMatches(data) {
+  const matches = data.knockout?.matches;
+  if (!Array.isArray(matches)) {
+    return [];
+  }
+  return matches.filter((match) => match.isLocked && match.home && match.away);
+}
+
+/** @param {TotoData} data @returns {MatchEntry[]} */
+function knockoutFixtureMatches(data) {
+  const matches = data.knockout?.matches;
+  if (!Array.isArray(matches)) {
+    return [];
+  }
+  return matches.map((match) => {
+    const home = match.home || match.homeSlot || "TBD";
+    const away = match.away || match.awaySlot || "TBD";
+    return {
+      id: match.id,
+      teams: `${home} vs ${away}`,
+      home,
+      away,
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      played: Boolean(match.winner),
+      kickoffAt: match.kickoffAt,
+      isKnockout: true,
+      isLocked: Boolean(match.isLocked),
+      roundLabel: match.roundLabel,
+    };
+  });
+}
+
+/** @param {TotoData} data @returns {MatchEntry[]} */
+function publicFixtureMatches(data) {
+  return [...(data.matches || []), ...knockoutFixtureMatches(data)];
+}
+
+/** @param {TotoData} data @returns {MatchEntry[]} */
+function knockoutLiveMatches(data) {
+  return lockedKnockoutMatches(data)
+    .filter((match) => match.isLive)
+    .map((match) => ({
+      id: match.id,
+      teams: `${match.home} vs ${match.away}`,
+      home: match.home,
+      away: match.away,
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      played: false,
+      kickoffAt: match.kickoffAt,
+    }));
+}
+
+/** @param {TotoData} data @returns {MatchEntry[]} */
+function heroLiveMatchesWithKnockout(data) {
+  return [...heroLiveMatches(data), ...knockoutLiveMatches(data)].slice(0, 2);
+}
+
+/** @param {TotoData} data @returns {MatchEntry | undefined} */
+function nextPublicUnplayedMatch(data) {
+  return chronologicalMatches(publicFixtureMatches(data)).find((m) => !m.played);
 }
 
 /** @param {MatchEntry} match @param {number} [index] @param {boolean} [animate] @param {boolean} [isNext] @param {boolean} [isLive] */
@@ -552,6 +848,8 @@ function fixtureItemHtml(match, index = 0, animate = false, isNext = false, isLi
   const enterClass = animate ? " next-game-item--enter" : "";
   const playedClass = match.played ? " next-game-item--played" : "";
   const nextClass = isNext ? " next-game-item--next" : "";
+  const knockoutClass = match.isKnockout ? " next-game-item--knockout" : "";
+  const draftClass = match.isKnockout && !match.isLocked ? " next-game-item--draft" : "";
   const stagger = animate ? ` style="--enter-i: ${index}"` : "";
 
   let centerBadge;
@@ -566,9 +864,12 @@ function fixtureItemHtml(match, index = 0, animate = false, isNext = false, isLi
     meta = "Live";
   } else {
     centerBadge = "vs";
-    meta = match.kickoffAt
+    const dateMeta = match.kickoffAt
       ? formatNextGameKickoff(match.kickoffAt)
       : `Match ${match.id} · TBD`;
+    meta = match.isKnockout && match.roundLabel
+      ? `${match.roundLabel} · ${dateMeta}`
+      : dateMeta;
   }
 
   const badgeClass = match.played || isLive
@@ -576,14 +877,14 @@ function fixtureItemHtml(match, index = 0, animate = false, isNext = false, isLi
     : "next-game-vs-badge";
 
   return `
-    <div class="next-game-item${enterClass}${playedClass}${nextClass}" data-played="${match.played ? "1" : "0"}" data-current="${isLive ? "1" : "0"}"${stagger}>
+    <div class="next-game-item${enterClass}${playedClass}${nextClass}${knockoutClass}${draftClass}" data-played="${match.played ? "1" : "0"}" data-current="${isLive ? "1" : "0"}"${stagger}>
       <div class="next-game-matchup">
-        <div class="next-game-team next-game-team--home" title="${escapeHtml(match.home)}">
+        <div class="next-game-team next-game-team--home" title="${escapeAttribute(match.home)}">
           ${flagHtml(match.home, "sm")}
           <span class="next-game-team-name">${escapeHtml(home)}</span>
         </div>
         <span class="${badgeClass}" aria-hidden="true">${centerBadge}</span>
-        <div class="next-game-team next-game-team--away" title="${escapeHtml(match.away)}">
+        <div class="next-game-team next-game-team--away" title="${escapeAttribute(match.away)}">
           ${flagHtml(match.away, "sm")}
           <span class="next-game-team-name">${escapeHtml(away)}</span>
         </div>
@@ -628,6 +929,20 @@ function setScrollHeightInstant(scrollEl, instant) {
 function firstUpcomingFixtureItem(listEl) {
   const item = listEl.querySelector('.next-game-item[data-current="1"], .next-game-item[data-played="0"]');
   return item instanceof HTMLElement ? item : null;
+}
+
+/**
+ * @param {MatchEntry[]} fixtures
+ * @param {Set<number>} liveIds
+ * @returns {number}
+ */
+function fixturePreviewStartIndex(fixtures, liveIds) {
+  const currentIndex = fixtures.findIndex((match) => liveIds.has(match.id));
+  if (currentIndex >= 0) {
+    return currentIndex;
+  }
+  const upcomingIndex = fixtures.findIndex((match) => !match.played);
+  return upcomingIndex >= 0 ? upcomingIndex : Math.max(0, fixtures.length - 3);
 }
 
 /** @param {HTMLElement} scrollEl */
@@ -750,50 +1065,51 @@ function toggleStandingsPanel() {
 function renderNextGames(listEl, scrollEl, data, animate = false) {
   const fixtures = allFixturesMatches(data);
   const upcoming = allUpcomingMatches(data);
-  const liveIds = new Set(manualLiveMatchIds(data));
+  const liveIds = new Set([
+    ...manualLiveMatchIds(data),
+    ...knockoutLiveMatches(data).map((match) => match.id),
+  ]);
   const hasPast = fixtures.some((m) => m.played && !liveIds.has(m.id));
   const nextId = liveIds.size > 0 ? undefined : upcoming[0]?.id;
   const fixturesBtn = document.getElementById("viewFixturesBtn");
+  const previewStart = fixturePreviewStartIndex(fixtures, liveIds);
+  const canExpandFixtures = fixtures.length > 3;
+  const isFixturesExpanded = fixturesExpanded && canExpandFixtures;
+  fixturesExpanded = isFixturesExpanded;
+  const visibleFixtures = isFixturesExpanded ? fixtures : fixtures.slice(previewStart, previewStart + 3);
 
   if (listEl) {
     if (fixtures.length === 0) {
       listEl.innerHTML = '<p class="next-games-empty">No matches</p>';
     } else if (upcoming.length === 0) {
-      listEl.innerHTML = fixtures
+      listEl.innerHTML = visibleFixtures
         .map((m, index) => fixtureItemHtml(m, index, animate, false, liveIds.has(m.id)))
         .join("");
     } else {
-      listEl.innerHTML = fixtures
+      listEl.innerHTML = visibleFixtures
         .map((m, index) => fixtureItemHtml(m, index, animate, m.id === nextId, liveIds.has(m.id)))
         .join("");
     }
   }
 
   if (scrollEl instanceof HTMLElement) {
-    scrollEl.classList.toggle("has-past-results", hasPast);
+    scrollEl.classList.toggle("is-open", isFixturesExpanded);
+    scrollEl.classList.toggle("has-past-results", isFixturesExpanded && hasPast);
   }
 
   if (scrollEl instanceof HTMLElement && listEl instanceof HTMLElement) {
     syncNextGamesCollapsedHeight(scrollEl, listEl, true);
     requestAnimationFrame(() => {
       syncNextGamesCollapsedHeight(scrollEl, listEl, true);
-      scrollToFirstUpcoming(scrollEl, listEl);
+      scrollEl.scrollTop = 0;
+      updateNextGamesScrollHint(scrollEl);
     });
   }
 
   if (fixturesBtn) {
-    fixturesBtn.classList.toggle("hidden", upcoming.length <= 3);
-  }
-
-  if (scrollEl && upcoming.length <= 3) {
-    scrollEl.classList.remove("is-open");
-    fixturesBtn?.setAttribute("aria-expanded", "false");
-    if (fixturesBtn) {
-      fixturesBtn.textContent = "View all fixtures";
-    }
-    if (listEl instanceof HTMLElement) {
-      scrollToFirstUpcoming(scrollEl, listEl);
-    }
+    fixturesBtn.classList.toggle("hidden", !canExpandFixtures);
+    fixturesBtn.setAttribute("aria-expanded", String(isFixturesExpanded));
+    fixturesBtn.textContent = isFixturesExpanded ? "Hide fixtures" : "View all fixtures";
   }
 }
 
@@ -804,16 +1120,12 @@ function toggleFixturesPanel() {
   if (!scroll || !btn) {
     return;
   }
-  const isOpen = scroll.classList.toggle("is-open");
-  if (!isOpen && list instanceof HTMLElement) {
-    scrollToFirstUpcoming(scroll, list);
-  } else {
-    updateNextGamesScrollHint(scroll);
+  fixturesExpanded = !fixturesExpanded;
+  if (cachedData) {
+    renderNextGames(list, scroll, cachedData);
   }
-  btn.setAttribute("aria-expanded", String(isOpen));
-  btn.textContent = isOpen ? "Hide fixtures" : "View all fixtures";
   trackAnalytics("fixtures_toggled", {
-    is_expanded: isOpen,
+    is_expanded: fixturesExpanded,
     matches_count: cachedData?.matches.length,
     games_played: cachedData?.gamesPlayed,
   });
@@ -841,7 +1153,7 @@ function renderHeroAndCountdown(data, animate = false) {
   const hero = document.getElementById("gameInfo");
   const countdown = document.getElementById("countdown");
   const topBarDatetime = document.getElementById("topBarDatetime");
-  const next = nextUnplayedMatch(data);
+  const next = nextPublicUnplayedMatch(data);
   const live = isScoreboardLive(data, isDebugMode());
 
   renderHeroMatch(hero, data, !live, shouldShowLiveBadge(data), animate);
@@ -991,6 +1303,28 @@ function stopLivePolling() {
 }
 
 /**
+ * @param {HTMLElement | null} listEl
+ * @param {HTMLElement | null} scrollEl
+ */
+function renderNextGamesSkeleton(listEl, scrollEl) {
+  if (scrollEl instanceof HTMLElement) {
+    scrollEl.classList.remove("is-open", "has-past-results");
+    scrollEl.style.removeProperty("--next-games-collapsed-h");
+    scrollEl.scrollTop = 0;
+    updateNextGamesScrollHint(scrollEl);
+  }
+  if (!listEl || listEl.querySelector(".next-game-item, .next-games-empty")) {
+    return;
+  }
+  listEl.innerHTML = `
+    <div class="next-games-skeleton" aria-hidden="true">
+      <div class="next-game-skeleton-row"></div>
+      <div class="next-game-skeleton-row"></div>
+      <div class="next-game-skeleton-row"></div>
+    </div>`;
+}
+
+/**
  * @param {boolean} fromUserClick
  * @param {{ livePush?: boolean }} [options]
  */
@@ -999,6 +1333,10 @@ async function loadData(fromUserClick, options = {}) {
   const standingsBtn = document.getElementById("viewStandingsBtn");
   const gamesBadge = document.getElementById("gamesBadge");
   const countdown = document.getElementById("countdown");
+  renderNextGamesSkeleton(
+    document.getElementById("nextGamesList"),
+    document.getElementById("nextGamesScroll")
+  );
   if (gamesBadge && cachedData && isScoreboardLive(cachedData, isDebugMode())) {
     gamesBadge.textContent = "Loading…";
   }
@@ -1025,6 +1363,7 @@ async function loadData(fromUserClick, options = {}) {
     applyViewMode(data);
     renderHeroAndCountdown(data, animate);
     renderRegistrationCounter(data);
+    renderKnockoutSwipeScreens(data);
 
     if (isScoreboardLive(data, isDebugMode())) {
       renderPredictionsPanel(document.getElementById("predictionsPanel"), data);
@@ -1058,6 +1397,8 @@ async function loadData(fromUserClick, options = {}) {
     app?.classList.add("loaded");
     app?.classList.toggle("is-live", isScoreboardLive(data, isDebugMode()));
     triggerEntrance(animate);
+    queueMainSwipeHeightSync();
+    maybeStartMobileSwipeHint(data);
     if (shouldTrackPresence()) {
       startPresencePolling();
     } else {
@@ -1413,6 +1754,187 @@ function knockoutQualifiedTeamHtml(team) {
     </span>`;
 }
 
+/** @param {KnockoutMatch} match */
+function knockoutMatchCardHtml(match) {
+  const home = match.home || match.homeSlot || "TBD";
+  const away = match.away || match.awaySlot || "TBD";
+  const isReady = Boolean(match.home && match.away);
+  const score = match.isLive || match.winner
+    ? `${match.homeScore ?? 0}&nbsp;–&nbsp;${match.awayScore ?? 0}`
+    : "vs";
+  const state = match.winner
+    ? `${shortTeamName(match.winner)} qualified`
+    : match.isLive
+      ? "Live"
+      : match.isLocked
+        ? "Locked"
+        : "Draft";
+  return `
+    <article class="knockout-match-card${match.isLive ? " is-live" : ""}${match.winner ? " is-confirmed" : ""}${isReady ? "" : " is-draft"}">
+      <div class="knockout-match-meta">
+        <span>Match ${match.id}</span>
+        <span>${escapeHtml(match.kickoffAt ? formatNextGameKickoff(match.kickoffAt) : "TBD")}</span>
+      </div>
+      <div class="knockout-match-teams">
+        <span class="knockout-match-team">
+          ${flagHtml(match.home || "", "sm")}
+          <span>${escapeHtml(shortTeamName(home))}</span>
+        </span>
+        <span class="knockout-match-score">${score}</span>
+        <span class="knockout-match-team knockout-match-team--away">
+          ${flagHtml(match.away || "", "sm")}
+          <span>${escapeHtml(shortTeamName(away))}</span>
+        </span>
+      </div>
+      <div class="knockout-match-state">${escapeHtml(state)}</div>
+    </article>`;
+}
+
+/**
+ * @param {TotoData} data
+ * @param {KnockoutRound} round
+ * @param {number} index
+ */
+function knockoutRoundPanelHtml(data, round, index) {
+  const actual = data.knockout?.actual || {};
+  const teams = Array.isArray(actual[round.id])
+    ? actual[round.id].filter((team) => String(team || "").trim())
+    : [];
+  const matches = Array.isArray(data.knockout?.matches)
+    ? data.knockout.matches.filter((match) => (KNOCKOUT_FIXTURE_ROUND_IDS[round.id] || []).includes(match.roundId))
+    : [];
+  const count = teams.length;
+  const emptyCopy = round.id === "winner"
+    ? "Winner will appear after the final is confirmed."
+    : "Qualified teams will appear here after the admin confirms them.";
+  return `
+      <div class="knockout-panel glass-panel">
+        <div class="knockout-panel-top">
+          <span>Knockout</span>
+          <span>${round.points} pts each</span>
+        </div>
+        <div class="knockout-panel-head">
+          <div>
+            <span class="knockout-kicker">Swipe ${index + 1}</span>
+            <h2 class="knockout-title">${escapeHtml(round.label)}</h2>
+          </div>
+          <div class="knockout-badges" aria-label="${round.points} points per correct qualifier, ${count} of ${round.expected} confirmed">
+            <span class="knockout-count">${count}/${round.expected}</span>
+          </div>
+        </div>
+        <div class="knockout-qualified-list${teams.length ? "" : " is-empty"}">
+          ${teams.length ? teams.map(knockoutQualifiedTeamHtml).join("") : `<p>${escapeHtml(emptyCopy)}</p>`}
+        </div>
+        ${matches.length ? `<div class="knockout-match-list">${matches.map(knockoutMatchCardHtml).join("")}</div>` : ""}
+      </div>`;
+}
+
+/**
+ * @param {TotoData} data
+ * @param {KnockoutRound} round
+ * @param {number} index
+ */
+function knockoutRoundScreenHtml(data, round, index) {
+  return `
+    <section class="swipe-screen knockout-screen" aria-label="${escapeAttribute(round.label)}" data-knockout-round-id="${escapeAttribute(round.id)}" data-knockout-round-label="${escapeAttribute(round.label)}">
+      ${knockoutRoundPanelHtml(data, round, index)}
+    </section>`;
+}
+
+/**
+ * @param {TotoData} data
+ * @param {KnockoutRound} round
+ * @param {number} index
+ */
+function knockoutDesktopRoundHtml(data, round, index) {
+  return `
+    <section class="knockout-desktop-round knockout-desktop-round--${escapeAttribute(round.id)}" aria-label="${escapeAttribute(round.label)}">
+      ${knockoutRoundPanelHtml(data, round, index)}
+    </section>`;
+}
+
+/**
+ * @param {TotoData} data
+ * @param {KnockoutRound[]} rounds
+ */
+function knockoutDesktopGridHtml(data, rounds) {
+  const byId = new Map(rounds.map((round, index) => [round.id, { round, index }]));
+  const render = (roundId) => {
+    const item = byId.get(roundId);
+    return item ? knockoutDesktopRoundHtml(data, item.round, item.index) : "";
+  };
+  return `
+    <div class="knockout-desktop-grid" aria-label="Knockout desktop layout">
+      <div class="knockout-desktop-col knockout-desktop-col--early">
+        ${render("r32")}
+      </div>
+      <div class="knockout-desktop-col knockout-desktop-col--middle">
+        ${render("r16")}
+        ${render("quarter")}
+      </div>
+      <div class="knockout-desktop-col knockout-desktop-col--late">
+        ${render("semi")}
+        ${render("final")}
+        ${render("champion")}
+      </div>
+    </div>`;
+}
+
+/** @param {TotoData} data */
+function renderKnockoutSwipeScreens(data) {
+  const host = document.getElementById("knockoutSwipeScreens");
+  if (!host) {
+    return;
+  }
+  const rounds = Array.isArray(data.knockout?.rounds) ? data.knockout.rounds : [];
+  host.innerHTML = `
+    ${rounds.map((round, index) => knockoutRoundScreenHtml(data, round, index)).join("")}
+    ${knockoutDesktopGridHtml(data, rounds)}
+  `;
+}
+
+function handleMainSwipeScroll() {
+  if (swipeTrackTimerId !== undefined) {
+    window.clearTimeout(swipeTrackTimerId);
+  }
+  swipeTrackTimerId = window.setTimeout(() => {
+    const settledIndex = mainSwipeSettling ? null : settleMainSwipePosition();
+    trackMainSwipeView(settledIndex);
+  }, 140);
+}
+
+/** @param {number | null} [settledIndex] */
+function trackMainSwipeView(settledIndex = null) {
+  const swipe = document.getElementById("mainSwipe");
+  if (!(swipe instanceof HTMLElement) || swipe.clientWidth <= 0) {
+    return;
+  }
+  const index = settledIndex ?? nearestMainSwipeIndex(swipe);
+  if (index === activeSwipeIndex) {
+    return;
+  }
+  activeSwipeIndex = index;
+  if (index === 0) {
+    trackAnalytics("rules_panel_viewed", {
+      source: "main_swipe",
+      games_played: cachedData?.gamesPlayed,
+    });
+    return;
+  }
+  if (index >= 2) {
+    const screens = mainSwipeScreens(swipe);
+    const screen = screens[index];
+    const roundId = screen instanceof HTMLElement ? screen.dataset.knockoutRoundId || "" : "";
+    const roundLabel = screen instanceof HTMLElement ? screen.dataset.knockoutRoundLabel || "" : "";
+    trackAnalytics("knockout_round_changed", {
+      round_id: roundId,
+      round_label: roundLabel,
+      round_index: index - 2,
+      source: "main_swipe",
+    });
+  }
+}
+
 /** @param {TotoData} data */
 function renderKnockoutQualifiedPanel(data) {
   const rounds = knockoutActualRounds(data);
@@ -1460,10 +1982,9 @@ function renderPredictionsPanel(panel, data) {
 
   const match = predictionMatch(data);
   const stats = match ? predictionStats(data, match) : null;
-  const knockoutHtml = renderKnockoutQualifiedPanel(data);
   if (!match || !stats) {
-    panel.classList.toggle("hidden", !knockoutHtml);
-    panel.innerHTML = knockoutHtml;
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
     return;
   }
 
@@ -1477,7 +1998,6 @@ function renderPredictionsPanel(panel, data) {
     : `<span>${stats.unique.count} players</span>`;
 
   panel.innerHTML = `
-    ${knockoutHtml}
     <div class="predictions-summary glass-panel">
       <div class="predictions-head">
         <div>
@@ -1982,7 +2502,7 @@ function renderHeroMatch(el, data, previewNext = false, showLive = false, animat
     return;
   }
 
-  const liveMatches = showLive ? heroLiveMatches(data) : [];
+  const liveMatches = showLive ? heroLiveMatchesWithKnockout(data) : [];
   if (liveMatches.length > 0) {
     const dual = liveMatches.length > 1;
     el.innerHTML = `
@@ -1995,7 +2515,7 @@ function renderHeroMatch(el, data, previewNext = false, showLive = false, animat
     return;
   }
 
-  const next = nextUnplayedMatch(data);
+  const next = nextPublicUnplayedMatch(data);
   if (next) {
     el.innerHTML = `
       <div class="hero-body-inner">

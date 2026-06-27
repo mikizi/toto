@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://flagcdn.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="css/styles.css?v=57">
+    <link rel="stylesheet" href="css/styles.css?v=85">
     <link rel="manifest" href="manifest.json?v=3">
     <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png?v=3" type="image/png">
     <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png?v=3">
@@ -104,60 +104,118 @@
     </section>
 
     <div id="scoreboardApp" class="scoreboard-app hidden">
-        <section id="predictionsPanel" class="predictions-panel hidden" aria-label="Match predictions"></section>
-
-        <div class="title-row">
-            <h1 class="page-title">World Cup <span class="gold">2026</span> Toto</h1>
-            <span id="gamesBadge" class="games-badge">—</span>
-        </div>
-
-        <div class="desktop-dashboard">
-            <section id="standingsPanel" class="leaderboard glass-panel" aria-label="Leaderboard">
-                <div id="leaderboardTabs" class="lb-tabs" role="tablist" aria-label="Leaderboard filters">
-                    <button type="button" class="lb-tab is-active" role="tab" aria-selected="true" data-leaderboard-tab="full">
-                        Full Standings
-                    </button>
-                    <button type="button" class="lb-tab" role="tab" aria-selected="false" data-leaderboard-tab="following">
-                        Follow
-                    </button>
-                    <button type="button" class="lb-tab" role="tab" aria-selected="false" data-leaderboard-tab="champion">
-                        Same Winner
-                    </button>
+        <div id="mainSwipe" class="main-swipe" aria-label="Scoreboard sections">
+            <section id="rulesSwipePanel" class="swipe-screen rules-screen" aria-label="Rules and prizes" dir="rtl">
+                <div class="rules-panel glass-panel">
+                    <div class="rules-head">
+                        <span class="rules-kicker">חוקים ופרסים</span>
+                        <h2 class="rules-title">טוטו מונדיאל 2026</h2>
+                        <p class="rules-copy">כל הניקוד הרשמי נסגר דרך קובץ האקסל. משחק על המקום השלישי לא מעניק נקודות.</p>
+                    </div>
+                    <div class="rules-grid">
+                        <article class="rules-block">
+                            <h3>פרסים</h3>
+                            <ul>
+                                <li>מקום ראשון: רוב קופת הפרסים</li>
+                                <li>מקום שני ושלישי: לפי החלוקה שתפורסם בקבוצה</li>
+                                <li>מוביל שלב הבתים: פרס נפרד בסיום שלב הבתים</li>
+                            </ul>
+                        </article>
+                        <article class="rules-block">
+                            <h3>שליחת טופס ותשלום</h3>
+                            <ul>
+                                <li>הטופס והתשלום חייבים להיסגר לפני הדדליין הרשמי</li>
+                                <li>טופס שלא שולם בזמן לא נכנס לדירוג</li>
+                                <li>אחרי הדדליין אין שינויי ניחושים</li>
+                            </ul>
+                        </article>
+                        <article class="rules-block">
+                            <h3>ניקוד שלב הבתים</h3>
+                            <ul>
+                                <li>ניחוש מנצחת נכון: 3 נקודות</li>
+                                <li>תוצאה מדויקת: 5 נקודות בסך הכל</li>
+                            </ul>
+                        </article>
+                        <article class="rules-block">
+                            <h3>ניקוד נוקאאוט</h3>
+                            <ul>
+                                <li>עולות ל-32 האחרונות: 5 נקודות</li>
+                                <li>עולות לשמינית: 8 נקודות</li>
+                                <li>עולות לרבע: 18 נקודות</li>
+                                <li>עולות לחצי: 25 נקודות</li>
+                                <li>עולות לגמר: 30 נקודות</li>
+                                <li>זוכה הטורניר: 40 נקודות</li>
+                            </ul>
+                        </article>
+                    </div>
                 </div>
-                <div id="championFilter" class="lb-filter hidden">
-                    <label class="lb-filter-label" for="championFilterSelect">Winner</label>
-                    <select id="championFilterSelect" class="lb-filter-select" aria-label="Filter by final winner pick"></select>
-                </div>
-                <div class="lb-header">
-                    <span class="lb-col lb-col-rank"><span class="lb-h-long">Rank</span><span class="lb-h-short">Rk</span></span>
-                    <span class="lb-col lb-col-trend"><span class="lb-h-long">Last</span><span class="lb-h-short">Last</span></span>
-                    <span class="lb-col lb-col-player"><span class="lb-h-long">Player</span><span class="lb-h-short">Player</span></span>
-                    <span class="lb-col lb-col-pick"><span class="lb-h-long">Pick</span><span class="lb-h-short">Pick</span></span>
-                    <span class="lb-col lb-col-follow" aria-hidden="true"></span>
-                    <span class="lb-col lb-col-pts"><span class="lb-h-long">Pts</span><span class="lb-h-short">Pts</span></span>
-                </div>
-                <div id="betsTable" class="lb-body" aria-label="Standings list"></div>
-                <button id="viewStandingsBtn" type="button" class="btn-standings hidden" aria-expanded="false" aria-controls="betsTable">
-                    View full standings
-                </button>
             </section>
 
-            <aside class="next-games-panel glass-panel" aria-label="Games and results">
-                <h2 class="panel-title">Games &amp; Results</h2>
-                <div class="next-games-scroll-wrap">
-                    <div id="nextGamesScrollHint" class="next-games-scroll-hint hidden" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="18 15 12 9 6 15"/>
-                        </svg>
-                    </div>
-                    <div id="nextGamesScroll" class="next-games-scroll" aria-label="Fixtures and results">
-                        <div id="nextGamesList" class="next-games-list" aria-live="polite"></div>
-                    </div>
+            <section id="scoreboardSwipePanel" class="swipe-screen scoreboard-screen" aria-label="Scoreboard">
+                <section id="predictionsPanel" class="predictions-panel hidden" aria-label="Match predictions"></section>
+
+                <div class="title-row">
+                    <h1 class="page-title">World Cup <span class="gold">2026</span> Toto</h1>
+                    <span id="gamesBadge" class="games-badge">—</span>
                 </div>
-                <button id="viewFixturesBtn" type="button" class="btn-fixtures hidden" aria-expanded="false" aria-controls="nextGamesScroll">
-                    View all fixtures
-                </button>
-            </aside>
+
+                <div class="desktop-dashboard">
+                    <section id="standingsPanel" class="leaderboard glass-panel" aria-label="Leaderboard">
+                        <div id="leaderboardTabs" class="lb-tabs" role="tablist" aria-label="Leaderboard filters">
+                            <button type="button" class="lb-tab is-active" role="tab" aria-selected="true" data-leaderboard-tab="full">
+                                Full Standings
+                            </button>
+                            <button type="button" class="lb-tab" role="tab" aria-selected="false" data-leaderboard-tab="following">
+                                Follow
+                            </button>
+                            <button type="button" class="lb-tab" role="tab" aria-selected="false" data-leaderboard-tab="champion">
+                                Same Winner
+                            </button>
+                        </div>
+                        <div id="championFilter" class="lb-filter hidden">
+                            <label class="lb-filter-label" for="championFilterSelect">Winner</label>
+                            <select id="championFilterSelect" class="lb-filter-select" aria-label="Filter by final winner pick"></select>
+                        </div>
+                        <div class="lb-header">
+                            <span class="lb-col lb-col-rank"><span class="lb-h-long">Rank</span><span class="lb-h-short">Rk</span></span>
+                            <span class="lb-col lb-col-trend"><span class="lb-h-long">Last</span><span class="lb-h-short">Last</span></span>
+                            <span class="lb-col lb-col-player"><span class="lb-h-long">Player</span><span class="lb-h-short">Player</span></span>
+                            <span class="lb-col lb-col-pick"><span class="lb-h-long">Pick</span><span class="lb-h-short">Pick</span></span>
+                            <span class="lb-col lb-col-follow" aria-hidden="true"></span>
+                            <span class="lb-col lb-col-pts"><span class="lb-h-long">Pts</span><span class="lb-h-short">Pts</span></span>
+                        </div>
+                        <div id="betsTable" class="lb-body" aria-label="Standings list"></div>
+                        <button id="viewStandingsBtn" type="button" class="btn-standings hidden" aria-expanded="false" aria-controls="betsTable">
+                            View full standings
+                        </button>
+                    </section>
+
+                    <aside class="next-games-panel glass-panel" aria-label="Games and results">
+                        <h2 class="panel-title">Games &amp; Results</h2>
+                        <div class="next-games-scroll-wrap">
+                            <div id="nextGamesScrollHint" class="next-games-scroll-hint hidden" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="18 15 12 9 6 15"/>
+                                </svg>
+                            </div>
+                            <div id="nextGamesScroll" class="next-games-scroll" aria-label="Fixtures and results">
+                                <div id="nextGamesList" class="next-games-list" aria-live="polite">
+                                    <div class="next-games-skeleton" aria-hidden="true">
+                                        <div class="next-game-skeleton-row"></div>
+                                        <div class="next-game-skeleton-row"></div>
+                                        <div class="next-game-skeleton-row"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="viewFixturesBtn" type="button" class="btn-fixtures hidden" aria-expanded="false" aria-controls="nextGamesScroll">
+                            View all fixtures
+                        </button>
+                    </aside>
+                </div>
+            </section>
+
+            <div id="knockoutSwipeScreens" class="knockout-swipe-screens" aria-label="Knockout rounds"></div>
         </div>
     </div>
 </div>
@@ -220,11 +278,19 @@
     </button>
 </div>
 
+<div id="mobileSwipeHint" class="mobile-swipe-hint hidden" role="dialog" aria-modal="true" aria-labelledby="mobileSwipeHintTitle" aria-describedby="mobileSwipeHintBody" hidden>
+    <div class="mobile-swipe-hint-card glass-panel">
+        <h2 id="mobileSwipeHintTitle" class="mobile-swipe-hint-title">New swipe views</h2>
+        <p id="mobileSwipeHintBody" class="mobile-swipe-hint-body">Swipe right to see knockout status. Swipe left to see rules and prizes.</p>
+        <button id="mobileSwipeHintClose" type="button" class="mobile-swipe-hint-close">Got it</button>
+    </div>
+</div>
+
 <script src="js/flags.js?v=6"></script>
 <script src="js/live.js?v=5"></script>
 <script src="js/analytics.js?v=7"></script>
 <script src="js/ga.js?v=2"></script>
-<script src="js/app.js?v=48"></script>
+<script src="js/app.js?v=65"></script>
 <script src="js/player.js?v=17"></script>
 </body>
 </html>

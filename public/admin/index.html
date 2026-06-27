@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="../css/styles.css?v=12">
+    <link rel="stylesheet" href="../css/styles.css?v=18">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-KPTMQ0C1KJ"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -77,7 +77,7 @@
         <nav class="admin-tabs" role="tablist" aria-label="Admin sections">
             <button type="button" class="admin-tab is-active" role="tab" id="tabBtnMatch" aria-selected="true" aria-controls="tabPanelMatch" data-tab="match">Match</button>
             <button type="button" class="admin-tab" role="tab" id="tabBtnPlayers" aria-selected="false" aria-controls="tabPanelPlayers" data-tab="players">Players</button>
-            <button type="button" class="admin-tab" role="tab" id="tabBtnApi" aria-selected="false" aria-controls="tabPanelApi" data-tab="api">API</button>
+            <button type="button" class="admin-tab" role="tab" id="tabBtnKnockout" aria-selected="false" aria-controls="tabPanelKnockout" data-tab="knockout">Knockout</button>
             <button type="button" class="admin-tab" role="tab" id="tabBtnStandings" aria-selected="false" aria-controls="tabPanelStandings" data-tab="standings">Standings</button>
         </nav>
 
@@ -192,6 +192,23 @@
                 <p id="registrationClosedMsg" class="admin-empty-state hidden">Registration is closed.</p>
             </section>
 
+            <section id="tabPanelKnockout" class="admin-tab-panel hidden" role="tabpanel" aria-labelledby="tabBtnKnockout" hidden>
+                <section class="admin-panel admin-knockout-panel" aria-label="Knockout fixtures">
+                    <div class="admin-panel-head admin-panel-head--knockout">
+                        <div>
+                            <h2 class="admin-panel-title">Knockout</h2>
+                            <p class="admin-panel-sub">Lock teams · update live score · confirm advancing teams</p>
+                        </div>
+                        <div class="admin-knockout-head-actions">
+                            <button id="syncKnockoutFixturesBtn" type="button" class="btn-refresh btn-refresh--compact">Fill from ESPN</button>
+                            <button id="applyR32ScoringBtn" type="button" class="btn-gold btn-gold--compact">Apply R32 points</button>
+                        </div>
+                    </div>
+                    <p id="knockoutMsg" class="admin-msg admin-panel-msg" role="status" aria-live="polite"></p>
+                    <div id="knockoutList" class="admin-knockout-list" role="list"></div>
+                </section>
+            </section>
+
             <section id="tabPanelStandings" class="admin-tab-panel hidden" role="tabpanel" aria-labelledby="tabBtnStandings" hidden>
                 <section class="admin-panel admin-lb-panel" aria-label="Leaderboard">
                     <div class="admin-panel-head">
@@ -199,20 +216,6 @@
                         <p class="admin-panel-sub">Preview after results are published</p>
                     </div>
                     <div id="leaderboardList" class="admin-lb-list"></div>
-                </section>
-            </section>
-
-            <section id="tabPanelApi" class="admin-tab-panel hidden" role="tabpanel" aria-labelledby="tabBtnApi" hidden>
-                <section class="admin-panel admin-api-panel" aria-label="API score data">
-                    <div class="admin-panel-head admin-api-head">
-                        <div>
-                            <h2 class="admin-panel-title">API Data</h2>
-                            <p id="apiScoresSummary" class="admin-panel-sub">ESPN score check is read-only</p>
-                        </div>
-                        <button id="refreshApiScoresBtn" type="button" class="btn-refresh btn-refresh--compact">Refresh</button>
-                    </div>
-                    <p id="apiScoresMsg" class="admin-msg admin-panel-msg" role="status" aria-live="polite"></p>
-                    <div id="apiScoresList" class="admin-api-list" role="list"></div>
                 </section>
             </section>
         </div>
@@ -228,6 +231,6 @@
 <script src="../js/live.js?v=5"></script>
 <script src="../js/analytics.js?v=7"></script>
 <script src="../js/ga.js?v=2"></script>
-<script src="admin.js?v=15"></script>
+<script src="admin.js?v=23"></script>
 </body>
 </html>

@@ -55,6 +55,11 @@ The admin page uses a shared password, so it must not identify admins as a share
 | `registration_saved` | Local API or worker accepts registration update | `player_count`, `prize_pool`, `save_mode` | `public/admin/admin.js` |
 | `workbook_downloaded` | Workbook download succeeds | `admin_mode` | `public/admin/admin.js` |
 | `workbook_uploaded` | Workbook upload succeeds | `file_size_bytes`, `admin_mode` | `public/admin/admin.js` |
+| `knockout_round_changed` | User swipes to a knockout round on the main or player page | `round_id`, `round_label`, `round_index`, `source` | `public/js/app.js`, `public/js/player-page.js` |
+| `rules_panel_viewed` | User swipes to the rules/prizes panel | `source`, `games_played` | `public/js/app.js` |
+| `knockout_fixture_locked` | Admin locks a knockout fixture team pairing | `match_id`, `home_team`, `away_team`, `winner` | `public/admin/admin.js` |
+| `knockout_live_changed` | Admin starts, updates, or stops a knockout live score | `match_id`, `home_team`, `away_team`, `winner` | `public/admin/admin.js` |
+| `knockout_winner_confirmed` | Admin confirms the advancing knockout team | `match_id`, `home_team`, `away_team`, `winner` | `public/admin/admin.js` |
 
 ## Rules For Future Events
 

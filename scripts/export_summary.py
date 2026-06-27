@@ -13,6 +13,16 @@ from typing import Any
 import openpyxl
 
 from scripts.live_state import DEFAULT_BROADCAST, normalize_broadcast
+from scripts.knockout import (
+    KNOCKOUT_ROUNDS,
+    QUALIFIER_ROUND_BY_MATCH_ROUND,
+    apply_live_knockout_points,
+    is_placeholder_fixture_team,
+    normalize_knockout_state,
+    read_actual_qualifiers,
+    read_player_knockout_picks,
+    round_defs,
+)
 from scripts.paths import DATA_DIR, LATEST_PATH, VERSION_PATH, VERSIONS_DIR, XLSX_PATH
 from scripts.registration import normalize_registration
 
@@ -37,51 +47,6 @@ MATCH_RESULT_POINTS = 3.0
 EXACT_SCORE_POINTS = 2.0
 LATE_JOINER_PREFIX = "N_"
 LATE_JOINER_BASELINE_MATCH_COUNT = 24
-KNOCKOUT_ROUNDS = (
-    {
-        "id": "r32",
-        "label": "Round of 32",
-        "range": "P4:P35",
-        "expected": 32,
-        "points": 5,
-    },
-    {
-        "id": "r16",
-        "label": "Round of 16",
-        "range": "R4:R19",
-        "expected": 16,
-        "points": 8,
-    },
-    {
-        "id": "quarter",
-        "label": "Quarter-finals",
-        "range": "R22:R29",
-        "expected": 8,
-        "points": 8,
-    },
-    {
-        "id": "semi",
-        "label": "Semi-finals",
-        "range": "R32:R35",
-        "expected": 4,
-        "points": 18,
-    },
-    {
-        "id": "final",
-        "label": "Final",
-        "range": "R38:R39",
-        "expected": 2,
-        "points": 25,
-    },
-    {
-        "id": "champion",
-        "label": "Winner",
-        "range": "R42:R42",
-        "expected": 1,
-        "points": 30,
-    },
-)
-
 
 def _kickoff_to_iso(value: object) -> str | None:
     """Convert Excel kickoff cell to UTC ISO-8601 string."""
@@ -231,27 +196,138 @@ def _read_cell_range_text(
 
 def _read_knockout(
     ws: openpyxl.worksheet.worksheet.Worksheet,
+    previous: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Read actual knockout qualifiers entered in the Summary sheet."""
-    rounds = [
-        {
-            "id": round_def["id"],
-            "label": round_def["label"],
-            "expected": round_def["expected"],
-            "points": round_def["points"],
-        }
-        for round_def in KNOCKOUT_ROUNDS
-    ]
-    return {
-        "rounds": rounds,
-        "actual": {
-            str(round_def["id"]): _read_cell_range_text(ws, str(round_def["range"]))
-            for round_def in KNOCKOUT_ROUNDS
-        },
+    previous_knockout = previous.get("knockout") if previous else None
+    knockout = normalize_knockout_state(previous_knockout)
+    actual = read_actual_qualifiers(ws)
+    scoring_applied = knockout.get("scoringApplied") if isinstance(knockout.get("scoringApplied"), dict) else {}
+    scoring_applied["r32"] = bool(scoring_applied.get("r32") or len(actual.get("r32", [])) >= 32)
+    knockout.update({
+        "rounds": round_defs(),
+        "actual": actual,
+        "scoringApplied": scoring_applied,
         "points": {
             str(round_def["id"]): round_def["points"]
             for round_def in KNOCKOUT_ROUNDS
         },
+    })
+    return knockout
+
+
+def _tournament_teams(matches: list[dict[str, Any]]) -> list[str]:
+    teams: dict[str, str] = {}
+    for match in matches:
+        for side in ("home", "away"):
+            team = _cell_text(match.get(side))
+            if team:
+                teams.setdefault(team.casefold(), team)
+    return sorted(teams.values(), key=str.casefold)
+
+
+def _concrete_team(value: object) -> str | None:
+    team = _cell_text(value)
+    if not team or is_placeholder_fixture_team(team):
+        return None
+    return team
+
+
+def _match_api_winner(match: dict[str, Any]) -> str | None:
+    if str(match.get("apiState") or "").lower() != "post":
+        return None
+    home = _concrete_team(match.get("apiHome") or match.get("home"))
+    away = _concrete_team(match.get("apiAway") or match.get("away"))
+    if not home or not away:
+        return None
+    try:
+        home_score = int(match.get("apiHomeScore"))
+        away_score = int(match.get("apiAwayScore"))
+    except (TypeError, ValueError):
+        return None
+    if home_score == away_score:
+        return None
+    return home if home_score > away_score else away
+
+
+def _match_winner(match: dict[str, Any]) -> str | None:
+    return _concrete_team(match.get("winner")) or _match_api_winner(match)
+
+
+def _match_loser(match: dict[str, Any], winner: str) -> str | None:
+    home = _concrete_team(match.get("home") or match.get("apiHome"))
+    away = _concrete_team(match.get("away") or match.get("apiAway"))
+    if home == winner and away:
+        return away
+    if away == winner and home:
+        return home
+    return None
+
+
+def _round_qualifier_sets(knockout: dict[str, Any]) -> dict[str, set[str]]:
+    actual = knockout.get("actual") if isinstance(knockout.get("actual"), dict) else {}
+    qualifiers: dict[str, set[str]] = {
+        str(round_def["id"]): {
+            team
+            for value in actual.get(str(round_def["id"]), [])
+            if (team := _concrete_team(value))
+        }
+        for round_def in KNOCKOUT_ROUNDS
+    }
+    for match in knockout.get("matches") or []:
+        if not isinstance(match, dict):
+            continue
+        if match.get("roundId") == "r32_match":
+            for side in ("home", "away", "apiHome", "apiAway"):
+                team = _concrete_team(match.get(side))
+                if team:
+                    qualifiers.setdefault("r32", set()).add(team)
+        target_round = QUALIFIER_ROUND_BY_MATCH_ROUND.get(str(match.get("roundId") or ""))
+        winner = _match_winner(match)
+        if target_round and winner:
+            qualifiers.setdefault(target_round, set()).add(winner)
+    return qualifiers
+
+
+def _knockout_eliminated(
+    knockout: dict[str, Any],
+    matches: list[dict[str, Any]],
+) -> dict[str, list[str]]:
+    qualifiers = _round_qualifier_sets(knockout)
+    eliminated: dict[str, set[str]] = {str(round_def["id"]): set() for round_def in KNOCKOUT_ROUNDS}
+    tournament_teams = set(_tournament_teams(matches))
+
+    r32 = qualifiers.get("r32", set())
+    r32_expected = int(KNOCKOUT_ROUNDS[0]["expected"])
+    if len(r32) >= r32_expected:
+        eliminated["r32"].update(team for team in tournament_teams if team not in r32)
+
+    for match in knockout.get("matches") or []:
+        if not isinstance(match, dict):
+            continue
+        target_round = QUALIFIER_ROUND_BY_MATCH_ROUND.get(str(match.get("roundId") or ""))
+        winner = _match_winner(match)
+        if not target_round or not winner:
+            continue
+        loser = _match_loser(match, winner)
+        if loser:
+            eliminated.setdefault(target_round, set()).add(loser)
+
+    round_order = [str(round_def["id"]) for round_def in KNOCKOUT_ROUNDS]
+    for index in range(1, len(round_order)):
+        previous_round = round_order[index - 1]
+        round_id = round_order[index]
+        current = qualifiers.get(round_id, set())
+        expected = int(KNOCKOUT_ROUNDS[index]["expected"])
+        if len(current) >= expected:
+            eliminated[round_id].update(
+                team for team in qualifiers.get(previous_round, set()) if team not in current
+            )
+
+    return {
+        round_id: sorted(teams, key=str.casefold)
+        for round_id, teams in eliminated.items()
+        if teams
     }
 
 
@@ -541,8 +617,15 @@ def _read_leaderboard(
     ws_data: openpyxl.worksheet.worksheet.Worksheet,
     wb_formulas: openpyxl.Workbook,
     matches: list[dict[str, Any]],
+    knockout_actual: dict[str, list[str]],
 ) -> list[dict[str, Any]]:
-    raw_by_name = _read_raw_leaderboard_by_name(wb_data, ws_data, wb_formulas, matches)
+    raw_by_name = _read_raw_leaderboard_by_name(
+        wb_data,
+        ws_data,
+        wb_formulas,
+        matches,
+        knockout_actual,
+    )
     visible_rows = _read_visible_summary_leaderboard(ws_data, raw_by_name)
     public_raw_count = sum(
         1 for entry in raw_by_name.values() if not _is_test_user(entry["name"])
@@ -567,6 +650,7 @@ def _read_raw_leaderboard_by_name(
     ws_data: openpyxl.worksheet.worksheet.Worksheet,
     wb_formulas: openpyxl.Workbook,
     matches: list[dict[str, Any]],
+    knockout_actual: dict[str, list[str]],
 ) -> dict[str, dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     raw_start = (_summary_raw_header_row(ws_data) or (USER_ROW_START - 1)) + 1
@@ -610,6 +694,11 @@ def _read_raw_leaderboard_by_name(
             if sheet_name is not None
             else []
         )
+        knockout_picks = (
+            read_player_knockout_picks(wb_formulas[sheet_name], knockout_actual)
+            if sheet_name is not None
+            else []
+        )
         rows.append(
             {
                 "id": str(uid or ""),
@@ -619,6 +708,8 @@ def _read_raw_leaderboard_by_name(
                 "rankLabel": str(rank) if rank is not None else None,
                 "champion": champion,
                 "picks": picks,
+                "knockoutPicks": knockout_picks,
+                "knockoutPoints": sum(int(item.get("points") or 0) for item in knockout_picks),
                 "summaryOrder": row,
             }
         )
@@ -694,6 +785,8 @@ def _read_visible_summary_leaderboard(
                 "rankLabel": rank_label,
                 "champion": champion or raw.get("champion"),
                 "picks": raw.get("picks") or [],
+                "knockoutPicks": raw.get("knockoutPicks") or [],
+                "knockoutPoints": raw.get("knockoutPoints") or 0,
             }
         )
     return rows
@@ -793,7 +886,16 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
     ws = wb_data[SUMMARY]
     kickoffs = _read_match_kickoffs(wb_data)
     matches = _read_matches(ws, kickoffs)
-    raw_leaderboard = _read_leaderboard(wb_data, ws, wb_formulas, matches)
+    knockout = _read_knockout(ws, previous)
+    knockout["eliminated"] = _knockout_eliminated(knockout, matches)
+    knockout_actual = knockout.get("actual") if isinstance(knockout.get("actual"), dict) else {}
+    raw_leaderboard = _read_leaderboard(
+        wb_data,
+        ws,
+        wb_formulas,
+        matches,
+        knockout_actual,
+    )
     leaderboard = _public_leaderboard(raw_leaderboard, previous)
     version = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     played_count = sum(1 for m in matches if m["played"])
@@ -806,17 +908,19 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
             "users": [entry["name"] for entry in leaderboard if entry.get("name")]
         }
     registration = normalize_registration(previous_registration, matches)
-    return {
+    payload = {
         "version": version,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "gamesPlayed": played_count,
         "lastResult": _last_result(matches),
         "leaderboard": leaderboard,
         "matches": matches,
-        "knockout": _read_knockout(ws),
+        "knockout": knockout,
         "broadcast": broadcast,
         "registration": registration,
     }
+    apply_live_knockout_points(payload)
+    return payload
 
 
 def write_export(

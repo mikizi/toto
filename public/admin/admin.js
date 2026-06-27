@@ -5,6 +5,7 @@ const LOCAL_API = "http://127.0.0.1:8090/publish";
 const LOCAL_RESTORE_API = "http://127.0.0.1:8090/restore";
 const LOCAL_BROADCAST_API = "http://127.0.0.1:8090/broadcast";
 const LOCAL_REGISTRATION_API = "http://127.0.0.1:8090/registration";
+const LOCAL_KNOCKOUT_API = "http://127.0.0.1:8090/knockout";
 const LOCAL_XLSX_API = "http://127.0.0.1:8090/xlsx";
 const LOCAL_API_SCORES_URL = "http://127.0.0.1:8090/api-scores";
 const XLSX_FILENAME = "Master WorldCup26.xlsx";
@@ -16,6 +17,8 @@ const BROADCAST_PROXY_URL =
   "https://toto-admin-publish.mikizi-toto.workers.dev/broadcast";
 const REGISTRATION_PROXY_URL =
   "https://toto-admin-publish.mikizi-toto.workers.dev/registration";
+const KNOCKOUT_PROXY_URL =
+  "https://toto-admin-publish.mikizi-toto.workers.dev/knockout";
 const XLSX_PROXY_URL = "https://toto-admin-publish.mikizi-toto.workers.dev/xlsx";
 const ADMIN_PASSWORD_STORAGE_KEY = "wc26-admin-password";
 
@@ -25,6 +28,7 @@ const IS_LOCAL =
 /** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt?: string | null }} AdminMatch */
 /** @typedef {{ mode: string, openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ users: string[], count: number, entryFee: number, goalUsers: number, goalPrize: number, prizePool: number, closesAt: string | null }} RegistrationState */
+/** @typedef {{ id: number, roundId: string, roundLabel: string, kickoffAt: string, homeSlot: string, awaySlot: string, home: string, away: string, homeScore: number | null, awayScore: number | null, isLive: boolean, isLocked: boolean, winner: string, isScoring: boolean, apiSource?: string, apiEventId?: string, apiHome?: string, apiAway?: string, apiKickoffAt?: string, apiState?: string }} KnockoutMatch */
 
 /** @type {AdminMatch[]} */
 let cachedMatches = [];
@@ -35,10 +39,13 @@ let cachedBroadcast = null;
 /** @type {RegistrationState | null} */
 let cachedRegistration = null;
 
+/** @type {{ matches?: KnockoutMatch[], actual?: Record<string, string[]> } | null} */
+let cachedKnockout = null;
+
 /** @type {number | null} */
 let selectedMatchId = null;
 
-/** @type {"match" | "players" | "api" | "standings"} */
+/** @type {"match" | "players" | "knockout" | "standings"} */
 let activeAdminTab = "match";
 
 /** @type {string[]} */
@@ -84,15 +91,19 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("modeBannerToggle")?.addEventListener("click", toggleModeBanner);
   document.getElementById("matchesList")?.addEventListener("click", onMatchesListClick);
   document.getElementById("matchesList")?.addEventListener("keydown", onMatchesListKeydown);
+  document.getElementById("knockoutList")?.addEventListener("click", onKnockoutListClick);
+  document.getElementById("syncKnockoutFixturesBtn")?.addEventListener("click", () => {
+    void postKnockoutAction({ action: "sync_fixtures" }, document.getElementById("knockoutMsg"));
+  });
+  document.getElementById("applyR32ScoringBtn")?.addEventListener("click", () => {
+    void postKnockoutAction({ action: "apply_r32_scoring" }, document.getElementById("knockoutMsg"));
+  });
   document.getElementById("saveRegBtn")?.addEventListener("click", saveRegistration);
   document.getElementById("addRegPlayerBtn")?.addEventListener("click", addRegistrationNameFromInput);
   document.getElementById("regPlayerNameInput")?.addEventListener("keydown", onRegistrationNameKeydown);
   document.getElementById("regPlayerNameInput")?.addEventListener("paste", onRegistrationNamePaste);
   document.getElementById("regPlayerChips")?.addEventListener("click", onRegistrationChipClick);
   initAdminBackToTopButton();
-  document.getElementById("refreshApiScoresBtn")?.addEventListener("click", () => {
-    void loadApiScores();
-  });
   document.querySelectorAll(".admin-tab").forEach((btn) => {
     btn.addEventListener("click", onAdminTabClick);
   });
@@ -110,30 +121,27 @@ function onAdminTabClick(event) {
     return;
   }
   const tab = btn.getAttribute("data-tab");
-  if (tab === "match" || tab === "players" || tab === "api" || tab === "standings") {
+  if (tab === "match" || tab === "players" || tab === "knockout" || tab === "standings") {
     setAdminTab(tab);
-    if (tab === "api") {
-      void loadApiScores();
-    }
     trackAdminAnalytics("admin_tab_changed", {
       tab_name: tab,
     });
   }
 }
 
-/** @param {"match" | "players" | "api" | "standings"} tab */
+/** @param {"match" | "players" | "knockout" | "standings"} tab */
 function setAdminTab(tab) {
   activeAdminTab = tab;
   const panels = {
     match: document.getElementById("tabPanelMatch"),
     players: document.getElementById("tabPanelPlayers"),
-    api: document.getElementById("tabPanelApi"),
+    knockout: document.getElementById("tabPanelKnockout"),
     standings: document.getElementById("tabPanelStandings"),
   };
   const buttons = {
     match: document.getElementById("tabBtnMatch"),
     players: document.getElementById("tabBtnPlayers"),
-    api: document.getElementById("tabBtnApi"),
+    knockout: document.getElementById("tabBtnKnockout"),
     standings: document.getElementById("tabBtnStandings"),
   };
   for (const key of Object.keys(panels)) {
@@ -290,9 +298,11 @@ async function loadData() {
     cachedMatches = data.matches;
     cachedBroadcast = normalizeBroadcast(data.broadcast);
     cachedRegistration = normalizeRegistration(data.registration, data.matches);
+    cachedKnockout = data.knockout || null;
     renderAutopilotToggle(cachedBroadcast);
     renderRegistration(cachedRegistration);
     renderMatches(data.matches, cachedBroadcast);
+    renderKnockout(cachedKnockout);
     renderLeaderboard(data.leaderboard);
     if (status) {
       status.textContent = `${data.gamesPlayed} game(s) played · version ${data.version}`;
@@ -709,6 +719,226 @@ function renderMatches(matches, broadcast) {
       </article>`;
     })
     .join("");
+}
+
+/** @returns {string[]} */
+function adminTeamOptions() {
+  const flagMap = typeof TEAM_FLAGS === "object" && TEAM_FLAGS ? TEAM_FLAGS : {};
+  const teams = new Set(Object.keys(flagMap));
+  for (const match of cachedMatches || []) {
+    if (match.home) {
+      teams.add(match.home);
+    }
+    if (match.away) {
+      teams.add(match.away);
+    }
+  }
+  const actual = cachedKnockout?.actual || {};
+  for (const values of Object.values(actual)) {
+    if (Array.isArray(values)) {
+      values.forEach((team) => team && teams.add(String(team)));
+    }
+  }
+  for (const match of cachedKnockout?.matches || []) {
+    if (match.home) {
+      teams.add(match.home);
+    }
+    if (match.away) {
+      teams.add(match.away);
+    }
+    if (match.apiHome) {
+      teams.add(match.apiHome);
+    }
+    if (match.apiAway) {
+      teams.add(match.apiAway);
+    }
+  }
+  return [...teams].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * @param {string} value
+ * @param {string} label
+ * @param {string[]} teams
+ */
+function adminTeamSelectHtml(value, label, teams) {
+  return `<label class="admin-sr-only">${escapeHtml(label)}</label>
+    <select class="admin-knockout-team-select" data-field="${escapeAttribute(label)}">
+      <option value="">${escapeHtml(label)}</option>
+      ${teams.map((team) => `<option value="${escapeAttribute(team)}"${team === value ? " selected" : ""}>${escapeHtml(team)}</option>`).join("")}
+    </select>`;
+}
+
+/** @param {{ matches?: KnockoutMatch[] } | null} knockout */
+function renderKnockout(knockout) {
+  const list = document.getElementById("knockoutList");
+  if (!list) {
+    return;
+  }
+  const applyR32Btn = document.getElementById("applyR32ScoringBtn");
+  const r32Applied = Boolean(knockout?.scoringApplied?.r32);
+  if (applyR32Btn instanceof HTMLButtonElement) {
+    applyR32Btn.disabled = r32Applied;
+    applyR32Btn.textContent = r32Applied ? "R32 points applied" : "Apply R32 points";
+  }
+  const matches = Array.isArray(knockout?.matches)
+    ? orderedAdminMatches(knockout.matches)
+    : [];
+  if (!matches.length) {
+    list.innerHTML = '<p class="admin-empty-state">No knockout fixtures loaded yet.</p>';
+    return;
+  }
+  const teams = adminTeamOptions();
+  list.innerHTML = matches
+    .map((match) => {
+      const scoreHome = match.homeScore === null || match.homeScore === undefined ? "" : String(match.homeScore);
+      const scoreAway = match.awayScore === null || match.awayScore === undefined ? "" : String(match.awayScore);
+      const locked = match.isLocked ? "Locked" : "Draft";
+      const live = match.isLive ? '<span class="admin-match-live-badge">LIVE</span>' : "";
+      const winnerOptions = [match.home, match.away].filter(Boolean);
+      const apiMeta = match.apiSource || match.apiEventId
+        ? `<div class="admin-knockout-api-meta">
+            <span>${escapeHtml(match.apiSource || "API")}${match.apiEventId ? ` ${escapeHtml(match.apiEventId)}` : ""}</span>
+            <span>${escapeHtml([match.apiHome, match.apiAway].filter(Boolean).join(" vs ") || "No API teams yet")}</span>
+          </div>`
+        : "";
+      return `<article class="admin-knockout-card${match.isLive ? " is-live" : ""}${match.winner ? " is-played" : ""}" data-knockout-match-id="${match.id}" role="listitem">
+        <div class="admin-knockout-card-head">
+          <div>
+            <span class="admin-match-num">#${match.id}</span>
+            <span class="admin-knockout-round">${escapeHtml(match.roundLabel)}</span>
+            ${live}
+          </div>
+          <span class="admin-knockout-date">${escapeHtml(apiKickoffLabel(match.kickoffAt))}</span>
+          <span class="admin-knockout-state">${escapeHtml(locked)}</span>
+        </div>
+        ${apiMeta}
+        <div class="admin-knockout-teams">
+          ${adminTeamSelectHtml(match.home || "", match.homeSlot || "Home", teams)}
+          <span class="admin-score-sep" aria-hidden="true">vs</span>
+          ${adminTeamSelectHtml(match.away || "", match.awaySlot || "Away", teams)}
+        </div>
+        <div class="admin-knockout-controls">
+          <input class="admin-score-input admin-knockout-score" data-score-side="home" type="number" min="0" max="99" placeholder="0" value="${escapeHtml(scoreHome)}" aria-label="Home score">
+          <span class="admin-score-sep" aria-hidden="true">–</span>
+          <input class="admin-score-input admin-knockout-score" data-score-side="away" type="number" min="0" max="99" placeholder="0" value="${escapeHtml(scoreAway)}" aria-label="Away score">
+          <select class="admin-knockout-winner" aria-label="Advancing team">
+            <option value="">Advancing team</option>
+            ${winnerOptions.map((team) => `<option value="${escapeAttribute(team)}"${team === match.winner ? " selected" : ""}>${escapeHtml(team)}</option>`).join("")}
+          </select>
+        </div>
+        <div class="admin-knockout-actions">
+          <button type="button" class="btn-refresh btn-refresh--compact" data-knockout-action="lock_fixture">Lock fixture</button>
+          <button type="button" class="btn-refresh btn-refresh--compact" data-knockout-action="live_score">Live score</button>
+          <button type="button" class="btn-refresh btn-refresh--compact" data-knockout-action="stop_live">Stop live</button>
+          <button type="button" class="btn-gold btn-gold--compact" data-knockout-action="confirm_winner">Confirm advancing team</button>
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+
+/** @param {MouseEvent} event */
+function onKnockoutListClick(event) {
+  const button = event.target instanceof Element ? event.target.closest("[data-knockout-action]") : null;
+  if (!(button instanceof HTMLButtonElement)) {
+    return;
+  }
+  const card = button.closest("[data-knockout-match-id]");
+  if (!(card instanceof HTMLElement)) {
+    return;
+  }
+  const action = button.getAttribute("data-knockout-action") || "";
+  const matchId = Number(card.getAttribute("data-knockout-match-id"));
+  const selects = card.querySelectorAll(".admin-knockout-team-select");
+  const home = selects[0] instanceof HTMLSelectElement ? selects[0].value : "";
+  const away = selects[1] instanceof HTMLSelectElement ? selects[1].value : "";
+  const homeScoreInput = card.querySelector('[data-score-side="home"]');
+  const awayScoreInput = card.querySelector('[data-score-side="away"]');
+  const winnerSelect = card.querySelector(".admin-knockout-winner");
+  const payload = {
+    action,
+    matchId,
+    home,
+    away,
+    homeScore: homeScoreInput instanceof HTMLInputElement && homeScoreInput.value !== "" ? Number(homeScoreInput.value) : undefined,
+    awayScore: awayScoreInput instanceof HTMLInputElement && awayScoreInput.value !== "" ? Number(awayScoreInput.value) : undefined,
+    winner: winnerSelect instanceof HTMLSelectElement ? winnerSelect.value : "",
+  };
+  void postKnockoutAction(payload, document.getElementById("knockoutMsg"));
+}
+
+/**
+ * @param {Record<string, unknown>} payload
+ * @param {HTMLElement | null} msg
+ */
+async function postKnockoutAction(payload, msg) {
+  setMessage(msg, "Updating knockout…", "");
+  try {
+    let response;
+    if (IS_LOCAL) {
+      response = await fetch(LOCAL_KNOCKOUT_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      const password = getSavedAdminPassword();
+      if (!password) {
+        showLoginScreen("Sign in to update knockout.");
+        return;
+      }
+      response = await fetch(KNOCKOUT_PROXY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Password": password,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (response.status === 401) {
+        clearSavedAdminPassword();
+        showLoginScreen("Wrong password. Try again.");
+        return;
+      }
+    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    const eventName = payload.action === "lock_fixture"
+      ? "knockout_fixture_locked"
+      : payload.action === "confirm_winner"
+        ? "knockout_winner_confirmed"
+        : payload.action === "live_score" || payload.action === "stop_live"
+          ? "knockout_live_changed"
+          : "";
+    if (eventName) {
+      trackAdminAnalytics(eventName, {
+        match_id: payload.matchId,
+        home_team: payload.home || "",
+        away_team: payload.away || "",
+        winner: payload.winner || "",
+      });
+    }
+    if (IS_LOCAL) {
+      await loadData();
+      const successMessage = payload.action === "sync_fixtures"
+        ? "ESPN fixtures filled as draft. Review each card, then lock the correct fixtures."
+        : "Knockout updated.";
+      setMessage(msg, successMessage, "success");
+    } else {
+      setMessage(msg, "Queued. Refresh in ~1 min to verify.", "success");
+    }
+  } catch (err) {
+    console.error(err);
+    setMessage(msg, `Knockout update failed. ${err instanceof Error ? err.message : ""}`, "error");
+  }
+}
+
+/** @param {string} text */
+function escapeAttribute(text) {
+  return escapeHtml(String(text)).replace(/"/g, "&quot;");
 }
 
 /** @param {Array<{ rank: number | null, name: string, points: number }>} leaderboard */

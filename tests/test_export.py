@@ -13,6 +13,7 @@ from scripts.export_summary import (
     _cell_int,
     _cell_number,
     _cell_text,
+    _knockout_eliminated,
     _movement,
     _reconstructed_summary_leaderboard,
     _read_knockout,
@@ -86,6 +87,68 @@ class TestKnockoutExport(unittest.TestCase):
         self.assertEqual(knockout["actual"]["r16"], ["Brazil"])
         self.assertEqual(knockout["actual"]["champion"], ["France"])
         self.assertEqual(knockout["points"]["r32"], 5)
+
+    def test_knockout_eliminated_uses_api_r32_qualifiers(self) -> None:
+        knockout = {
+            "actual": {},
+            "matches": [
+                {
+                    "id": 73,
+                    "roundId": "r32_match",
+                    "apiHome": "France",
+                    "apiAway": "Brazil",
+                },
+                {
+                    "id": 74,
+                    "roundId": "r32_match",
+                    "apiHome": "Germany",
+                    "apiAway": "Canada",
+                },
+            ],
+        }
+        matches = [
+            {"home": "France", "away": "Brazil"},
+            {"home": "Germany", "away": "Canada"},
+            {"home": "Mexico", "away": "Norway"},
+        ]
+
+        eliminated = _knockout_eliminated(knockout, matches)
+
+        self.assertNotIn("r32", eliminated)
+
+        for index in range(14):
+            knockout["matches"].append(
+                {
+                    "id": 75 + index,
+                    "roundId": "r32_match",
+                    "apiHome": f"Qualified {index}A",
+                    "apiAway": f"Qualified {index}B",
+                }
+            )
+
+        eliminated = _knockout_eliminated(knockout, matches)
+
+        self.assertEqual(eliminated["r32"], ["Mexico", "Norway"])
+
+    def test_knockout_eliminated_uses_api_post_match_loser(self) -> None:
+        knockout = {
+            "actual": {},
+            "matches": [
+                {
+                    "id": 73,
+                    "roundId": "r32_match",
+                    "home": "France",
+                    "away": "Brazil",
+                    "apiState": "post",
+                    "apiHomeScore": 2,
+                    "apiAwayScore": 1,
+                }
+            ],
+        }
+
+        eliminated = _knockout_eliminated(knockout, [])
+
+        self.assertEqual(eliminated["r16"], ["Brazil"])
 
     def test_user_points_prefers_cached_summary_total(self) -> None:
         import openpyxl
@@ -249,7 +312,7 @@ class TestExportFromXlsx(unittest.TestCase):
             ["r32", "r16", "quarter", "semi", "final", "champion"],
         )
         self.assertEqual(knockout["rounds"][0]["expected"], 32)
-        self.assertEqual(knockout["points"]["champion"], 30)
+        self.assertEqual(knockout["points"]["champion"], 40)
 
     def test_build_export_has_unique_scheduled_matches(self) -> None:
         payload = self.payload
