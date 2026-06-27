@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="../css/styles.css?v=86">
+    <link rel="stylesheet" href="../css/styles.css?v=89">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-KPTMQ0C1KJ"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -193,11 +193,29 @@
             </section>
 
             <section id="tabPanelKnockout" class="admin-tab-panel hidden" role="tabpanel" aria-labelledby="tabBtnKnockout" hidden>
+                <div class="admin-publish-sticky admin-knockout-publish-sticky">
+                    <section class="admin-publish-card admin-knockout-publish-card">
+                        <form id="knockoutPublishForm" class="admin-publish-form">
+                            <div class="admin-publish-bar">
+                                <div class="admin-publish-meta">
+                                    <div class="admin-publish-bar-label">
+                                        <span class="admin-publish-label">Publish</span>
+                                        <span id="knockoutModeBadge" class="admin-mode-chip"></span>
+                                        <span id="knockoutPublishNum" class="admin-publish-num" aria-live="polite">—</span>
+                                    </div>
+                                </div>
+                                <div id="knockoutPublishRow" class="admin-publish-match-list is-empty"></div>
+                                <button id="knockoutPublishBtn" type="submit" class="btn-gold btn-gold--publish">Publish</button>
+                            </div>
+                            <p id="knockoutPublishEmpty" class="admin-publish-hint">Pick a knockout match below</p>
+                        </form>
+                    </section>
+                </div>
                 <section class="admin-panel admin-knockout-panel" aria-label="Knockout fixtures">
                     <div class="admin-panel-head admin-panel-head--knockout">
                         <div>
                             <h2 class="admin-panel-title">Knockout</h2>
-                            <p class="admin-panel-sub">Lock teams · update live score · confirm advancing teams</p>
+                            <p class="admin-panel-sub">Tap to publish · edit teams from the top card</p>
                         </div>
                         <div class="admin-knockout-head-actions">
                             <button id="syncKnockoutFixturesBtn" type="button" class="btn-refresh btn-refresh--compact">Fill from ESPN</button>
@@ -231,6 +249,6 @@
 <script src="../js/live.js?v=5"></script>
 <script src="../js/analytics.js?v=7"></script>
 <script src="../js/ga.js?v=2"></script>
-<script src="admin.js?v=25"></script>
+<script src="admin.js?v=29"></script>
 </body>
 </html>
