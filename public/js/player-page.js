@@ -415,6 +415,18 @@ function playerKnockoutCorrectSummary(picks, visualResultSets, eliminatedSets, r
   }, { correct: 0, decided: 0 });
 }
 
+/** @param {string} roundId */
+function playerKnockoutRoundBadge(roundId) {
+  const labels = {
+    r32: "32",
+    r16: "16",
+    quarter: "QF",
+    semi: "SM",
+    final: "F",
+  };
+  return labels[roundId] || "";
+}
+
 /**
  * @param {any} roundPick
  * @param {Set<string> | undefined} scoringSet
@@ -427,6 +439,7 @@ function playerKnockoutRoundHtml(roundPick, scoringSet, visualSet, eliminatedSet
   const points = playerKnockoutRoundPoints(roundPick, scoringSet);
   const teams = Array.isArray(roundPick.teams) ? roundPick.teams : [];
   const roundId = String(roundPick.roundId || "");
+  const roundBadge = playerKnockoutRoundBadge(roundId);
   const pointValue = Number(roundPick.pointsPerTeam || 0);
   const championPick = championContext?.pick;
   const championItem = championPick?.teams?.[0];
@@ -452,7 +465,7 @@ function playerKnockoutRoundHtml(roundPick, scoringSet, visualSet, eliminatedSet
   return `
     <details class="player-knockout-round${sizeClass}" data-knockout-round-id="${escapeAttribute(roundId)}" data-knockout-round-label="${escapeAttribute(roundPick.label || "")}" open>
       <summary class="player-knockout-round-head">
-        <span class="player-knockout-round-icon" aria-hidden="true"></span>
+        <span class="player-knockout-round-icon" aria-hidden="true">${escapeHtml(roundBadge)}</span>
         <span class="player-knockout-title-block">
           <span class="player-knockout-kicker">${escapeHtml(formatPoints(pointValue))} pts per correct qualifier</span>
           <span class="player-knockout-title">${escapeHtml(roundPick.label || "Knockout")}</span>
