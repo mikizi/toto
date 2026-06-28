@@ -79,6 +79,87 @@ body {
     overflow: hidden;
 }
 
+.celebration-announcement {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 0.9rem);
+    left: 50%;
+    z-index: calc(var(--z-celebration) + 1);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    width: min(calc(100% - 1.5rem), 27rem);
+    padding: 0.72rem 0.85rem;
+    border: 1px solid rgba(250, 204, 21, 0.48);
+    border-radius: 12px;
+    background:
+        radial-gradient(circle at 18% 24%, rgba(250, 204, 21, 0.22), transparent 34%),
+        linear-gradient(135deg, rgba(18, 26, 38, 0.94), rgba(7, 12, 21, 0.92));
+    color: var(--text);
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.42),
+        0 0 32px rgba(232, 185, 35, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(14px) saturate(1.15);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    pointer-events: none;
+    transform: translate(-50%, -115%);
+    animation: celebration-announcement-in 0.62s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
+}
+
+.celebration-announcement.is-leaving {
+    animation: celebration-announcement-out 0.42s ease-in both;
+}
+
+.celebration-announcement-medal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff1a6, #e4b51e 58%, #a77707);
+    color: #111827;
+    font-size: 1rem;
+    font-weight: 950;
+    box-shadow: 0 0 22px rgba(250, 204, 21, 0.38);
+}
+
+.celebration-announcement-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.12rem;
+}
+
+.celebration-announcement-label {
+    color: var(--gold);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.celebration-announcement-copy strong {
+    overflow: hidden;
+    color: #fff7cc;
+    font-size: clamp(1.1rem, 4vw, 1.55rem);
+    font-weight: 950;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.celebration-announcement-spark {
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 999px;
+    background:
+        linear-gradient(#facc15, #facc15) center / 0.18rem 100% no-repeat,
+        linear-gradient(90deg, #facc15, #facc15) center / 100% 0.18rem no-repeat;
+    filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.52));
+    transform: rotate(45deg);
+}
+
 .celebration-firework {
     position: absolute;
     width: 0.42rem;
@@ -130,9 +211,36 @@ body {
     }
 }
 
+@keyframes celebration-announcement-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -115%) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+}
+
+@keyframes celebration-announcement-out {
+    from {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -90%) scale(0.98);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .celebration-fireworks {
         display: none;
+    }
+
+    .celebration-announcement {
+        animation: none;
+        transform: translate(-50%, 0);
     }
 }
 
@@ -2551,62 +2659,6 @@ body {
     min-width: 0;
 }
 
-.group-stage-winner-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    max-width: 100%;
-    padding: 0.18rem 0.5rem 0.18rem 0.22rem;
-    border: 1px solid rgba(250, 204, 21, 0.48);
-    border-radius: 999px;
-    background:
-        linear-gradient(135deg, rgba(250, 204, 21, 0.24), rgba(232, 185, 35, 0.08)),
-        rgba(13, 17, 23, 0.56);
-    color: #ffe589;
-    box-shadow:
-        0 0 18px rgba(232, 185, 35, 0.14),
-        inset 0 1px 0 rgba(255, 255, 255, 0.16);
-    font-size: 0.61rem;
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    line-height: 1;
-    text-transform: uppercase;
-    white-space: nowrap;
-    flex: 0 1 auto;
-}
-
-.group-stage-winner-badge-mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.08rem;
-    height: 1.08rem;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #f8df69, #d7a917);
-    color: #111827;
-    font-size: 0.68rem;
-    font-weight: 950;
-    box-shadow: 0 0 14px rgba(250, 204, 21, 0.28);
-}
-
-.lb-row--group-winner {
-    border-left-color: var(--gold);
-    background:
-        linear-gradient(90deg, rgba(232, 185, 35, 0.1), transparent 44%),
-        rgba(255, 255, 255, 0.018);
-}
-
-.lb-row--group-winner::before {
-    opacity: 1;
-    background:
-        radial-gradient(circle at 16% 50%, rgba(250, 204, 21, 0.18), transparent 32%),
-        linear-gradient(90deg, rgba(232, 185, 35, 0.08), transparent 62%);
-}
-
-.lb-player .group-stage-winner-badge {
-    margin-left: 0.15rem;
-}
-
 .crown-icon {
     display: block;
     width: 16px;
@@ -2682,43 +2734,8 @@ body {
 
 .player-page-title {
     margin: 0;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.55rem;
     font-size: clamp(1.45rem, 4vw, 2.4rem);
     line-height: 1.1;
-}
-
-.player-page-title .group-stage-winner-badge {
-    transform: translateY(0.08rem);
-}
-
-.group-stage-winner-badge--profile {
-    padding: 0.28rem 0.68rem 0.28rem 0.26rem;
-    font-size: 0.68rem;
-}
-
-.group-stage-winner-badge--profile .group-stage-winner-badge-mark {
-    width: 1.28rem;
-    height: 1.28rem;
-}
-
-@media (max-width: 520px) {
-    .lb-player .group-stage-winner-badge {
-        padding-right: 0.42rem;
-        font-size: 0.56rem;
-        letter-spacing: 0.06em;
-    }
-
-    .lb-player .group-stage-winner-badge-text {
-        font-size: 0;
-    }
-
-    .lb-player .group-stage-winner-badge-text::before {
-        content: "Group winner";
-        font-size: 0.56rem;
-    }
 }
 
 .player-page-summary {

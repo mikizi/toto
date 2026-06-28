@@ -1,5 +1,4 @@
 const PLAYER_DATA_URL = "data/latest.json";
-const GROUP_STAGE_WINNER_KEY = "sharonwisman";
 const GROUP_STAGE_CELEBRATION_DATE = "2026-06-28";
 const KNOCKOUT_QUALIFIER_ROUND_BY_FIXTURE_ROUND = {
   r32_match: "r16",
@@ -20,24 +19,6 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
-}
-
-/** @param {string | null | undefined} name */
-function normalizedPersonKey(name) {
-  return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-/** @param {{ name?: string } | null | undefined} player */
-function isGroupStageWinner(player) {
-  return normalizedPersonKey(player?.name) === GROUP_STAGE_WINNER_KEY;
-}
-
-/** @param {"row" | "profile"} [variant] */
-function groupStageWinnerBadgeHtml(variant = "profile") {
-  return `<span class="group-stage-winner-badge group-stage-winner-badge--${variant}" aria-label="Group stage winner">
-    <span class="group-stage-winner-badge-mark" aria-hidden="true">1</span>
-    <span class="group-stage-winner-badge-text">Group stage winner</span>
-  </span>`;
 }
 
 /** @returns {string} */
@@ -84,6 +65,31 @@ function maybeStartGroupStageFireworks() {
     .join("");
   document.body.append(overlay);
   window.setTimeout(() => overlay.remove(), 18000);
+}
+
+function maybeShowGroupStageAnnouncement() {
+  if (israelDateKey() !== GROUP_STAGE_CELEBRATION_DATE) {
+    return;
+  }
+  if (document.querySelector(".celebration-announcement")) {
+    return;
+  }
+
+  const announcement = document.createElement("div");
+  announcement.className = "celebration-announcement";
+  announcement.setAttribute("role", "status");
+  announcement.setAttribute("aria-live", "polite");
+  announcement.innerHTML = `
+    <span class="celebration-announcement-medal" aria-hidden="true">1</span>
+    <span class="celebration-announcement-copy">
+      <span class="celebration-announcement-label">Group stage winner</span>
+      <strong>sharonWisman</strong>
+    </span>
+    <span class="celebration-announcement-spark" aria-hidden="true"></span>
+  `;
+  document.body.append(announcement);
+  window.setTimeout(() => announcement.classList.add("is-leaving"), 12000);
+  window.setTimeout(() => announcement.remove(), 13500);
 }
 
 /** @returns {{ id: string, name: string }} */
@@ -737,7 +743,7 @@ function renderPlayer(player, data) {
   const knockoutSummary = playerKnockoutCorrectSummary(picks, visualResultSets, eliminatedSets, roundDefinitions);
 
   if (name) {
-    name.innerHTML = `${escapeHtml(player.name)}${isGroupStageWinner(player) ? groupStageWinnerBadgeHtml("profile") : ""}`;
+    name.textContent = player.name;
   }
   if (summary) {
     summary.textContent = `${data.gamesPlayed} games played`;
@@ -802,6 +808,7 @@ async function loadPlayerPage() {
 
 document.addEventListener("DOMContentLoaded", () => {
   maybeStartGroupStageFireworks();
+  maybeShowGroupStageAnnouncement();
   initBackToTopButton();
   document.getElementById("playerKnockoutCarousel")?.addEventListener("scroll", handlePlayerKnockoutScroll);
   void loadPlayerPage();

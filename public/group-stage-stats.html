@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="theme-color" content="#0d1117">
+  <title>Group Stage Stats · World Cup 2026 Toto</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://flagcdn.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <link rel="stylesheet" href="css/styles.css?v=93">
+  <style>
+    body {
+      min-height: 100vh;
+    }
+
+    .stats-page {
+      width: min(100% - 1.5rem, 1180px);
+      margin: 0 auto;
+      padding: 1rem 0 2.5rem;
+    }
+
+    .stats-hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1.25rem;
+      align-items: end;
+      padding: clamp(1.1rem, 3vw, 2rem);
+      margin-bottom: 1rem;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .stats-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 18% 16%, rgba(232, 185, 35, 0.2), transparent 26%),
+        radial-gradient(circle at 86% 14%, rgba(96, 165, 250, 0.14), transparent 26%);
+      pointer-events: none;
+    }
+
+    .stats-hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .stats-back {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.35rem;
+      padding: 0 0.9rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(232, 185, 35, 0.36);
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .stats-kicker,
+    .stats-section-kicker {
+      color: var(--gold);
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .stats-title {
+      margin: 0.35rem 0 0;
+      font-size: clamp(2rem, 7vw, 4.5rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .stats-subtitle {
+      max-width: 58rem;
+      margin: 0.75rem 0 0;
+      color: var(--text-muted);
+      font-size: clamp(0.92rem, 2vw, 1.05rem);
+      line-height: 1.55;
+    }
+
+    .stats-winner-card {
+      width: min(100%, 23rem);
+      padding: 1rem;
+      border: 1px solid rgba(232, 185, 35, 0.38);
+      border-radius: 10px;
+      background:
+        linear-gradient(135deg, rgba(232, 185, 35, 0.18), rgba(255, 255, 255, 0.04)),
+        rgba(3, 7, 18, 0.35);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .stats-winner-label {
+      color: var(--gold);
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .stats-winner-name {
+      margin: 0.55rem 0 0;
+      font-size: clamp(1.5rem, 4vw, 2.35rem);
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .stats-winner-meta {
+      margin: 0.55rem 0 0;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 800;
+    }
+
+    .stats-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .stats-summary-card {
+      padding: 1rem;
+      border-radius: var(--radius);
+    }
+
+    .stats-summary-value {
+      display: block;
+      color: var(--text);
+      font-size: clamp(1.55rem, 4vw, 2.3rem);
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .stats-summary-label {
+      display: block;
+      margin-top: 0.45rem;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .stats-panel {
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .stats-panel--wide {
+      grid-column: 1 / -1;
+    }
+
+    .stats-panel-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1rem 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stats-panel-title {
+      margin: 0.2rem 0 0;
+      font-size: clamp(1.15rem, 3vw, 1.7rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .stats-panel-note {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .stats-table-wrap {
+      overflow-x: auto;
+    }
+
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 34rem;
+    }
+
+    .stats-table th,
+    .stats-table td {
+      padding: 0.78rem 0.85rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .stats-table th {
+      color: var(--text-muted);
+      font-size: 0.66rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .stats-table td {
+      font-size: 0.86rem;
+      font-weight: 800;
+    }
+
+    .stats-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .stats-rank {
+      width: 2.3rem;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stats-player-link {
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .stats-player-link:hover {
+      color: var(--gold);
+    }
+
+    .stats-muted {
+      color: var(--text-muted);
+      font-weight: 750;
+    }
+
+    .stats-score-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 3.1rem;
+      padding: 0.22rem 0.5rem;
+      border: 1px solid rgba(232, 185, 35, 0.28);
+      border-radius: 999px;
+      background: rgba(232, 185, 35, 0.08);
+      color: var(--gold);
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stats-team {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-width: 0;
+    }
+
+    .stats-team .team-flag--sm {
+      width: 1.35rem;
+      height: 1.35rem;
+      flex: 0 0 auto;
+    }
+
+    .stats-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 1rem;
+    }
+
+    .stats-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-height: 2.2rem;
+      padding: 0.25rem 0.72rem 0.25rem 0.35rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.055);
+      font-weight: 850;
+    }
+
+    .stats-chip-count {
+      color: var(--gold);
+      font-weight: 950;
+    }
+
+    .stats-error {
+      padding: 1.5rem;
+      color: #fecaca;
+      font-weight: 800;
+    }
+
+    @media (max-width: 850px) {
+      .stats-hero,
+      .stats-summary-grid,
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-winner-card {
+        width: 100%;
+      }
+
+      .stats-panel-head {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .stats-panel-note {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="page-bg" role="presentation" aria-hidden="true"></div>
+<main class="stats-page">
+  <a class="stats-back" href="./">Back to scoreboard</a>
+  <section class="stats-hero glass-panel">
+    <div>
+      <span class="stats-kicker">Group stage report</span>
+      <h1 class="stats-title">Group Stage Stats</h1>
+      <p id="statsSubtitle" class="stats-subtitle">Loading group-stage tables...</p>
+    </div>
+    <aside id="winnerCard" class="stats-winner-card" aria-label="Group stage winner"></aside>
+  </section>
+
+  <section id="summaryGrid" class="stats-summary-grid" aria-label="Summary stats"></section>
+
+  <section id="statsGrid" class="stats-grid" aria-label="Group stage stat tables"></section>
+</main>
+
+<script src="js/flags.js?v=6"></script>
+<script>
+const DATA_URL = "data/latest.json";
+const MAX_ROWS = 12;
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = String(text ?? "");
+  return div.innerHTML;
+}
+
+function playerHref(player) {
+  const id = encodeURIComponent(String(player.id || ""));
+  const name = encodeURIComponent(String(player.name || ""));
+  return `player.html?id=${id}&name=${name}`;
+}
+
+function playedMatches(data) {
+  return (data.matches || []).filter((match) => (
+    match.played &&
+    Number.isFinite(Number(match.homeScore)) &&
+    Number.isFinite(Number(match.awayScore))
+  ));
+}
+
+function scoreDirection(home, away) {
+  const diff = Number(home) - Number(away);
+  if (diff > 0) return "home";
+  if (diff < 0) return "away";
+  return "draw";
+}
+
+function playerPickFor(player, matchId) {
+  return (player.picks || []).find((pick) => Number(pick.matchId) === Number(matchId));
+}
+
+function qualifierTeams(data) {
+  const actual = data.knockout?.actual?.r32 || [];
+  if (actual.length) {
+    return [...new Set(actual.map((team) => String(team || "").trim()).filter(Boolean))];
+  }
+  const fromFixtures = [];
+  for (const match of data.knockout?.matches || []) {
+    if (match.roundId !== "r32_match" || !match.isLocked) continue;
+    for (const team of [match.home, match.away]) {
+      const value = String(team || "").trim();
+      if (value && !/^(winner|runner-up|best 3rd|round of|match)/i.test(value)) {
+        fromFixtures.push(value);
+      }
+    }
+  }
+  return [...new Set(fromFixtures)];
+}
+
+function playerQualifierPicks(player) {
+  const r32 = (player.knockoutPicks || []).find((round) => round.roundId === "r32");
+  return (r32?.teams || []).map((item) => String(item.team || "").trim()).filter(Boolean);
+}
+
+function buildPlayerStats(data) {
+  const matches = playedMatches(data);
+  const qualifiers = new Set(qualifierTeams(data));
+  return (data.leaderboard || []).map((player) => {
+    let exact = 0;
+    let direction = 0;
+    let zeroes = 0;
+    let points = 0;
+    let underdogDirections = 0;
+    const matchStats = [];
+
+    for (const match of matches) {
+      const pick = playerPickFor(player, match.id);
+      if (!pick) continue;
+      const pickHome = Number(pick.homePick);
+      const pickAway = Number(pick.awayPick);
+      if (!Number.isFinite(pickHome) || !Number.isFinite(pickAway)) continue;
+      const isExact = pickHome === Number(match.homeScore) && pickAway === Number(match.awayScore);
+      const isDirection = scoreDirection(pickHome, pickAway) === scoreDirection(match.homeScore, match.awayScore);
+      if (isExact) exact += 1;
+      if (isDirection) direction += 1;
+      if (Number(pick.points || 0) === 0) zeroes += 1;
+      points += Number(pick.points || 0);
+      matchStats.push({ match, pick, isExact, isDirection });
+    }
+
+    const qualifierPicks = playerQualifierPicks(player);
+    const qualifierCorrect = qualifierPicks.filter((team) => qualifiers.has(team)).length;
+    const qualifierAccuracy = qualifierPicks.length ? qualifierCorrect / qualifierPicks.length : 0;
+
+    return {
+      ...player,
+      groupPoints: points,
+      exact,
+      direction,
+      zeroes,
+      played: matches.length,
+      directionRate: matches.length ? direction / matches.length : 0,
+      exactRate: matches.length ? exact / matches.length : 0,
+      qualifierCorrect,
+      qualifierTotal: qualifierPicks.length,
+      qualifierAccuracy,
+      underdogDirections,
+      matchStats,
+    };
+  });
+}
+
+function tableRows(rows, cells) {
+  return rows.map((row, index) => `
+    <tr>
+      <td class="stats-rank">${index + 1}</td>
+      ${cells(row, index)}
+    </tr>
+  `).join("");
+}
+
+function playerCell(player) {
+  return `<a class="stats-player-link" href="${playerHref(player)}">${escapeHtml(player.name)}</a>`;
+}
+
+function panel(title, kicker, note, headers, rowsHtml, wide = false) {
+  return `
+    <article class="stats-panel ${wide ? "stats-panel--wide " : ""}glass-panel">
+      <header class="stats-panel-head">
+        <div>
+          <span class="stats-section-kicker">${escapeHtml(kicker)}</span>
+          <h2 class="stats-panel-title">${escapeHtml(title)}</h2>
+        </div>
+        <p class="stats-panel-note">${escapeHtml(note)}</p>
+      </header>
+      <div class="stats-table-wrap">
+        <table class="stats-table">
+          <thead><tr><th>#</th>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
+function renderSummary(data, players, matches, qualifiers) {
+  const winner = [...players].sort((a, b) => b.groupPoints - a.groupPoints || b.exact - a.exact)[0];
+  document.getElementById("statsSubtitle").textContent =
+    `${matches.length} group-stage games scored · ${players.length} players · ${qualifiers.length} confirmed knockout teams`;
+  document.getElementById("winnerCard").innerHTML = `
+    <div class="stats-winner-label">Group stage winner</div>
+    <div class="stats-winner-name">${escapeHtml(winner?.name || "-")}</div>
+    <div class="stats-winner-meta">${Number(winner?.groupPoints || 0).toFixed(0)} pts · ${winner?.exact || 0} exact · ${winner?.direction || 0} correct results</div>
+  `;
+  document.getElementById("summaryGrid").innerHTML = [
+    ["Games scored", matches.length],
+    ["Players", players.length],
+    ["Exact score leader", Math.max(...players.map((p) => p.exact), 0)],
+    ["Qualifier leader", Math.max(...players.map((p) => p.qualifierCorrect), 0)],
+  ].map(([label, value]) => `
+    <article class="stats-summary-card glass-panel">
+      <span class="stats-summary-value">${escapeHtml(value)}</span>
+      <span class="stats-summary-label">${escapeHtml(label)}</span>
+    </article>
+  `).join("");
+}
+
+function renderPlayerTables(data, players, matches, qualifiers) {
+  const byPoints = [...players].sort((a, b) => b.groupPoints - a.groupPoints || b.exact - a.exact || b.direction - a.direction).slice(0, MAX_ROWS);
+  const byDirection = [...players].sort((a, b) => b.direction - a.direction || b.exact - a.exact || b.groupPoints - a.groupPoints).slice(0, MAX_ROWS);
+  const byExact = [...players].sort((a, b) => b.exact - a.exact || b.direction - a.direction || b.groupPoints - a.groupPoints).slice(0, MAX_ROWS);
+  const byQualifiers = [...players].sort((a, b) => b.qualifierCorrect - a.qualifierCorrect || b.qualifierAccuracy - a.qualifierAccuracy || b.groupPoints - a.groupPoints).slice(0, MAX_ROWS);
+  const byCleanest = [...players].sort((a, b) => a.zeroes - b.zeroes || b.direction - a.direction || b.exact - a.exact).slice(0, MAX_ROWS);
+  const allAround = [...players].sort((a, b) => (
+    (b.groupPoints + b.exact * 2 + b.qualifierCorrect) -
+    (a.groupPoints + a.exact * 2 + a.qualifierCorrect)
+  )).slice(0, MAX_ROWS);
+
+  const panels = [];
+  panels.push(panel(
+    "Group-stage points",
+    "Overall",
+    "Points from the 72 group-stage match picks only",
+    ["Player", "Pts", "Exact", "Correct result", "Zeroes"],
+    tableRows(byPoints, (p) => `
+      <td>${playerCell(p)}</td>
+      <td><span class="stats-score-pill">${p.groupPoints.toFixed(0)}</span></td>
+      <td>${p.exact}</td>
+      <td>${p.direction}/${p.played}</td>
+      <td>${p.zeroes}</td>
+    `)
+  ));
+  panels.push(panel(
+    "Correct result leaders",
+    "Winner / draw",
+    "Counts home win, draw, or away win direction",
+    ["Player", "Correct", "Rate", "Exact", "Pts"],
+    tableRows(byDirection, (p) => `
+      <td>${playerCell(p)}</td>
+      <td><span class="stats-score-pill">${p.direction}</span></td>
+      <td>${Math.round(p.directionRate * 100)}%</td>
+      <td>${p.exact}</td>
+      <td>${p.groupPoints.toFixed(0)}</td>
+    `)
+  ));
+  panels.push(panel(
+    "Exact score count",
+    "Precision",
+    "Most 5-point exact score hits",
+    ["Player", "Exact", "Rate", "Correct result", "Pts"],
+    tableRows(byExact, (p) => `
+      <td>${playerCell(p)}</td>
+      <td><span class="stats-score-pill">${p.exact}</span></td>
+      <td>${Math.round(p.exactRate * 100)}%</td>
+      <td>${p.direction}</td>
+      <td>${p.groupPoints.toFixed(0)}</td>
+    `)
+  ));
+  panels.push(panel(
+    "Knockout qualifier accuracy",
+    "Teams through",
+    "R32 predictions compared with confirmed locked knockout teams",
+    ["Player", "Correct", "Accuracy", "Picked", "Pts"],
+    tableRows(byQualifiers, (p) => `
+      <td>${playerCell(p)}</td>
+      <td><span class="stats-score-pill">${p.qualifierCorrect}</span></td>
+      <td>${Math.round(p.qualifierAccuracy * 100)}%</td>
+      <td>${p.qualifierTotal}</td>
+      <td>${p.groupPoints.toFixed(0)}</td>
+    `)
+  ));
+  panels.push(panel(
+    "Cleanest card",
+    "Avoided misses",
+    "Fewest zero-point match picks",
+    ["Player", "Zeroes", "Correct result", "Exact", "Pts"],
+    tableRows(byCleanest, (p) => `
+      <td>${playerCell(p)}</td>
+      <td><span class="stats-score-pill">${p.zeroes}</span></td>
+      <td>${p.direction}</td>
+      <td>${p.exact}</td>
+      <td>${p.groupPoints.toFixed(0)}</td>
+    `)
+  ));
+  panels.push(panel(
+    "Best all-around",
+    "Combined",
+    "Group points + exact-score bonus + qualifier hits",
+    ["Player", "Index", "Pts", "Exact", "Qualifiers"],
+    tableRows(allAround, (p) => {
+      const index = p.groupPoints + p.exact * 2 + p.qualifierCorrect;
+      return `
+        <td>${playerCell(p)}</td>
+        <td><span class="stats-score-pill">${index.toFixed(0)}</span></td>
+        <td>${p.groupPoints.toFixed(0)}</td>
+        <td>${p.exact}</td>
+        <td>${p.qualifierCorrect}</td>
+      `;
+    })
+  ));
+
+  panels.push(renderMatchDifficultyPanel(data, players, matches));
+  panels.push(renderQualifierConsensusPanel(players, qualifiers));
+  document.getElementById("statsGrid").innerHTML = panels.join("");
+}
+
+function renderMatchDifficultyPanel(data, players, matches) {
+  const rows = matches.map((match) => {
+    let exact = 0;
+    let direction = 0;
+    for (const player of players) {
+      const stat = player.matchStats.find((item) => Number(item.match.id) === Number(match.id));
+      if (stat?.isExact) exact += 1;
+      if (stat?.isDirection) direction += 1;
+    }
+    return { match, exact, direction };
+  }).sort((a, b) => a.exact - b.exact || a.direction - b.direction).slice(0, 12);
+
+  return panel(
+    "Hardest games to call",
+    "Chaos board",
+    "Fewest exact scores, then fewest correct results",
+    ["Match", "Result", "Exact hits", "Correct result"],
+    tableRows(rows, ({ match, exact, direction }) => `
+      <td>
+        <span class="stats-team">${flagHtml(match.home, "sm")} ${escapeHtml(match.home)}</span>
+        <span class="stats-muted"> vs </span>
+        <span class="stats-team">${flagHtml(match.away, "sm")} ${escapeHtml(match.away)}</span>
+      </td>
+      <td><span class="stats-score-pill">${match.homeScore}-${match.awayScore}</span></td>
+      <td>${exact}</td>
+      <td>${direction}</td>
+    `),
+    true
+  );
+}
+
+function renderQualifierConsensusPanel(players, qualifiers) {
+  const counts = new Map();
+  for (const player of players) {
+    for (const team of playerQualifierPicks(player)) {
+      counts.set(team, (counts.get(team) || 0) + 1);
+    }
+  }
+  const rows = [...counts.entries()]
+    .map(([team, count]) => ({ team, count, qualified: qualifiers.includes(team) }))
+    .sort((a, b) => Number(b.qualified) - Number(a.qualified) || b.count - a.count || a.team.localeCompare(b.team))
+    .slice(0, 32);
+
+  return `
+    <article class="stats-panel stats-panel--wide glass-panel">
+      <header class="stats-panel-head">
+        <div>
+          <span class="stats-section-kicker">Crowd wisdom</span>
+          <h2 class="stats-panel-title">Most picked knockout teams</h2>
+        </div>
+        <p class="stats-panel-note">Green means the team is in the confirmed R32 fixture list</p>
+      </header>
+      <div class="stats-chips">
+        ${rows.map(({ team, count, qualified }) => `
+          <span class="stats-chip" style="${qualified ? "border-color:rgba(34,197,94,.58);background:rgba(34,197,94,.12)" : ""}">
+            ${flagHtml(team, "sm")}
+            <span>${escapeHtml(shortTeamName(team))}</span>
+            <span class="stats-chip-count">${count}</span>
+          </span>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+async function init() {
+  try {
+    const response = await fetch(DATA_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const matches = playedMatches(data);
+    const qualifiers = qualifierTeams(data);
+    const players = buildPlayerStats(data);
+    renderSummary(data, players, matches, qualifiers);
+    renderPlayerTables(data, players, matches, qualifiers);
+  } catch (error) {
+    document.getElementById("statsGrid").innerHTML = `<div class="stats-error glass-panel">Could not load stats. ${escapeHtml(error.message || error)}</div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
