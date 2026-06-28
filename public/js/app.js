@@ -33,10 +33,17 @@ const KNOCKOUT_FIXTURE_ROUND_IDS = {
   final: ["final_match"],
   champion: [],
 };
+const KNOCKOUT_ADVANCE_PICK_ROUND = {
+  r32_match: "r16",
+  r16_match: "quarter",
+  quarter_match: "semi",
+  semi_match: "final",
+  final_match: "champion",
+};
 
 /** @typedef {{ matchId: number, homePick: number | null, awayPick: number | null, points: number | null }} PlayerPick */
 /** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string, picks?: PlayerPick[] }} LeaderboardEntry */
-/** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null, isKnockout?: boolean, isLocked?: boolean, roundLabel?: string }} MatchEntry */
+/** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null, isKnockout?: boolean, isLocked?: boolean, roundId?: string, roundLabel?: string }} MatchEntry */
 /** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ id: string, label: string, expected: number, points: number }} KnockoutRound */
 /** @typedef {{ id: number, roundId: string, roundLabel: string, kickoffAt: string | null, homeSlot: string, awaySlot: string, home: string, away: string, homeScore: number | null, awayScore: number | null, isLive: boolean, isLocked: boolean, winner: string, isScoring?: boolean }} KnockoutMatch */
@@ -879,6 +886,7 @@ function knockoutFixtureMatches(data) {
       kickoffAt: match.kickoffAt,
       isKnockout: true,
       isLocked: Boolean(match.isLocked),
+      roundId: match.roundId,
       roundLabel: match.roundLabel,
     };
   });
@@ -902,6 +910,9 @@ function knockoutLiveMatches(data) {
       awayScore: match.awayScore,
       played: false,
       kickoffAt: match.kickoffAt,
+      isKnockout: true,
+      roundId: match.roundId,
+      roundLabel: match.roundLabel,
     }));
 }
 
@@ -1621,11 +1632,11 @@ function gamesBadgeHtml(count, justUpdated) {
 
 /** @param {TotoData} data @returns {MatchEntry | null} */
 function predictionMatch(data) {
-  const live = heroLiveMatches(data)[0];
+  const live = heroLiveMatchesWithKnockout(data)[0];
   if (live) {
     return live;
   }
-  const next = nextUnplayedMatch(data);
+  const next = nextPublicUnplayedMatch(data);
   if (next) {
     return next;
   }
@@ -1784,6 +1795,108 @@ function predictionStats(data, match) {
     trending,
     unique,
   };
+}
+
+/** @param {string} team */
+function predictionTeamKey(team) {
+  const normalized = typeof normalizeTeamName === "function"
+    ? normalizeTeamName(String(team || ""))
+    : String(team || "").trim();
+  return normalized.toLowerCase();
+}
+
+/**
+ * @param {unknown} roundPick
+ * @returns {string[]}
+ */
+function knockoutPickTeamNames(roundPick) {
+  if (!roundPick || typeof roundPick !== "object" || !Array.isArray(roundPick.teams)) {
+    return [];
+  }
+  return roundPick.teams
+    .map((item) => String((item && typeof item === "object" ? item.team : item) || "").trim())
+    .filter(Boolean);
+}
+
+/**
+ * @param {TotoData} data
+ * @param {MatchEntry} match
+ */
+function knockoutAdvancePickStats(data, match) {
+  if (!match.isKnockout || !match.roundId) {
+    return null;
+  }
+
+  const pickRoundId = KNOCKOUT_ADVANCE_PICK_ROUND[match.roundId];
+  if (!pickRoundId) {
+    return null;
+  }
+
+  const round = (data.knockout?.rounds || []).find((item) => item.id === pickRoundId);
+  const homeKey = predictionTeamKey(match.home);
+  const awayKey = predictionTeamKey(match.away);
+  let homeCount = 0;
+  let awayCount = 0;
+  let total = 0;
+
+  for (const entry of data.leaderboard || []) {
+    const roundPick = (entry.knockoutPicks || []).find((item) => item.roundId === pickRoundId);
+    const teams = knockoutPickTeamNames(roundPick);
+    if (!teams.length) {
+      continue;
+    }
+    total += 1;
+    const picked = new Set(teams.map(predictionTeamKey));
+    if (picked.has(homeKey)) {
+      homeCount += 1;
+    }
+    if (picked.has(awayKey)) {
+      awayCount += 1;
+    }
+  }
+
+  return {
+    match,
+    total,
+    roundLabel: round?.label || "the next round",
+    homeCount,
+    awayCount,
+    homePct: predictionPercent(homeCount, total),
+    awayPct: predictionPercent(awayCount, total),
+  };
+}
+
+/**
+ * @param {{ match: MatchEntry, total: number, roundLabel: string, homeCount: number, awayCount: number, homePct: number, awayPct: number }} stats
+ */
+function knockoutAdvancePredictionsHtml(stats) {
+  const { match } = stats;
+  return `
+    <div class="predictions-summary predictions-summary--advance glass-panel">
+      <div class="predictions-head">
+        <div>
+          <h2 class="predictions-title">Knockout picks</h2>
+          <p class="predictions-sub">How many entries picked ${escapeHtml(shortTeamName(match.home))} or ${escapeHtml(shortTeamName(match.away))} to reach ${escapeHtml(stats.roundLabel)}</p>
+        </div>
+        <span class="predictions-count">${stats.total} entries</span>
+      </div>
+      <div class="prediction-advance-grid" aria-label="Knockout advance pick split">
+        <article class="prediction-advance-team prediction-advance-team--home">
+          <span class="prediction-advance-name">${flagHtml(match.home, "sm")} ${escapeHtml(shortTeamName(match.home))}</span>
+          <span class="prediction-pct">${stats.homeCount}</span>
+          <span class="prediction-label">${stats.homePct}% picked to advance</span>
+        </article>
+        <article class="prediction-advance-team prediction-advance-team--away">
+          <span class="prediction-advance-name">${flagHtml(match.away, "sm")} ${escapeHtml(shortTeamName(match.away))}</span>
+          <span class="prediction-pct">${stats.awayCount}</span>
+          <span class="prediction-label">${stats.awayPct}% picked to advance</span>
+        </article>
+      </div>
+      <div class="prediction-bar prediction-bar--advance" aria-hidden="true">
+        <span class="prediction-bar-home" style="flex-grow:${stats.homeCount}"></span>
+        <span class="prediction-bar-away" style="flex-grow:${stats.awayCount}"></span>
+      </div>
+    </div>`;
 }
 
 /**
@@ -2069,6 +2182,18 @@ function renderPredictionsPanel(panel, data) {
   }
 
   const match = predictionMatch(data);
+  if (match?.isKnockout) {
+    const advanceStats = knockoutAdvancePickStats(data, match);
+    if (!advanceStats) {
+      panel.classList.add("hidden");
+      panel.innerHTML = "";
+      return;
+    }
+    panel.innerHTML = knockoutAdvancePredictionsHtml(advanceStats);
+    panel.classList.remove("hidden");
+    return;
+  }
+
   const stats = match ? predictionStats(data, match) : null;
   if (!match || !stats) {
     panel.classList.add("hidden");

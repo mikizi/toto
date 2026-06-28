@@ -151,56 +151,6 @@ function rowResultClass(played, points) {
   return "player-bet-row--zero";
 }
 
-/**
- * @param {number | null | undefined} home
- * @param {number | null | undefined} away
- * @returns {"home" | "draw" | "away" | ""}
- */
-function resultDirection(home, away) {
-  if (home === null || home === undefined || away === null || away === undefined) {
-    return "";
-  }
-  const homeNum = Number(home);
-  const awayNum = Number(away);
-  if (!Number.isFinite(homeNum) || !Number.isFinite(awayNum)) {
-    return "";
-  }
-  if (homeNum > awayNum) {
-    return "home";
-  }
-  if (awayNum > homeNum) {
-    return "away";
-  }
-  return "draw";
-}
-
-/** @param {any} player @param {any[]} matches */
-function playerAccuracyStats(player, matches) {
-  const picks = new Map((player.picks || []).map((pick) => [Number(pick.matchId), pick]));
-  return (matches || []).reduce((stats, match) => {
-    if (!match?.played) {
-      return stats;
-    }
-    const pick = picks.get(Number(match.id));
-    if (!pick) {
-      return stats;
-    }
-    const pickDirection = resultDirection(pick.homePick, pick.awayPick);
-    const actualDirection = resultDirection(match.homeScore, match.awayScore);
-    if (!pickDirection || !actualDirection) {
-      return stats;
-    }
-    stats.played += 1;
-    if (Number(pick.homePick) === Number(match.homeScore) && Number(pick.awayPick) === Number(match.awayScore)) {
-      stats.exact += 1;
-    }
-    if (pickDirection === actualDirection) {
-      stats.direction += 1;
-    }
-    return stats;
-  }, { played: 0, exact: 0, direction: 0 });
-}
-
 /** @param {string | null | undefined} iso */
 function matchDate(iso) {
   if (!iso) {
@@ -729,11 +679,8 @@ function renderPlayer(player, data) {
   const summary = document.getElementById("playerSummary");
   const rank = document.getElementById("playerRank");
   const points = document.getElementById("playerPoints");
-  const exactScores = document.getElementById("playerExactScores");
-  const directions = document.getElementById("playerDirections");
   const champion = document.getElementById("playerChampion");
   const knockoutCorrect = document.getElementById("playerKnockoutCorrect");
-  const accuracy = playerAccuracyStats(player, data.matches || []);
   const picks = Array.isArray(player.knockoutPicks) ? player.knockoutPicks : [];
   const visualResultSets = knockoutVisualResultSets(data);
   const eliminatedSets = knockoutEliminatedSets(data);
@@ -753,12 +700,6 @@ function renderPlayer(player, data) {
   }
   if (points) {
     points.textContent = formatPoints(player.points);
-  }
-  if (exactScores) {
-    exactScores.textContent = `${accuracy.exact}/${accuracy.played}`;
-  }
-  if (directions) {
-    directions.textContent = `${accuracy.direction}/${accuracy.played}`;
   }
   if (champion) {
     champion.innerHTML = `${flagHtml(player.champion || "", "sm")} <span>${escapeHtml(player.champion || "-")}</span>`;
