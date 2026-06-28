@@ -195,6 +195,35 @@
       text-align: right;
     }
 
+    .stats-panel-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.45rem;
+    }
+
+    .stats-sort-btn {
+      min-height: 2rem;
+      padding: 0 0.65rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--text-muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stats-sort-btn[aria-pressed="true"] {
+      border-color: rgba(232, 185, 35, 0.58);
+      background: rgba(232, 185, 35, 0.14);
+      color: var(--gold);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
     .stats-table-wrap {
       overflow-x: auto;
     }
@@ -323,6 +352,10 @@
         flex-direction: column;
       }
 
+      .stats-panel-actions {
+        justify-content: flex-start;
+      }
+
       .stats-panel-note {
         text-align: left;
       }
@@ -352,11 +385,22 @@
 const DATA_URL = "data/latest.json";
 const MAX_ROWS = 12;
 const DISPLAY_PLAYER_COUNT = 88;
+const PREDICTION_SORTS = {
+  points: "Points",
+  correct: "Correct",
+  exact: "Exact",
+  zeroes: "Fewest zeroes",
+};
+let predictionLeaders = [];
 
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = String(text ?? "");
   return div.innerHTML;
+}
+
+function escapeAttribute(text) {
+  return escapeHtml(text).replace(/"/g, "&quot;");
 }
 
 function playerHref(player) {
@@ -492,6 +536,81 @@ function panel(title, kicker, note, headers, rowsHtml, wide = false) {
   `;
 }
 
+function sortedPredictionLeaders(players, sortKey) {
+  const key = PREDICTION_SORTS[sortKey] ? sortKey : "points";
+  const sorts = {
+    points: (a, b) => b.groupPoints - a.groupPoints || b.exact - a.exact || b.direction - a.direction,
+    correct: (a, b) => b.direction - a.direction || b.exact - a.exact || b.groupPoints - a.groupPoints,
+    exact: (a, b) => b.exact - a.exact || b.direction - a.direction || b.groupPoints - a.groupPoints,
+    zeroes: (a, b) => a.zeroes - b.zeroes || b.direction - a.direction || b.exact - a.exact,
+  };
+  return [...players].sort(sorts[key]).slice(0, MAX_ROWS);
+}
+
+function predictionLeadersRowsHtml(players, sortKey) {
+  return tableRows(sortedPredictionLeaders(players, sortKey), (p) => `
+    <td>${playerCell(p)}</td>
+    <td><span class="stats-score-pill">${p.groupPoints.toFixed(0)}</span></td>
+    <td>${p.direction}/${p.played}</td>
+    <td>${p.exact}</td>
+    <td>${p.zeroes}</td>
+  `);
+}
+
+function renderPredictionLeadersBody(sortKey = "points") {
+  const tbody = document.getElementById("predictionLeadersRows");
+  if (tbody) {
+    tbody.innerHTML = predictionLeadersRowsHtml(predictionLeaders, sortKey);
+  }
+  document.querySelectorAll(".stats-sort-btn").forEach((button) => {
+    const pressed = button.getAttribute("data-sort") === sortKey;
+    button.setAttribute("aria-pressed", pressed ? "true" : "false");
+  });
+}
+
+function initPredictionSortControls() {
+  document.querySelectorAll(".stats-sort-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      renderPredictionLeadersBody(button.getAttribute("data-sort") || "points");
+    });
+  });
+}
+
+function renderPredictionLeadersPanel(players) {
+  const controls = Object.entries(PREDICTION_SORTS).map(([key, label]) => `
+    <button type="button" class="stats-sort-btn" data-sort="${escapeAttribute(key)}" aria-pressed="${key === "points" ? "true" : "false"}">${escapeHtml(label)}</button>
+  `).join("");
+  return `
+    <article class="stats-panel stats-panel--wide glass-panel">
+      <header class="stats-panel-head">
+        <div>
+          <span class="stats-section-kicker">Overall</span>
+          <h2 class="stats-panel-title">Prediction leaders</h2>
+          <p class="stats-panel-note">Sort one table by points, correct result, exact scores, or misses</p>
+        </div>
+        <div class="stats-panel-actions" aria-label="Sort prediction leaders">
+          ${controls}
+        </div>
+      </header>
+      <div class="stats-table-wrap">
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>Pts</th>
+              <th>Correct result</th>
+              <th>Exact</th>
+              <th>Zeroes</th>
+            </tr>
+          </thead>
+          <tbody id="predictionLeadersRows">${predictionLeadersRowsHtml(players, "points")}</tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
 function renderSummary(data, players, matches, qualifiers) {
   const winner = [...players].sort((a, b) => b.groupPoints - a.groupPoints || b.exact - a.exact)[0];
   const playerCount = DISPLAY_PLAYER_COUNT || (data.leaderboard || []).length;
@@ -516,56 +635,15 @@ function renderSummary(data, players, matches, qualifiers) {
 }
 
 function renderPlayerTables(data, players, matches, qualifiers) {
-  const byPoints = [...players].sort((a, b) => b.groupPoints - a.groupPoints || b.exact - a.exact || b.direction - a.direction).slice(0, MAX_ROWS);
-  const byDirection = [...players].sort((a, b) => b.direction - a.direction || b.exact - a.exact || b.groupPoints - a.groupPoints).slice(0, MAX_ROWS);
-  const byExact = [...players].sort((a, b) => b.exact - a.exact || b.direction - a.direction || b.groupPoints - a.groupPoints).slice(0, MAX_ROWS);
   const byQualifiers = [...players].sort((a, b) => b.qualifierCorrect - a.qualifierCorrect || b.qualifierAccuracy - a.qualifierAccuracy || b.groupPoints - a.groupPoints).slice(0, MAX_ROWS);
-  const byCleanest = [...players].sort((a, b) => a.zeroes - b.zeroes || b.direction - a.direction || b.exact - a.exact).slice(0, MAX_ROWS);
   const allAround = [...players].sort((a, b) => (
     (b.groupPoints + b.exact * 2 + b.qualifierCorrect) -
     (a.groupPoints + a.exact * 2 + a.qualifierCorrect)
   )).slice(0, MAX_ROWS);
 
   const panels = [];
-  panels.push(panel(
-    "Group-stage points",
-    "Overall",
-    "Points from the 72 group-stage match picks only",
-    ["Player", "Pts", "Exact", "Correct result", "Zeroes"],
-    tableRows(byPoints, (p) => `
-      <td>${playerCell(p)}</td>
-      <td><span class="stats-score-pill">${p.groupPoints.toFixed(0)}</span></td>
-      <td>${p.exact}</td>
-      <td>${p.direction}/${p.played}</td>
-      <td>${p.zeroes}</td>
-    `)
-  ));
-  panels.push(panel(
-    "Correct result leaders",
-    "Winner / draw",
-    "Counts home win, draw, or away win direction",
-    ["Player", "Correct", "Rate", "Exact", "Pts"],
-    tableRows(byDirection, (p) => `
-      <td>${playerCell(p)}</td>
-      <td><span class="stats-score-pill">${p.direction}</span></td>
-      <td>${Math.round(p.directionRate * 100)}%</td>
-      <td>${p.exact}</td>
-      <td>${p.groupPoints.toFixed(0)}</td>
-    `)
-  ));
-  panels.push(panel(
-    "Exact score count",
-    "Precision",
-    "Most 5-point exact score hits",
-    ["Player", "Exact", "Rate", "Correct result", "Pts"],
-    tableRows(byExact, (p) => `
-      <td>${playerCell(p)}</td>
-      <td><span class="stats-score-pill">${p.exact}</span></td>
-      <td>${Math.round(p.exactRate * 100)}%</td>
-      <td>${p.direction}</td>
-      <td>${p.groupPoints.toFixed(0)}</td>
-    `)
-  ));
+  predictionLeaders = players;
+  panels.push(renderPredictionLeadersPanel(players));
   panels.push(panel(
     "Knockout qualifier accuracy",
     "Teams through",
@@ -576,19 +654,6 @@ function renderPlayerTables(data, players, matches, qualifiers) {
       <td><span class="stats-score-pill">${p.qualifierCorrect}</span></td>
       <td>${Math.round(p.qualifierAccuracy * 100)}%</td>
       <td>${p.qualifierTotal}</td>
-      <td>${p.groupPoints.toFixed(0)}</td>
-    `)
-  ));
-  panels.push(panel(
-    "Cleanest card",
-    "Avoided misses",
-    "Fewest zero-point match picks",
-    ["Player", "Zeroes", "Correct result", "Exact", "Pts"],
-    tableRows(byCleanest, (p) => `
-      <td>${playerCell(p)}</td>
-      <td><span class="stats-score-pill">${p.zeroes}</span></td>
-      <td>${p.direction}</td>
-      <td>${p.exact}</td>
       <td>${p.groupPoints.toFixed(0)}</td>
     `)
   ));
@@ -612,6 +677,7 @@ function renderPlayerTables(data, players, matches, qualifiers) {
   panels.push(renderMatchDifficultyPanel(data, players, matches));
   panels.push(renderQualifierConsensusPanel(players, qualifiers));
   document.getElementById("statsGrid").innerHTML = panels.join("");
+  initPredictionSortControls();
 }
 
 function renderMatchDifficultyPanel(data, players, matches) {
