@@ -3605,11 +3605,16 @@ body {
     }
 
     .prediction-advance-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.45rem;
     }
 
     .prediction-advance-team {
         padding: 0.62rem 0.45rem;
+    }
+
+    .prediction-advance-team--neither {
+        grid-column: 1 / -1;
     }
 
     .prediction-advance-name {
@@ -3624,6 +3629,12 @@ body {
     .prediction-label {
         font-size: 0.54rem;
         letter-spacing: 0.1em;
+    }
+
+    .prediction-believer {
+        font-size: 0.6rem;
+        white-space: normal;
+        text-overflow: clip;
     }
 
     .prediction-card {
