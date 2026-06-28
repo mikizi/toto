@@ -1786,6 +1786,8 @@ function knockoutAdvancePickStats(data, match) {
   const awayKey = predictionTeamKey(match.away);
   let homeCount = 0;
   let awayCount = 0;
+  let neitherCount = 0;
+  let bothCount = 0;
   let total = 0;
 
   for (const entry of data.leaderboard || []) {
@@ -1796,13 +1798,23 @@ function knockoutAdvancePickStats(data, match) {
     }
     total += 1;
     const picked = new Set(teams.map(predictionTeamKey));
-    if (picked.has(homeKey)) {
+    const hasHome = picked.has(homeKey);
+    const hasAway = picked.has(awayKey);
+    if (hasHome) {
       homeCount += 1;
     }
-    if (picked.has(awayKey)) {
+    if (hasAway) {
       awayCount += 1;
     }
+    if (!hasHome && !hasAway) {
+      neitherCount += 1;
+    }
+    if (hasHome && hasAway) {
+      bothCount += 1;
+    }
   }
+  const homeOnlyCount = homeCount - bothCount;
+  const awayOnlyCount = awayCount - bothCount;
 
   return {
     match,
@@ -1810,13 +1822,18 @@ function knockoutAdvancePickStats(data, match) {
     roundLabel: round?.label || "the next round",
     homeCount,
     awayCount,
+    neitherCount,
+    bothCount,
+    homeOnlyCount,
+    awayOnlyCount,
     homePct: predictionPercent(homeCount, total),
     awayPct: predictionPercent(awayCount, total),
+    neitherPct: predictionPercent(neitherCount, total),
   };
 }
 
 /**
- * @param {{ match: MatchEntry, total: number, roundLabel: string, homeCount: number, awayCount: number, homePct: number, awayPct: number }} stats
+ * @param {{ match: MatchEntry, total: number, roundLabel: string, homeCount: number, awayCount: number, neitherCount: number, bothCount: number, homeOnlyCount: number, awayOnlyCount: number, homePct: number, awayPct: number, neitherPct: number }} stats
  */
 function knockoutAdvancePredictionsHtml(stats) {
   const { match } = stats;
@@ -1840,10 +1857,17 @@ function knockoutAdvancePredictionsHtml(stats) {
           <span class="prediction-pct">${stats.awayCount}</span>
           <span class="prediction-label">${stats.awayPct}% picked to advance</span>
         </article>
+        <article class="prediction-advance-team prediction-advance-team--neither">
+          <span class="prediction-advance-name">Neither</span>
+          <span class="prediction-pct">${stats.neitherCount}</span>
+          <span class="prediction-label">${stats.neitherPct}% picked neither</span>
+        </article>
       </div>
       <div class="prediction-bar prediction-bar--advance" aria-hidden="true">
-        <span class="prediction-bar-home" style="flex-grow:${stats.homeCount}"></span>
-        <span class="prediction-bar-away" style="flex-grow:${stats.awayCount}"></span>
+        <span class="prediction-bar-home" style="flex-grow:${stats.homeOnlyCount}"></span>
+        <span class="prediction-bar-both" style="flex-grow:${stats.bothCount}"></span>
+        <span class="prediction-bar-away" style="flex-grow:${stats.awayOnlyCount}"></span>
+        <span class="prediction-bar-neither" style="flex-grow:${stats.neitherCount}"></span>
       </div>
     </div>`;
 }
