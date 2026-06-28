@@ -1,7 +1,4 @@
 const PLAYER_DATA_URL = "data/latest.json";
-const GROUP_STAGE_CELEBRATION_DATE = "2026-06-28";
-const GROUP_STAGE_CELEBRATION_STORAGE_KEY = "wc26-group-stage-celebration-v1";
-const GROUP_STAGE_CELEBRATION_MAX_VIEWS = 3;
 const KNOCKOUT_QUALIFIER_ROUND_BY_FIXTURE_ROUND = {
   r32_match: "r16",
   r16_match: "quarter",
@@ -21,122 +18,6 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
-}
-
-/** @returns {string} */
-function israelDateKey() {
-  const parts = new Intl.DateTimeFormat("en", {
-    timeZone: "Asia/Jerusalem",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
-
-function groupStageCelebrationState() {
-  try {
-    const state = JSON.parse(localStorage.getItem(GROUP_STAGE_CELEBRATION_STORAGE_KEY) || "{}");
-    return {
-      dismissed: state.dismissed === true,
-      views: Number.isFinite(Number(state.views)) ? Number(state.views) : 0,
-    };
-  } catch {
-    return { dismissed: false, views: 0 };
-  }
-}
-
-function saveGroupStageCelebrationState(state) {
-  localStorage.setItem(GROUP_STAGE_CELEBRATION_STORAGE_KEY, JSON.stringify(state));
-}
-
-function shouldShowGroupStageCelebration() {
-  if (israelDateKey() !== GROUP_STAGE_CELEBRATION_DATE) {
-    return false;
-  }
-  const state = groupStageCelebrationState();
-  return !state.dismissed && state.views < GROUP_STAGE_CELEBRATION_MAX_VIEWS;
-}
-
-function markGroupStageCelebrationViewed() {
-  const state = groupStageCelebrationState();
-  saveGroupStageCelebrationState({
-    dismissed: state.dismissed,
-    views: Math.min(GROUP_STAGE_CELEBRATION_MAX_VIEWS, state.views + 1),
-  });
-}
-
-function dismissGroupStageCelebration() {
-  const state = groupStageCelebrationState();
-  saveGroupStageCelebrationState({
-    dismissed: true,
-    views: Math.max(state.views, GROUP_STAGE_CELEBRATION_MAX_VIEWS),
-  });
-  document.querySelector(".celebration-fireworks")?.remove();
-  document.querySelector(".celebration-announcement")?.remove();
-}
-
-function maybeStartGroupStageFireworks() {
-  if (!shouldShowGroupStageCelebration()) {
-    return;
-  }
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return;
-  }
-  if (document.querySelector(".celebration-fireworks")) {
-    return;
-  }
-
-  const overlay = document.createElement("div");
-  overlay.className = "celebration-fireworks";
-  overlay.setAttribute("aria-hidden", "true");
-  const bursts = [
-    ["12%", "18%", "0s"],
-    ["30%", "10%", "0.35s"],
-    ["52%", "20%", "0.7s"],
-    ["74%", "12%", "0.15s"],
-    ["88%", "26%", "0.95s"],
-    ["18%", "42%", "1.1s"],
-    ["43%", "34%", "1.45s"],
-    ["68%", "44%", "1.8s"],
-    ["84%", "52%", "2.1s"],
-  ];
-  overlay.innerHTML = bursts
-    .map(([left, top, delay], index) => (
-      `<span class="celebration-firework celebration-firework--${(index % 3) + 1}" style="left:${left};top:${top};animation-delay:${delay}"></span>`
-    ))
-    .join("");
-  document.body.append(overlay);
-  window.setTimeout(() => overlay.remove(), 18000);
-}
-
-function maybeShowGroupStageAnnouncement() {
-  if (!shouldShowGroupStageCelebration()) {
-    return;
-  }
-  if (document.querySelector(".celebration-announcement")) {
-    return;
-  }
-
-  const announcement = document.createElement("div");
-  announcement.className = "celebration-announcement";
-  announcement.setAttribute("role", "status");
-  announcement.setAttribute("aria-live", "polite");
-  announcement.innerHTML = `
-    <span class="celebration-announcement-medal" aria-hidden="true">1</span>
-    <span class="celebration-announcement-copy">
-      <span class="celebration-announcement-label">Group stage winner</span>
-      <strong>sharonWisman</strong>
-    </span>
-    <span class="celebration-announcement-spark" aria-hidden="true"></span>
-    <button type="button" class="celebration-announcement-close" aria-label="Hide group stage winner announcement">&times;</button>
-  `;
-  document.body.append(announcement);
-  markGroupStageCelebrationViewed();
-  announcement.querySelector(".celebration-announcement-close")?.addEventListener("click", dismissGroupStageCelebration);
-  window.setTimeout(() => announcement.classList.add("is-leaving"), 12000);
-  window.setTimeout(() => announcement.remove(), 13500);
 }
 
 /** @returns {{ id: string, name: string }} */
@@ -795,8 +676,6 @@ async function loadPlayerPage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  maybeStartGroupStageFireworks();
-  maybeShowGroupStageAnnouncement();
   initBackToTopButton();
   document.getElementById("playerKnockoutCarousel")?.addEventListener("scroll", handlePlayerKnockoutScroll);
   void loadPlayerPage();

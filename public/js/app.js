@@ -7,9 +7,6 @@ const CHAMPION_FILTER_STORAGE_KEY = "wc26-champion-filter";
 const FOLLOWED_PLAYERS_STORAGE_KEY = "wc26-followed-players";
 const MOBILE_SWIPE_HINT_STORAGE_KEY = "wc26-mobile-swipe-hint-v1";
 const LEADERBOARD_TABS = new Set(["full", "following", "champion"]);
-const GROUP_STAGE_CELEBRATION_DATE = "2026-06-28";
-const GROUP_STAGE_CELEBRATION_STORAGE_KEY = "wc26-group-stage-celebration-v1";
-const GROUP_STAGE_CELEBRATION_MAX_VIEWS = 3;
 
 const DATA_URL = "data/latest.json";
 const VERSION_URL = "data/version.json";
@@ -44,7 +41,7 @@ const KNOCKOUT_ADVANCE_PICK_ROUND = {
 };
 
 /** @typedef {{ matchId: number, homePick: number | null, awayPick: number | null, points: number | null }} PlayerPick */
-/** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string, picks?: PlayerPick[] }} LeaderboardEntry */
+/** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string, picks?: PlayerPick[], knockoutPicks?: Array<{ roundId: string, teams: Array<string | { team: string }> }> }} LeaderboardEntry */
 /** @typedef {{ id: number, teams: string, home: string, away: string, homeScore: number | null, awayScore: number | null, played: boolean, kickoffAt: string | null, isKnockout?: boolean, isLocked?: boolean, roundId?: string, roundLabel?: string }} MatchEntry */
 /** @typedef {{ mode: "auto" | "manual", openMatchIds: number[], suppressAuto: boolean, autoPilot: boolean }} BroadcastState */
 /** @typedef {{ id: string, label: string, expected: number, points: number }} KnockoutRound */
@@ -103,122 +100,6 @@ const mobileSwipeHintState = {
   active: false,
   hasPrompted: false,
 };
-
-/** @returns {string} */
-function israelDateKey() {
-  const parts = new Intl.DateTimeFormat("en", {
-    timeZone: "Asia/Jerusalem",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
-
-function groupStageCelebrationState() {
-  try {
-    const state = JSON.parse(localStorage.getItem(GROUP_STAGE_CELEBRATION_STORAGE_KEY) || "{}");
-    return {
-      dismissed: state.dismissed === true,
-      views: Number.isFinite(Number(state.views)) ? Number(state.views) : 0,
-    };
-  } catch {
-    return { dismissed: false, views: 0 };
-  }
-}
-
-function saveGroupStageCelebrationState(state) {
-  localStorage.setItem(GROUP_STAGE_CELEBRATION_STORAGE_KEY, JSON.stringify(state));
-}
-
-function shouldShowGroupStageCelebration() {
-  if (israelDateKey() !== GROUP_STAGE_CELEBRATION_DATE) {
-    return false;
-  }
-  const state = groupStageCelebrationState();
-  return !state.dismissed && state.views < GROUP_STAGE_CELEBRATION_MAX_VIEWS;
-}
-
-function markGroupStageCelebrationViewed() {
-  const state = groupStageCelebrationState();
-  saveGroupStageCelebrationState({
-    dismissed: state.dismissed,
-    views: Math.min(GROUP_STAGE_CELEBRATION_MAX_VIEWS, state.views + 1),
-  });
-}
-
-function dismissGroupStageCelebration() {
-  const state = groupStageCelebrationState();
-  saveGroupStageCelebrationState({
-    dismissed: true,
-    views: Math.max(state.views, GROUP_STAGE_CELEBRATION_MAX_VIEWS),
-  });
-  document.querySelector(".celebration-fireworks")?.remove();
-  document.querySelector(".celebration-announcement")?.remove();
-}
-
-function maybeStartGroupStageFireworks() {
-  if (!shouldShowGroupStageCelebration()) {
-    return;
-  }
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return;
-  }
-  if (document.querySelector(".celebration-fireworks")) {
-    return;
-  }
-
-  const overlay = document.createElement("div");
-  overlay.className = "celebration-fireworks";
-  overlay.setAttribute("aria-hidden", "true");
-  const bursts = [
-    ["12%", "18%", "0s"],
-    ["30%", "10%", "0.35s"],
-    ["52%", "20%", "0.7s"],
-    ["74%", "12%", "0.15s"],
-    ["88%", "26%", "0.95s"],
-    ["18%", "42%", "1.1s"],
-    ["43%", "34%", "1.45s"],
-    ["68%", "44%", "1.8s"],
-    ["84%", "52%", "2.1s"],
-  ];
-  overlay.innerHTML = bursts
-    .map(([left, top, delay], index) => (
-      `<span class="celebration-firework celebration-firework--${(index % 3) + 1}" style="left:${left};top:${top};animation-delay:${delay}"></span>`
-    ))
-    .join("");
-  document.body.append(overlay);
-  window.setTimeout(() => overlay.remove(), 18000);
-}
-
-function maybeShowGroupStageAnnouncement() {
-  if (!shouldShowGroupStageCelebration()) {
-    return;
-  }
-  if (document.querySelector(".celebration-announcement")) {
-    return;
-  }
-
-  const announcement = document.createElement("div");
-  announcement.className = "celebration-announcement";
-  announcement.setAttribute("role", "status");
-  announcement.setAttribute("aria-live", "polite");
-  announcement.innerHTML = `
-    <span class="celebration-announcement-medal" aria-hidden="true">1</span>
-    <span class="celebration-announcement-copy">
-      <span class="celebration-announcement-label">Group stage winner</span>
-      <strong>sharonWisman</strong>
-    </span>
-    <span class="celebration-announcement-spark" aria-hidden="true"></span>
-    <button type="button" class="celebration-announcement-close" aria-label="Hide group stage winner announcement">&times;</button>
-  `;
-  document.body.append(announcement);
-  markGroupStageCelebrationViewed();
-  announcement.querySelector(".celebration-announcement-close")?.addEventListener("click", dismissGroupStageCelebration);
-  window.setTimeout(() => announcement.classList.add("is-leaving"), 12000);
-  window.setTimeout(() => announcement.remove(), 13500);
-}
 
 /** @returns {boolean} */
 function shouldPlayEntrance() {
@@ -727,8 +608,6 @@ function handleLeaderboardBodyKeydown(event) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  maybeStartGroupStageFireworks();
-  maybeShowGroupStageAnnouncement();
   const refreshBtn = document.getElementById("refreshBtn");
   refreshBtn?.addEventListener("click", () => loadData(true));
   document.getElementById("viewFixturesBtn")?.addEventListener("click", toggleFixturesPanel);
@@ -958,9 +837,32 @@ function knockoutLiveMatches(data) {
       played: false,
       kickoffAt: match.kickoffAt,
       isKnockout: true,
+      isLocked: Boolean(match.isLocked),
       roundId: match.roundId,
       roundLabel: match.roundLabel,
     }));
+}
+
+/** @param {MatchEntry} match */
+function canShowKnockoutAdvancePickMatch(match) {
+  return Boolean(
+    match.isKnockout &&
+    match.isLocked &&
+    match.roundId &&
+    KNOCKOUT_ADVANCE_PICK_ROUND[match.roundId] &&
+    predictionTeamKey(match.home) &&
+    predictionTeamKey(match.away)
+  );
+}
+
+/** @param {TotoData} data @returns {MatchEntry[]} */
+function knockoutAdvancePickMatches(data) {
+  const live = knockoutLiveMatches(data).filter(canShowKnockoutAdvancePickMatch);
+  if (live.length) {
+    return live.slice(0, 2);
+  }
+  const next = nextPublicUnplayedMatch(data);
+  return next && canShowKnockoutAdvancePickMatch(next) ? [next] : [];
 }
 
 /** @param {TotoData} data @returns {MatchEntry[]} */
@@ -2137,7 +2039,6 @@ function renderKnockoutSwipeScreens(data) {
   const rounds = Array.isArray(data.knockout?.rounds) ? data.knockout.rounds : [];
   host.innerHTML = `
     ${rounds.map((round, index) => knockoutRoundScreenHtml(data, round, index)).join("")}
-    ${knockoutDesktopGridHtml(data, rounds)}
   `;
 }
 
@@ -2331,7 +2232,7 @@ function updateLivePickHeader(matches) {
   header.innerHTML = `
     <span class="lb-pick-head-list">
       ${matches.map((match, index) => `
-        <span class="lb-pick-head-item" title="${escapeAttribute(`Match ${match.id}: ${match.home} vs ${match.away}`)}">Pick ${index + 1}</span>
+        <span class="lb-pick-head-item" title="${escapeAttribute(`Match ${match.id}: ${match.home} vs ${match.away}`)}">${match.isKnockout ? "Adv" : "Pick"} ${index + 1}</span>
       `).join("")}
     </span>`;
 }
@@ -2341,6 +2242,9 @@ function updateLivePickHeader(matches) {
  * @param {MatchEntry} match
  */
 function livePredictionPillHtml(entry, match) {
+  if (match.isKnockout) {
+    return knockoutAdvancePickPillHtml(entry, match);
+  }
   const matchId = Number(match.id);
   const matchup = `${match.home} vs ${match.away}`;
   const pick = (entry.picks || []).find((item) => Number(item.matchId) === matchId);
@@ -2362,6 +2266,58 @@ function livePredictionPillHtml(entry, match) {
   return `
     <span class="lb-pick-pill${accuracyClass}" title="${escapeAttribute(`Match ${matchId}: ${matchup} - ${score}`)}" aria-label="${escapeAttribute(`Match ${matchId}: ${score}`)}">
       <span class="lb-pick-score">${escapeHtml(score)}</span>
+    </span>`;
+}
+
+/** @param {MatchEntry} match */
+function knockoutLiveLeader(match) {
+  const homeScore = Number(match.homeScore);
+  const awayScore = Number(match.awayScore);
+  if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore) || homeScore === awayScore) {
+    return "";
+  }
+  return homeScore > awayScore ? match.home : match.away;
+}
+
+/**
+ * @param {LeaderboardEntry} entry
+ * @param {MatchEntry} match
+ */
+function knockoutAdvancePickTeams(entry, match) {
+  const pickRoundId = KNOCKOUT_ADVANCE_PICK_ROUND[match.roundId || ""];
+  if (!pickRoundId) {
+    return [];
+  }
+  const roundPick = (entry.knockoutPicks || []).find((item) => item.roundId === pickRoundId);
+  const picked = new Set(knockoutPickTeamNames(roundPick).map(predictionTeamKey));
+  return [match.home, match.away].filter((team) => picked.has(predictionTeamKey(team)));
+}
+
+/**
+ * @param {LeaderboardEntry} entry
+ * @param {MatchEntry} match
+ */
+function knockoutAdvancePickPillHtml(entry, match) {
+  const matchId = Number(match.id);
+  const matchup = `${match.home} vs ${match.away}`;
+  const teams = knockoutAdvancePickTeams(entry, match);
+  const leader = knockoutLiveLeader(match);
+  if (!teams.length) {
+    return `
+      <span class="lb-pick-pill lb-pick-pill--empty lb-pick-advance-empty" title="${escapeAttribute(`Match ${matchId}: ${matchup} - no advance pick`)}" aria-label="${escapeAttribute(`Match ${matchId}: no advance pick`)}">
+        <span class="lb-pick-score">--</span>
+      </span>`;
+  }
+  const title = `Match ${matchId}: ${matchup} - picked ${teams.map(shortTeamName).join(" + ")} to advance`;
+  return `
+    <span class="lb-pick-advance" title="${escapeAttribute(title)}" aria-label="${escapeAttribute(title)}">
+      <span class="lb-pick-flags">
+        ${teams.map((team) => `
+          <span class="lb-pick-flag${leader && predictionTeamKey(team) === predictionTeamKey(leader) ? " is-leading" : ""}" title="${escapeAttribute(shortTeamName(team))}">
+            ${flagHtml(team, "sm")}
+          </span>
+        `).join("")}
+      </span>
     </span>`;
 }
 
@@ -2641,13 +2597,14 @@ function renderLeaderboard(container, data, animate = false) {
   const championOptions = syncChampionFilter(data);
   updateLeaderboardControls(data, followed, championOptions);
   const sorted = visibleLeaderboardEntries(data, followed);
-  const liveMatchIds = manualLiveMatchIds(data);
-  const liveMatches = liveMatchIds
+  const groupLiveMatchIds = manualLiveMatchIds(data);
+  const groupLiveMatches = groupLiveMatchIds
     .map((matchId) => data.matches.find((match) => Number(match.id) === Number(matchId)))
     .filter((match) => match !== undefined);
+  const pickMatches = [...groupLiveMatches, ...knockoutAdvancePickMatches(data)].slice(0, 2);
   const leaderboardPanel = container.closest(".leaderboard");
-  leaderboardPanel?.classList.toggle("has-live-picks", liveMatches.length > 0);
-  updateLivePickHeader(liveMatches);
+  leaderboardPanel?.classList.toggle("has-live-picks", pickMatches.length > 0);
+  updateLivePickHeader(pickMatches);
 
   const standingsBtn = document.getElementById("viewStandingsBtn");
 
@@ -2681,7 +2638,7 @@ function renderLeaderboard(container, data, animate = false) {
         ? `Champion pick: ${entry.champion}`
         : "";
       const href = playerHref(entry);
-      const livePick = livePredictionsHtml(entry, liveMatches);
+      const livePick = livePredictionsHtml(entry, pickMatches);
 
       return `
     <div class="lb-row ${rowClass}${championClass}${enterClass}" role="link" tabindex="0" data-href="${escapeAttribute(href)}" data-rank="${displayRank}" data-points="${entry.points.toFixed(0)}" data-has-champion="${entry.champion ? "true" : "false"}" title="${escapeAttribute(rowTitle)}" aria-label="${escapeAttribute(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}"${stagger}>

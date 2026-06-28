@@ -350,11 +350,60 @@ def _is_late_joiner(name: str) -> bool:
     return name.strip().startswith(LATE_JOINER_PREFIX)
 
 
+def _knockout_scoring_is_applied(knockout: dict[str, Any]) -> bool:
+    scoring_applied = knockout.get("scoringApplied")
+    return isinstance(scoring_applied, dict) and bool(scoring_applied.get("r32"))
+
+
+def _with_confirmed_knockout_points(
+    pool: list[dict[str, Any]],
+    knockout: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if not _knockout_scoring_is_applied(knockout):
+        return pool
+
+    scored: list[dict[str, Any]] = []
+    for entry in pool:
+        group_points = _cell_number(entry.get("groupStagePoints"))
+        if group_points is None:
+            group_points = _cell_number(entry.get("points")) or 0.0
+        workbook_points = _cell_number(entry.get("points")) or 0.0
+        knockout_points = _cell_number(entry.get("knockoutPoints")) or 0.0
+        total = max(workbook_points, group_points + knockout_points)
+        scored.append(
+            {
+                **entry,
+                "groupStagePoints": round(group_points, 2),
+                "points": round(total, 2),
+            }
+        )
+
+    scored.sort(
+        key=lambda entry: (
+            -float(entry.get("points") or 0),
+            int(entry.get("summaryOrder") or 9999),
+            str(entry.get("name") or ""),
+        )
+    )
+
+    previous_points: float | None = None
+    previous_rank = 0
+    for index, entry in enumerate(scored, start=1):
+        points = float(entry.get("points") or 0)
+        rank = previous_rank if previous_points is not None and points == previous_points else index
+        entry["rank"] = rank
+        entry["rankLabel"] = str(rank)
+        previous_points = points
+        previous_rank = rank
+    return scored
+
+
 def _public_leaderboard(
-    raw: list[dict[str, Any]], previous: dict[str, Any] | None
+    raw: list[dict[str, Any]], previous: dict[str, Any] | None, knockout: dict[str, Any]
 ) -> list[dict[str, Any]]:
     """Pool-only leaderboard in the exact order read from Summary."""
     pool = [entry for entry in raw if not _is_test_user(entry["name"])]
+    pool = _with_confirmed_knockout_points(pool, knockout)
     return _movement(pool, previous)
 
 
@@ -674,6 +723,7 @@ def _read_raw_leaderboard_by_name(
             name = sheet_name.split("_", 1)[1]
         if not name or name == "Name":
             continue
+        sheet_name = _user_sheet_for_uid(wb_formulas, uid)
         points = _read_user_points(
             wb_data,
             wb_formulas,
@@ -683,7 +733,6 @@ def _read_raw_leaderboard_by_name(
             late_joiner_baseline,
         )
         if points == 0.0:
-            sheet_name = _user_sheet_for_uid(wb_formulas, uid)
             if sheet_name is not None:
                 points = _score_from_user_sheet_name(
                     wb_formulas,
@@ -691,13 +740,21 @@ def _read_raw_leaderboard_by_name(
                     matches,
                     late_joiner_baseline,
                 )
+        group_stage_points = (
+            _score_from_user_sheet_name(
+                wb_formulas,
+                sheet_name,
+                matches,
+                late_joiner_baseline,
+            )
+            if sheet_name is not None
+            else points
+        )
         rank = _cell_int(ws_data[f"G{row}"].value)
         champion = _read_champion(wb_data, ws_data, row)
         if not champion:
-            sheet_name = _user_sheet_for_uid(wb_formulas, uid)
             if sheet_name is not None:
                 champion = _cell_text(wb_formulas[sheet_name][CHAMPION_CELL].value)
-        sheet_name = _user_sheet_for_uid(wb_formulas, uid)
         picks = (
             _player_picks_from_user_sheet(wb_formulas, sheet_name, matches)
             if sheet_name is not None
@@ -713,6 +770,7 @@ def _read_raw_leaderboard_by_name(
                 "id": str(uid or ""),
                 "name": name,
                 "points": points,
+                "groupStagePoints": group_stage_points,
                 "rank": rank,
                 "rankLabel": str(rank) if rank is not None else None,
                 "champion": champion,
@@ -796,6 +854,8 @@ def _read_visible_summary_leaderboard(
                 "picks": raw.get("picks") or [],
                 "knockoutPicks": raw.get("knockoutPicks") or [],
                 "knockoutPoints": raw.get("knockoutPoints") or 0,
+                "groupStagePoints": raw.get("groupStagePoints") or round(points or 0.0, 2),
+                "summaryOrder": raw.get("summaryOrder") or row,
             }
         )
     return rows
@@ -905,7 +965,7 @@ def build_export(xlsx_path: Path, previous: dict[str, Any] | None = None) -> dic
         matches,
         knockout_actual,
     )
-    leaderboard = _public_leaderboard(raw_leaderboard, previous)
+    leaderboard = _public_leaderboard(raw_leaderboard, previous, knockout)
     version = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     played_count = sum(1 for m in matches if m["played"])
     broadcast = normalize_broadcast(
