@@ -8,6 +8,8 @@ const FOLLOWED_PLAYERS_STORAGE_KEY = "wc26-followed-players";
 const MOBILE_SWIPE_HINT_STORAGE_KEY = "wc26-mobile-swipe-hint-v1";
 const LEADERBOARD_TABS = new Set(["full", "following", "champion"]);
 const GROUP_STAGE_CELEBRATION_DATE = "2026-06-28";
+const GROUP_STAGE_CELEBRATION_STORAGE_KEY = "wc26-group-stage-celebration-v1";
+const GROUP_STAGE_CELEBRATION_MAX_VIEWS = 3;
 
 const DATA_URL = "data/latest.json";
 const VERSION_URL = "data/version.json";
@@ -114,8 +116,50 @@ function israelDateKey() {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-function maybeStartGroupStageFireworks() {
+function groupStageCelebrationState() {
+  try {
+    const state = JSON.parse(localStorage.getItem(GROUP_STAGE_CELEBRATION_STORAGE_KEY) || "{}");
+    return {
+      dismissed: state.dismissed === true,
+      views: Number.isFinite(Number(state.views)) ? Number(state.views) : 0,
+    };
+  } catch {
+    return { dismissed: false, views: 0 };
+  }
+}
+
+function saveGroupStageCelebrationState(state) {
+  localStorage.setItem(GROUP_STAGE_CELEBRATION_STORAGE_KEY, JSON.stringify(state));
+}
+
+function shouldShowGroupStageCelebration() {
   if (israelDateKey() !== GROUP_STAGE_CELEBRATION_DATE) {
+    return false;
+  }
+  const state = groupStageCelebrationState();
+  return !state.dismissed && state.views < GROUP_STAGE_CELEBRATION_MAX_VIEWS;
+}
+
+function markGroupStageCelebrationViewed() {
+  const state = groupStageCelebrationState();
+  saveGroupStageCelebrationState({
+    dismissed: state.dismissed,
+    views: Math.min(GROUP_STAGE_CELEBRATION_MAX_VIEWS, state.views + 1),
+  });
+}
+
+function dismissGroupStageCelebration() {
+  const state = groupStageCelebrationState();
+  saveGroupStageCelebrationState({
+    dismissed: true,
+    views: Math.max(state.views, GROUP_STAGE_CELEBRATION_MAX_VIEWS),
+  });
+  document.querySelector(".celebration-fireworks")?.remove();
+  document.querySelector(".celebration-announcement")?.remove();
+}
+
+function maybeStartGroupStageFireworks() {
+  if (!shouldShowGroupStageCelebration()) {
     return;
   }
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -149,7 +193,7 @@ function maybeStartGroupStageFireworks() {
 }
 
 function maybeShowGroupStageAnnouncement() {
-  if (israelDateKey() !== GROUP_STAGE_CELEBRATION_DATE) {
+  if (!shouldShowGroupStageCelebration()) {
     return;
   }
   if (document.querySelector(".celebration-announcement")) {
@@ -167,8 +211,11 @@ function maybeShowGroupStageAnnouncement() {
       <strong>sharonWisman</strong>
     </span>
     <span class="celebration-announcement-spark" aria-hidden="true"></span>
+    <button type="button" class="celebration-announcement-close" aria-label="Hide group stage winner announcement">&times;</button>
   `;
   document.body.append(announcement);
+  markGroupStageCelebrationViewed();
+  announcement.querySelector(".celebration-announcement-close")?.addEventListener("click", dismissGroupStageCelebration);
   window.setTimeout(() => announcement.classList.add("is-leaving"), 12000);
   window.setTimeout(() => announcement.remove(), 13500);
 }

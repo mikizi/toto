@@ -85,7 +85,7 @@ body {
     left: 50%;
     z-index: calc(var(--z-celebration) + 1);
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 0.75rem;
     width: min(calc(100% - 1.5rem), 27rem);
@@ -102,7 +102,7 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.16);
     backdrop-filter: blur(14px) saturate(1.15);
     -webkit-backdrop-filter: blur(14px) saturate(1.15);
-    pointer-events: none;
+    pointer-events: auto;
     transform: translate(-50%, -115%);
     animation: celebration-announcement-in 0.62s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
 }
@@ -158,6 +158,35 @@ body {
         linear-gradient(90deg, #facc15, #facc15) center / 100% 0.18rem no-repeat;
     filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.52));
     transform: rotate(45deg);
+}
+
+.celebration-announcement-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(8, 13, 23, 0.56);
+    color: rgba(226, 232, 240, 0.84);
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        transform 0.18s ease;
+}
+
+.celebration-announcement-close:hover,
+.celebration-announcement-close:focus-visible {
+    border-color: rgba(250, 204, 21, 0.52);
+    background: rgba(250, 204, 21, 0.16);
+    color: #fff7cc;
+    transform: scale(1.04);
 }
 
 .celebration-firework {
