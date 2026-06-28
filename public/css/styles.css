@@ -2763,7 +2763,7 @@ body {
 
 .player-overview {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 1px;
     margin-bottom: 1rem;
     background: rgba(255, 255, 255, 0.06);
@@ -3314,10 +3314,25 @@ body {
     min-height: 1.6rem;
     font-size: 1.25rem;
     font-weight: 800;
+    white-space: nowrap;
 }
 
 .player-stat-team {
     font-size: 1rem;
+    min-width: 0;
+}
+
+.player-stat-team span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-stat-subvalue {
+    color: var(--gold);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
 }
 
 .player-bets-header,

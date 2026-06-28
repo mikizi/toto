@@ -143,6 +143,55 @@ function playerRankText(player, leaderboard) {
   return player.rank ? String(player.rank) : "-";
 }
 
+/** @param {number | null | undefined} home @param {number | null | undefined} away */
+function scoreDirectionValue(home, away) {
+  const homeScore = Number(home);
+  const awayScore = Number(away);
+  if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) {
+    return "";
+  }
+  if (homeScore > awayScore) {
+    return "home";
+  }
+  if (homeScore < awayScore) {
+    return "away";
+  }
+  return "draw";
+}
+
+/** @param {unknown} value */
+function hasScoredPickValue(value) {
+  return value !== null && value !== undefined && value !== "";
+}
+
+/** @param {any} player @param {any[]} matches */
+function playerGroupPickStats(player, matches) {
+  const picks = new Map((player.picks || []).map((pick) => [Number(pick.matchId), pick]));
+  return (matches || []).reduce((stats, match) => {
+    if (!match?.played) {
+      return stats;
+    }
+    const pick = picks.get(Number(match.id));
+    if (!pick || !hasScoredPickValue(pick.points)) {
+      return stats;
+    }
+    const pickHome = Number(pick.homePick);
+    const pickAway = Number(pick.awayPick);
+    const resultHome = Number(match.homeScore);
+    const resultAway = Number(match.awayScore);
+    if (!Number.isFinite(pickHome) || !Number.isFinite(pickAway) || !Number.isFinite(resultHome) || !Number.isFinite(resultAway)) {
+      return stats;
+    }
+    const exact = pickHome === resultHome && pickAway === resultAway;
+    const correct = scoreDirectionValue(pickHome, pickAway) === scoreDirectionValue(resultHome, resultAway);
+    return {
+      played: stats.played + 1,
+      exact: stats.exact + (exact ? 1 : 0),
+      correct: stats.correct + (correct ? 1 : 0),
+    };
+  }, { played: 0, exact: 0, correct: 0 });
+}
+
 /** @param {any[]} matches @param {number | null} focusMatchId */
 function focusOrderedMatches(matches, focusMatchId) {
   const sortedMatches = typeof chronologicalMatches === "function"
@@ -607,9 +656,12 @@ function renderPlayer(player, data) {
   const summary = document.getElementById("playerSummary");
   const rank = document.getElementById("playerRank");
   const points = document.getElementById("playerPoints");
+  const exact = document.getElementById("playerExact");
+  const correct = document.getElementById("playerCorrect");
   const champion = document.getElementById("playerChampion");
   const knockoutCorrect = document.getElementById("playerKnockoutCorrect");
   const picks = Array.isArray(player.knockoutPicks) ? player.knockoutPicks : [];
+  const groupStats = playerGroupPickStats(player, data.matches || []);
   const visualResultSets = knockoutVisualResultSets(data);
   const eliminatedSets = knockoutEliminatedSets(data);
   const roundDefinitions = new Map(
@@ -628,6 +680,13 @@ function renderPlayer(player, data) {
   }
   if (points) {
     points.textContent = formatPoints(player.points);
+  }
+  if (exact) {
+    exact.textContent = formatPoints(groupStats.exact);
+  }
+  if (correct) {
+    const accuracy = groupStats.played ? Math.round((groupStats.correct / groupStats.played) * 100) : 0;
+    correct.innerHTML = `${escapeHtml(`${groupStats.correct}/${groupStats.played}`)} <span class="player-stat-subvalue">${accuracy}%</span>`;
   }
   if (champion) {
     champion.innerHTML = `${flagHtml(player.champion || "", "sm")} <span>${escapeHtml(player.champion || "-")}</span>`;
