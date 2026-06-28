@@ -117,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("applyR32ScoringBtn")?.addEventListener("click", () => {
     void postKnockoutAction({ action: "apply_r32_scoring" }, document.getElementById("knockoutMsg"));
   });
-  document.getElementById("knockoutEliminatedRound")?.addEventListener("change", renderKnockoutEliminatedEditor);
   document.getElementById("knockoutEliminatedTeams")?.addEventListener("click", onKnockoutEliminatedTeamClick);
   document.getElementById("clearKnockoutEliminatedBtn")?.addEventListener("click", clearKnockoutEliminatedRound);
   document.getElementById("saveKnockoutEliminatedBtn")?.addEventListener("click", saveKnockoutEliminated);
@@ -893,47 +892,33 @@ function syncKnockoutEliminatedDraft(knockout) {
     ? knockout.eliminated
     : {};
   const groupTeams = new Set(adminGroupStageTeamOptions());
-  knockoutEliminatedDraft = {};
-  for (const [roundId, teams] of Object.entries(source)) {
+  const selected = new Set();
+  for (const teams of Object.values(source)) {
     if (!Array.isArray(teams)) {
       continue;
     }
-    knockoutEliminatedDraft[roundId] = [...new Set(teams.map((team) => String(team || "").trim()).filter((team) => groupTeams.has(team)))];
+    for (const team of teams) {
+      const normalized = String(team || "").trim();
+      if (groupTeams.has(normalized)) {
+        selected.add(normalized);
+      }
+    }
   }
+  knockoutEliminatedDraft = { r32: [...selected].sort((a, b) => a.localeCompare(b)) };
 }
 
-function selectedKnockoutEliminatedRoundId() {
-  const select = document.getElementById("knockoutEliminatedRound");
-  const rounds = adminKnockoutRoundOptions();
-  if (select instanceof HTMLSelectElement && select.value) {
-    return select.value;
-  }
-  return String(rounds[0]?.id || "r32");
-}
-
-/** @param {string} roundId */
-function adminEliminatedTeamOptions(roundId) {
+function adminEliminatedTeamOptions() {
   return adminGroupStageTeamOptions();
 }
 
 function renderKnockoutEliminatedEditor() {
-  const roundSelect = document.getElementById("knockoutEliminatedRound");
   const grid = document.getElementById("knockoutEliminatedTeams");
   const count = document.getElementById("knockoutEliminatedCount");
-  if (!(roundSelect instanceof HTMLSelectElement) || !grid) {
+  if (!grid) {
     return;
   }
-  const rounds = adminKnockoutRoundOptions();
-  const previousValue = roundSelect.value || String(rounds[0]?.id || "r32");
-  roundSelect.innerHTML = rounds
-    .map((round) => `<option value="${escapeAttribute(round.id)}"${String(round.id) === previousValue ? " selected" : ""}>${escapeHtml(round.label)}</option>`)
-    .join("");
-  if (!roundSelect.value && rounds[0]) {
-    roundSelect.value = String(rounds[0].id);
-  }
-  const roundId = selectedKnockoutEliminatedRoundId();
-  const selected = new Set(knockoutEliminatedDraft[roundId] || []);
-  const teams = adminEliminatedTeamOptions(roundId);
+  const selected = new Set(knockoutEliminatedDraft.r32 || []);
+  const teams = adminEliminatedTeamOptions();
   if (count) {
     count.textContent = `${selected.size} team${selected.size === 1 ? "" : "s"}`;
   }
@@ -953,20 +938,18 @@ function onKnockoutEliminatedTeamClick(event) {
     return;
   }
   const team = button.getAttribute("data-team") || "";
-  const roundId = selectedKnockoutEliminatedRoundId();
-  const selected = new Set(knockoutEliminatedDraft[roundId] || []);
+  const selected = new Set(knockoutEliminatedDraft.r32 || []);
   if (selected.has(team)) {
     selected.delete(team);
   } else if (team) {
     selected.add(team);
   }
-  knockoutEliminatedDraft[roundId] = [...selected].sort((a, b) => a.localeCompare(b));
+  knockoutEliminatedDraft.r32 = [...selected].sort((a, b) => a.localeCompare(b));
   renderKnockoutEliminatedEditor();
 }
 
 function clearKnockoutEliminatedRound() {
-  const roundId = selectedKnockoutEliminatedRoundId();
-  knockoutEliminatedDraft[roundId] = [];
+  knockoutEliminatedDraft.r32 = [];
   renderKnockoutEliminatedEditor();
 }
 
@@ -1004,9 +987,6 @@ function adminKnockoutLiveButtonHtml(match) {
     return `<button type="button" class="admin-live-btn admin-live-btn--stop" data-knockout-action="stop_live" aria-label="Stop live — match ${match.id}">
       ${LIVE_STOP_SVG}
     </button>`;
-  }
-  if (match.winner) {
-    return '<span class="admin-knockout-live-placeholder" aria-hidden="true"></span>';
   }
   return `<button type="button" class="admin-live-btn admin-live-btn--play" data-knockout-action="live_score" aria-label="Go live — match ${match.id}">
     ${LIVE_PLAY_SVG}
@@ -1103,11 +1083,11 @@ function renderKnockoutPublishMatch(match) {
     badge.classList.remove("hidden");
   }
   publishBtn.disabled = false;
-  publishBtn.textContent = pendingKnockoutTieBreakMatchId === match.id
-    ? "Close game"
-    : match.isLive
-      ? "Update live"
-      : "Publish";
+  publishBtn.textContent = match.isLive
+    ? "Update live"
+    : match.winner
+      ? "Reopen live"
+      : "Open live";
   row.classList.remove("is-empty");
   empty?.classList.add("hidden");
   row.innerHTML = `<div class="admin-publish-match-item admin-knockout-publish-item${isTieBreakRequired ? " is-tie" : ""}" data-knockout-match-id="${match.id}">
@@ -1123,6 +1103,7 @@ function renderKnockoutPublishMatch(match) {
       </div>
       ${adminKnockoutPublishTeamHtml(match, "away")}
     </div>
+    <span class="admin-match-live admin-knockout-publish-live">${adminKnockoutLiveButtonHtml(match)}</span>
     <div class="admin-knockout-tiebreak">
       <label class="admin-sr-only" for="knockoutWinner${match.id}">Tie-break winner</label>
       <select id="knockoutWinner${match.id}" class="admin-knockout-winner" aria-label="Tie-break winner"${isTieBreakRequired ? "" : " disabled"}>
@@ -1351,14 +1332,10 @@ function onKnockoutPublish(event) {
     return;
   }
   const matchId = Number(row.getAttribute("data-knockout-match-id"));
-  const match = Number.isFinite(matchId) ? getKnockoutMatchById(matchId) : null;
-  const action = match?.isLive && pendingKnockoutTieBreakMatchId !== matchId
-    ? "live_score"
-    : "confirm_winner";
   const button = document.createElement("button");
   button.type = "button";
   button.hidden = true;
-  button.setAttribute("data-knockout-action", action);
+  button.setAttribute("data-knockout-action", "live_score");
   row.append(button);
   try {
     button.click();

@@ -13,6 +13,7 @@ from scripts.knockout import (
     KNOCKOUT_ROUNDS,
     KNOCKOUT_SCHEDULE,
     NEXT_MATCH_SIDES,
+    clear_actual_qualifier,
     is_placeholder_fixture_team,
     normalize_knockout_state,
     qualifier_target_for_match,
@@ -55,6 +56,36 @@ def _propagate_winner(knockout: dict[str, Any], match: dict[str, Any], winner: s
         and not is_placeholder_fixture_team(next_match.get("home"))
         and not is_placeholder_fixture_team(next_match.get("away"))
     )
+
+
+def _clear_propagated_winner(knockout: dict[str, Any], match: dict[str, Any], winner: str) -> None:
+    next_id = match.get("nextMatchId")
+    if not next_id:
+        return
+    side = NEXT_MATCH_SIDES.get(int(match["id"]))
+    if side not in ("home", "away"):
+        return
+    next_match = _find_match(knockout, int(next_id))
+    if next_match.get(side) == winner:
+        next_match[side] = ""
+        next_match["isLocked"] = False
+
+
+def _clear_confirmed_winner(
+    knockout: dict[str, Any],
+    match: dict[str, Any],
+    match_id: int,
+    xlsx_path: Path,
+) -> None:
+    old_winner = str(match.get("winner") or "").strip()
+    if not old_winner:
+        return
+    match["winner"] = ""
+    target = qualifier_target_for_match(match_id)
+    if target is not None:
+        round_id, index = target
+        clear_actual_qualifier(round_id, index, xlsx_path)
+    _clear_propagated_winner(knockout, match, old_winner)
 
 
 def _locked_round_of_32_matches(knockout: dict[str, Any]) -> list[dict[str, Any]]:
@@ -210,6 +241,7 @@ def update_knockout(
         return _write_payload(previous, xlsx_path=xlsx_path)
 
     if action == "live_score":
+        _clear_confirmed_winner(knockout, match, match_id, xlsx_path)
         if home_score is None:
             home_score = int(match.get("homeScore")) if match.get("homeScore") is not None else 0
         if away_score is None:
@@ -235,6 +267,9 @@ def update_knockout(
         winner = winner.strip()
         if winner not in {match.get("home"), match.get("away")}:
             raise ValueError("winner must be one of the locked fixture teams")
+        old_winner = str(match.get("winner") or "").strip()
+        if old_winner and old_winner != winner:
+            _clear_propagated_winner(knockout, match, old_winner)
         if home_score is not None:
             match["homeScore"] = int(home_score)
         if away_score is not None:

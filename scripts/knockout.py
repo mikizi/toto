@@ -540,6 +540,22 @@ def set_actual_qualifier(
     wb.save(xlsx_path)
 
 
+def clear_actual_qualifier(
+    round_id: str,
+    index: int,
+    xlsx_path: Path = XLSX_PATH,
+) -> None:
+    cells = ROUND_ACTUAL_CELLS.get(round_id)
+    if not cells:
+        raise ValueError(f"Unknown knockout round: {round_id}")
+    if index < 0 or index >= len(cells):
+        raise ValueError(f"Qualifier index {index} out of range for {round_id}")
+    wb = openpyxl.load_workbook(xlsx_path)
+    ws = wb[SUMMARY]
+    ws[cells[index]].value = None
+    wb.save(xlsx_path)
+
+
 def qualifier_target_for_match(match_id: int) -> tuple[str, int] | None:
     match = next((item for item in KNOCKOUT_SCHEDULE if int(item["id"]) == match_id), None)
     if not match or not match.get("isScoring", True):
