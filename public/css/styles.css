@@ -6058,6 +6058,115 @@ body {
     }
 }
 
+/* ── Temporary group-stage stats promo ── */
+
+.stats-promo-wrap {
+    position: fixed;
+    z-index: var(--z-music-player);
+    right: 1.25rem;
+    bottom: 1.25rem;
+    width: min(30rem, calc(100vw - 2rem));
+}
+
+.stats-promo-banner {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.85rem;
+    min-height: 4.6rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: var(--radius);
+    border-color: rgba(232, 185, 35, 0.35);
+    color: var(--text);
+    text-decoration: none;
+    overflow: hidden;
+    box-shadow:
+        0 12px 38px rgba(0, 0, 0, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.stats-promo-banner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(circle at 12% 50%, rgba(232, 185, 35, 0.18), transparent 32%),
+        linear-gradient(135deg, rgba(232, 185, 35, 0.12), rgba(37, 99, 235, 0.1));
+    pointer-events: none;
+}
+
+.stats-promo-banner > * {
+    position: relative;
+    z-index: 1;
+}
+
+.stats-promo-kicker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0 0.6rem;
+    border: 1px solid rgba(232, 185, 35, 0.45);
+    border-radius: 999px;
+    background: rgba(232, 185, 35, 0.12);
+    color: var(--gold);
+    font-size: 0.62rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.stats-promo-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.stats-promo-copy strong {
+    overflow: hidden;
+    color: var(--text);
+    font-size: 0.96rem;
+    font-weight: 950;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-promo-copy span {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 750;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-promo-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.4rem;
+    padding: 0 0.9rem;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffd93d 0%, var(--gold) 100%);
+    color: #101318;
+    font-size: 0.72rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(232, 185, 35, 0.18);
+}
+
+.stats-promo-banner:hover .stats-promo-cta {
+    filter: brightness(1.05);
+}
+
 /* ── Background music player ── */
 
 .music-player-wrap {
@@ -6489,6 +6598,10 @@ body {
 }
 
 @media (max-width: 720px) {
+    body.stats-promo-visible .app {
+        padding-bottom: calc(4.85rem + env(safe-area-inset-bottom, 0px));
+    }
+
     body.music-player-visible .app {
         padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
     }
@@ -6508,6 +6621,55 @@ body {
 
     .page-bg {
         filter: none;
+    }
+
+    .stats-promo-wrap {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-width: none;
+    }
+
+    .stats-promo-banner {
+        min-height: calc(4.35rem + env(safe-area-inset-bottom, 0px));
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.65rem;
+        padding: 0.62rem 0.9rem calc(0.62rem + env(safe-area-inset-bottom, 0px));
+        border-right: 0;
+        border-bottom: 0;
+        border-left: 0;
+        border-radius: 0;
+        background: #0b1018;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .stats-promo-kicker {
+        position: absolute;
+        top: 0.42rem;
+        left: 0.9rem;
+        min-height: 1.35rem;
+        padding: 0 0.45rem;
+        font-size: 0.52rem;
+    }
+
+    .stats-promo-copy {
+        padding-top: 1.25rem;
+    }
+
+    .stats-promo-copy strong {
+        font-size: 0.86rem;
+    }
+
+    .stats-promo-copy span {
+        font-size: 0.68rem;
+    }
+
+    .stats-promo-cta {
+        min-height: 2.35rem;
+        padding: 0 0.72rem;
+        font-size: 0.66rem;
     }
 
     .music-player-wrap {

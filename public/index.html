@@ -220,47 +220,45 @@
     </div>
 </div>
 
-<div id="musicPlayerWrap" class="music-player-wrap">
-    <button id="musicPlayerClose" type="button" class="music-player-close" aria-label="Close player">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-            <path d="M18 6 6 18M6 6l12 12"/>
-        </svg>
-    </button>
-<aside id="musicPlayer" class="music-player glass-panel" aria-label="Background music">
-    <div class="music-player-art">
-        <video id="musicVideo" class="music-player-video" playsinline preload="metadata" aria-hidden="true"></video>
-    </div>
-    <div class="music-player-body">
-        <div class="music-player-info">
-            <span class="music-player-label">Now playing</span>
-            <div id="musicPlayerMarquee" class="music-player-marquee">
-                <span id="musicPlayerTitleTrack" class="music-player-title-track">
-                    <span class="music-player-title-text">—</span>
-                    <span class="music-player-title-text music-player-title-copy" aria-hidden="true">—</span>
-                </span>
-            </div>
-        </div>
-        <div class="music-player-controls">
-            <button id="musicPrev" type="button" class="music-btn" aria-label="Previous track">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2v12H6V6zm3.5 6 8.5 6V6l-8.5 6z"/></svg>
-            </button>
-            <button id="musicPlayPause" type="button" class="music-btn music-btn--main" aria-label="Play">
-                <svg class="music-icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7L8 5z"/></svg>
-                <svg class="music-icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-            </button>
-            <button id="musicNext" type="button" class="music-btn" aria-label="Next track">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12zm10 0V6h-2v12h2v-6z"/></svg>
-            </button>
-        </div>
-    </div>
-</aside>
+<div id="statsPromoWrap" class="stats-promo-wrap hidden">
+    <a id="statsPromoBanner" class="stats-promo-banner glass-panel" href="group-stage-stats.html" aria-label="Open group stage stats report">
+        <span class="stats-promo-kicker">1 day only</span>
+        <span class="stats-promo-copy">
+            <strong>The group-stage receipts are in</strong>
+            <span>Who nailed it, who missed, and what the knockout picks reveal</span>
+        </span>
+        <span class="stats-promo-cta">See stats</span>
+    </a>
 </div>
 
-<button id="musicPlayerReopen" type="button" class="music-player-reopen hidden" aria-label="Open music player">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
-    </svg>
-</button>
+<script>
+(() => {
+    const promo = document.getElementById("statsPromoWrap");
+    if (!promo) return;
+
+    function israelDateKey(date) {
+        try {
+            const parts = new Intl.DateTimeFormat("en-CA", {
+                timeZone: "Asia/Jerusalem",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+            }).formatToParts(date);
+            const get = (type) => parts.find((part) => part.type === type)?.value || "";
+            return `${get("year")}-${get("month")}-${get("day")}`;
+        } catch {
+            return date.toISOString().slice(0, 10);
+        }
+    }
+
+    if (israelDateKey(new Date()) === "2026-06-28") {
+        promo.classList.remove("hidden");
+        document.body.classList.add("stats-promo-visible");
+    } else {
+        promo.remove();
+    }
+})();
+</script>
 
 <div id="updateToast" class="update-toast glass-panel hidden" role="status" aria-live="polite" aria-atomic="true">
     <svg class="update-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
