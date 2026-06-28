@@ -1541,6 +1541,13 @@ body {
     letter-spacing: 0;
 }
 
+.prediction-pct-note {
+    color: var(--text-muted);
+    font-size: 0.46em;
+    font-weight: 850;
+    vertical-align: baseline;
+}
+
 .prediction-outcome--home .prediction-pct {
     color: #60a5fa;
     text-shadow: 0 0 22px rgba(96, 165, 250, 0.25);
@@ -1617,12 +1624,20 @@ body {
 }
 
 @media (max-width: 640px) {
+    .predictions-summary--advance {
+        padding-inline: 0.62rem;
+    }
+
     .prediction-advance-grid {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(4.45rem, 0.68fr) minmax(0, 1fr);
+        gap: 0.34rem;
     }
 
     .prediction-advance-team {
         align-content: start;
+        gap: 0.2rem;
+        min-height: 4.7rem;
+        padding: 0.5rem 0.34rem;
     }
 
     .prediction-advance-team--neither {
@@ -1630,9 +1645,26 @@ body {
     }
 
     .prediction-believer {
-        overflow: visible;
-        white-space: normal;
-        text-overflow: clip;
+        display: block;
+        overflow: hidden;
+        max-width: 100%;
+        font-size: 0.54rem;
+        line-height: 1.1;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .prediction-pct {
+        font-size: clamp(1.42rem, 8.2vw, 2rem);
+    }
+
+    .prediction-pct-note {
+        font-size: 0.42em;
+    }
+
+    .prediction-advance-team--neither {
+        justify-items: center;
+        text-align: center;
     }
 }
 
@@ -3625,36 +3657,36 @@ body {
     }
 
     .prediction-advance-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.45rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.36rem;
     }
 
     .prediction-advance-team {
-        padding: 0.62rem 0.45rem;
+        padding: 0.55rem 0.34rem;
     }
 
     .prediction-advance-team--neither {
-        grid-column: 1 / -1;
+        grid-column: auto;
     }
 
     .prediction-advance-name {
-        font-size: 0.68rem;
+        gap: 0.24rem;
+        font-size: 0.62rem;
     }
 
     .prediction-advance-name .team-flag--sm {
-        width: 1.15rem;
-        height: 1.15rem;
+        width: 1rem;
+        height: 1rem;
     }
 
     .prediction-label {
-        font-size: 0.54rem;
-        letter-spacing: 0.1em;
+        font-size: 0.48rem;
+        letter-spacing: 0.08em;
     }
 
     .prediction-believer {
-        font-size: 0.6rem;
-        white-space: normal;
-        text-overflow: clip;
+        font-size: 0.52rem;
+        white-space: nowrap;
     }
 
     .prediction-card {

@@ -1942,10 +1942,10 @@ function knockoutAdvancePickStats(data, match) {
 function knockoutAdvancePredictionsHtml(stats) {
   const { match } = stats;
   const homeBeliever = stats.homeBeliever
-    ? `<span class="prediction-believer">Believer: <strong>${escapeHtml(stats.homeBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.homeBeliever))}</span>`
+    ? `<span class="prediction-believer"><strong>${escapeHtml(stats.homeBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.homeBeliever))}</span>`
     : "";
   const awayBeliever = stats.awayBeliever
-    ? `<span class="prediction-believer">Believer: <strong>${escapeHtml(stats.awayBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.awayBeliever))}</span>`
+    ? `<span class="prediction-believer"><strong>${escapeHtml(stats.awayBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.awayBeliever))}</span>`
     : "";
   return `
     <div class="predictions-summary predictions-summary--advance glass-panel">
@@ -1959,19 +1959,16 @@ function knockoutAdvancePredictionsHtml(stats) {
       <div class="prediction-advance-grid" aria-label="Knockout advance pick split">
         <article class="prediction-advance-team prediction-advance-team--home">
           <span class="prediction-advance-name">${flagHtml(match.home, "sm")} ${escapeHtml(shortTeamName(match.home))}</span>
-          <span class="prediction-pct">${stats.homeCount}</span>
-          <span class="prediction-label">${stats.homePct}% picked to advance</span>
+          <span class="prediction-pct">${stats.homeCount} <span class="prediction-pct-note">(${stats.homePct}%)</span></span>
           ${homeBeliever}
         </article>
         <article class="prediction-advance-team prediction-advance-team--neither">
           <span class="prediction-advance-name">Neither</span>
-          <span class="prediction-pct">${stats.neitherCount}</span>
-          <span class="prediction-label">${stats.neitherPct}% picked neither</span>
+          <span class="prediction-pct">${stats.neitherCount} <span class="prediction-pct-note">(${stats.neitherPct}%)</span></span>
         </article>
         <article class="prediction-advance-team prediction-advance-team--away">
           <span class="prediction-advance-name">${flagHtml(match.away, "sm")} ${escapeHtml(shortTeamName(match.away))}</span>
-          <span class="prediction-pct">${stats.awayCount}</span>
-          <span class="prediction-label">${stats.awayPct}% picked to advance</span>
+          <span class="prediction-pct">${stats.awayCount} <span class="prediction-pct-note">(${stats.awayPct}%)</span></span>
           ${awayBeliever}
         </article>
       </div>
