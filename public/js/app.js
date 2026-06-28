@@ -1849,6 +1849,24 @@ function farthestKnockoutBeliever(data, team, seed) {
   return stableSample(candidates, seed);
 }
 
+/** @param {{ roundId: string, roundLabel: string }} believer */
+function believerRoundLabel(believer) {
+  const roundId = String(believer.roundId || "");
+  if (roundId === "quarter") {
+    return "QF";
+  }
+  if (roundId === "semi") {
+    return "SF";
+  }
+  if (roundId === "r16") {
+    return "R16";
+  }
+  if (roundId === "r32") {
+    return "R32";
+  }
+  return believer.roundLabel;
+}
+
 /**
  * @param {TotoData} data
  * @param {MatchEntry} match
@@ -1924,10 +1942,10 @@ function knockoutAdvancePickStats(data, match) {
 function knockoutAdvancePredictionsHtml(stats) {
   const { match } = stats;
   const homeBeliever = stats.homeBeliever
-    ? `<span class="prediction-believer">Believer: <strong>${escapeHtml(stats.homeBeliever.name)}</strong> · ${escapeHtml(stats.homeBeliever.roundLabel)}</span>`
+    ? `<span class="prediction-believer">Believer: <strong>${escapeHtml(stats.homeBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.homeBeliever))}</span>`
     : "";
   const awayBeliever = stats.awayBeliever
-    ? `<span class="prediction-believer">Believer: <strong>${escapeHtml(stats.awayBeliever.name)}</strong> · ${escapeHtml(stats.awayBeliever.roundLabel)}</span>`
+    ? `<span class="prediction-believer">Believer: <strong>${escapeHtml(stats.awayBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.awayBeliever))}</span>`
     : "";
   return `
     <div class="predictions-summary predictions-summary--advance glass-panel">
