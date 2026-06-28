@@ -1963,16 +1963,16 @@ function knockoutAdvancePredictionsHtml(stats) {
           <span class="prediction-label">${stats.homePct}% picked to advance</span>
           ${homeBeliever}
         </article>
+        <article class="prediction-advance-team prediction-advance-team--neither">
+          <span class="prediction-advance-name">Neither</span>
+          <span class="prediction-pct">${stats.neitherCount}</span>
+          <span class="prediction-label">${stats.neitherPct}% picked neither</span>
+        </article>
         <article class="prediction-advance-team prediction-advance-team--away">
           <span class="prediction-advance-name">${flagHtml(match.away, "sm")} ${escapeHtml(shortTeamName(match.away))}</span>
           <span class="prediction-pct">${stats.awayCount}</span>
           <span class="prediction-label">${stats.awayPct}% picked to advance</span>
           ${awayBeliever}
-        </article>
-        <article class="prediction-advance-team prediction-advance-team--neither">
-          <span class="prediction-advance-name">Neither</span>
-          <span class="prediction-pct">${stats.neitherCount}</span>
-          <span class="prediction-label">${stats.neitherPct}% picked neither</span>
         </article>
       </div>
       <div class="prediction-bar prediction-bar--advance" aria-hidden="true">
