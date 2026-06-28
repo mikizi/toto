@@ -52,6 +52,9 @@ let selectedMatchId = null;
 /** @type {number | null} */
 let selectedKnockoutMatchId = null;
 
+/** @type {number | null} */
+let pendingKnockoutTieBreakMatchId = null;
+
 /** @type {Record<string, string[]>} */
 let knockoutEliminatedDraft = {};
 
@@ -1091,6 +1094,7 @@ function renderKnockoutPublishMatch(match) {
   const scoreHome = match.homeScore === null || match.homeScore === undefined ? "" : String(match.homeScore);
   const scoreAway = match.awayScore === null || match.awayScore === undefined ? "" : String(match.awayScore);
   const isTie = scoreHome !== "" && scoreAway !== "" && Number(scoreHome) === Number(scoreAway);
+  const isTieBreakRequired = isTie && (!match.isLive || pendingKnockoutTieBreakMatchId === match.id);
   const winnerOptions = [match.home, match.away].filter(Boolean);
   num.textContent = `#${match.id}`;
   if (badge) {
@@ -1099,9 +1103,14 @@ function renderKnockoutPublishMatch(match) {
     badge.classList.remove("hidden");
   }
   publishBtn.disabled = false;
+  publishBtn.textContent = pendingKnockoutTieBreakMatchId === match.id
+    ? "Close game"
+    : match.isLive
+      ? "Update live"
+      : "Publish";
   row.classList.remove("is-empty");
   empty?.classList.add("hidden");
-  row.innerHTML = `<div class="admin-publish-match-item admin-knockout-publish-item${isTie ? " is-tie" : ""}" data-knockout-match-id="${match.id}">
+  row.innerHTML = `<div class="admin-publish-match-item admin-knockout-publish-item${isTieBreakRequired ? " is-tie" : ""}" data-knockout-match-id="${match.id}">
     <span class="admin-publish-match-badge">${escapeHtml(match.roundLabel)} · ${escapeHtml(apiKickoffLabel(match.kickoffAt))}</span>
     <div class="admin-publish-match admin-knockout-publish-match">
       ${adminKnockoutPublishTeamHtml(match, "home")}
@@ -1116,7 +1125,7 @@ function renderKnockoutPublishMatch(match) {
     </div>
     <div class="admin-knockout-tiebreak">
       <label class="admin-sr-only" for="knockoutWinner${match.id}">Tie-break winner</label>
-      <select id="knockoutWinner${match.id}" class="admin-knockout-winner" aria-label="Tie-break winner"${isTie ? "" : " disabled"}>
+      <select id="knockoutWinner${match.id}" class="admin-knockout-winner" aria-label="Tie-break winner"${isTieBreakRequired ? "" : " disabled"}>
         <option value="">Tie-break winner</option>
         ${winnerOptions.map((team) => `<option value="${escapeAttribute(team)}"${team === match.winner ? " selected" : ""}>${escapeHtml(team)}</option>`).join("")}
       </select>
@@ -1162,6 +1171,7 @@ function renderKnockout(knockout) {
         cardClasses.push("is-live");
       }
       const liveBadge = match.isLive ? '<span class="admin-match-live-badge">LIVE</span>' : "";
+      const liveBtn = adminKnockoutLiveButtonHtml(match);
       return `<article class="${cardClasses.join(" ")}" data-knockout-match-id="${match.id}" role="listitem" tabindex="0" aria-label="Knockout match ${match.id}: ${escapeHtml(match.home || match.homeSlot || "Home")} vs ${escapeHtml(match.away || match.awaySlot || "Away")}">
         <span class="admin-match-num">#${match.id}</span>
         <span class="admin-match-team admin-match-team--home">
@@ -1176,7 +1186,7 @@ function renderKnockout(knockout) {
           <span class="admin-match-flag">${flagHtml(match.away || "", "sm")}</span>
           ${adminMatchNameHtml(match.away || match.awaySlot || "Away")}
         </span>
-        <span class="admin-match-live" aria-hidden="true"></span>
+        ${liveBtn ? `<span class="admin-match-live">${liveBtn}</span>` : '<span class="admin-match-live" aria-hidden="true"></span>'}
       </article>`;
     })
     .join("");
@@ -1187,13 +1197,16 @@ function syncKnockoutTieBreak(card) {
   const homeScoreInput = card.querySelector('[data-score-side="home"]');
   const awayScoreInput = card.querySelector('[data-score-side="away"]');
   const winnerSelect = card.querySelector(".admin-knockout-winner");
+  const matchId = Number(card.getAttribute("data-knockout-match-id"));
+  const match = Number.isFinite(matchId) ? getKnockoutMatchById(matchId) : null;
   const homeValue = homeScoreInput instanceof HTMLInputElement ? homeScoreInput.value : "";
   const awayValue = awayScoreInput instanceof HTMLInputElement ? awayScoreInput.value : "";
   const isTie = homeValue !== "" && awayValue !== "" && Number(homeValue) === Number(awayValue);
-  card.classList.toggle("is-tie", isTie);
+  const isTieBreakRequired = isTie && (!match?.isLive || pendingKnockoutTieBreakMatchId === matchId);
+  card.classList.toggle("is-tie", isTieBreakRequired);
   if (winnerSelect instanceof HTMLSelectElement) {
-    winnerSelect.disabled = !isTie;
-    if (!isTie) {
+    winnerSelect.disabled = !isTieBreakRequired;
+    if (!isTieBreakRequired) {
       winnerSelect.value = "";
     }
   }
@@ -1269,7 +1282,7 @@ function onKnockoutListClick(event) {
   }
   event.preventDefault();
   event.stopPropagation();
-  const action = button.getAttribute("data-knockout-action") || "";
+  let action = button.getAttribute("data-knockout-action") || "";
   const match = getKnockoutMatchById(matchId);
   const selects = card.querySelectorAll(".admin-knockout-team-select");
   const home = selects[0] instanceof HTMLSelectElement ? selects[0].value : match?.home || "";
@@ -1284,6 +1297,29 @@ function onKnockoutListClick(event) {
     ? Number(awayScoreInput.value)
     : match?.awayScore ?? undefined;
   let winner = winnerSelect instanceof HTMLSelectElement ? winnerSelect.value : "";
+  let nextHomeScore = homeScore;
+  let nextAwayScore = awayScore;
+  if (action === "live_score") {
+    nextHomeScore = nextHomeScore ?? 0;
+    nextAwayScore = nextAwayScore ?? 0;
+    winner = "";
+    pendingKnockoutTieBreakMatchId = null;
+  }
+  if (action === "stop_live") {
+    if (nextHomeScore !== undefined && nextAwayScore !== undefined && nextHomeScore === nextAwayScore) {
+      pendingKnockoutTieBreakMatchId = matchId;
+      selectedKnockoutMatchId = matchId;
+      renderKnockout(cachedKnockout);
+      scrollToKnockoutPublish();
+      setMessage(document.getElementById("knockoutMsg"), "Tie game. Pick the tie-break winner, then close the game.", "error");
+      return;
+    }
+    if (nextHomeScore !== undefined && nextAwayScore !== undefined && nextHomeScore !== nextAwayScore) {
+      action = "confirm_winner";
+      winner = nextHomeScore > nextAwayScore ? home : away;
+    }
+    pendingKnockoutTieBreakMatchId = null;
+  }
   if (action === "confirm_winner" && homeScore !== undefined && awayScore !== undefined && homeScore !== awayScore) {
     winner = homeScore > awayScore ? home : away;
   }
@@ -1296,10 +1332,13 @@ function onKnockoutListClick(event) {
     matchId,
     home,
     away,
-    homeScore,
-    awayScore,
+    homeScore: nextHomeScore,
+    awayScore: nextAwayScore,
     winner,
   };
+  if (action === "confirm_winner") {
+    pendingKnockoutTieBreakMatchId = null;
+  }
   void postKnockoutAction(payload, document.getElementById("knockoutMsg"));
 }
 
@@ -1311,10 +1350,15 @@ function onKnockoutPublish(event) {
     setMessage(document.getElementById("knockoutMsg"), "Pick a knockout match first.", "error");
     return;
   }
+  const matchId = Number(row.getAttribute("data-knockout-match-id"));
+  const match = Number.isFinite(matchId) ? getKnockoutMatchById(matchId) : null;
+  const action = match?.isLive && pendingKnockoutTieBreakMatchId !== matchId
+    ? "live_score"
+    : "confirm_winner";
   const button = document.createElement("button");
   button.type = "button";
   button.hidden = true;
-  button.setAttribute("data-knockout-action", "confirm_winner");
+  button.setAttribute("data-knockout-action", action);
   row.append(button);
   try {
     button.click();

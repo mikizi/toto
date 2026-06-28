@@ -210,8 +210,10 @@ def update_knockout(
         return _write_payload(previous, xlsx_path=xlsx_path)
 
     if action == "live_score":
-        if home_score is None or away_score is None:
-            raise ValueError("home_score and away_score are required")
+        if home_score is None:
+            home_score = int(match.get("homeScore")) if match.get("homeScore") is not None else 0
+        if away_score is None:
+            away_score = int(match.get("awayScore")) if match.get("awayScore") is not None else 0
         match["homeScore"] = int(home_score)
         match["awayScore"] = int(away_score)
         match["isLive"] = True
@@ -233,6 +235,10 @@ def update_knockout(
         winner = winner.strip()
         if winner not in {match.get("home"), match.get("away")}:
             raise ValueError("winner must be one of the locked fixture teams")
+        if home_score is not None:
+            match["homeScore"] = int(home_score)
+        if away_score is not None:
+            match["awayScore"] = int(away_score)
         match["winner"] = winner
         match["isLive"] = False
         target = qualifier_target_for_match(match_id)
