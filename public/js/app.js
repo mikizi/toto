@@ -1942,10 +1942,10 @@ function knockoutAdvancePickStats(data, match) {
 function knockoutAdvancePredictionsHtml(stats) {
   const { match } = stats;
   const homeBeliever = stats.homeBeliever
-    ? `<span class="prediction-believer"><strong>${escapeHtml(stats.homeBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.homeBeliever))}</span>`
+    ? `<span class="prediction-believer"><span class="prediction-believer-label">Believer</span><span class="prediction-believer-value"><strong>${escapeHtml(stats.homeBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.homeBeliever))}</span></span>`
     : "";
   const awayBeliever = stats.awayBeliever
-    ? `<span class="prediction-believer"><strong>${escapeHtml(stats.awayBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.awayBeliever))}</span>`
+    ? `<span class="prediction-believer"><span class="prediction-believer-label">Believer</span><span class="prediction-believer-value"><strong>${escapeHtml(stats.awayBeliever.name)}</strong> · ${escapeHtml(believerRoundLabel(stats.awayBeliever))}</span></span>`
     : "";
   return `
     <div class="predictions-summary predictions-summary--advance glass-panel">
@@ -1965,6 +1965,7 @@ function knockoutAdvancePredictionsHtml(stats) {
         <article class="prediction-advance-team prediction-advance-team--neither">
           <span class="prediction-advance-name">Neither</span>
           <span class="prediction-pct">${stats.neitherCount} <span class="prediction-pct-note">(${stats.neitherPct}%)</span></span>
+          <span class="prediction-believer prediction-believer--empty" aria-hidden="true"></span>
         </article>
         <article class="prediction-advance-team prediction-advance-team--away">
           <span class="prediction-advance-name">${flagHtml(match.away, "sm")} ${escapeHtml(shortTeamName(match.away))}</span>

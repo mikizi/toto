@@ -1488,7 +1488,9 @@ body {
 
 .prediction-advance-team {
     display: grid;
-    gap: 0.32rem;
+    grid-template-rows: 1.35rem 2.45rem 1.85rem;
+    align-items: center;
+    gap: 0.18rem;
     min-width: 0;
     padding: 0.7rem;
     border-radius: 8px;
@@ -1519,6 +1521,9 @@ body {
     font-size: 0.8rem;
     font-weight: 850;
     line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .prediction-advance-name .team-flag--sm {
@@ -1535,6 +1540,7 @@ body {
 }
 
 .prediction-pct {
+    justify-self: start;
     font-size: clamp(1.8rem, 5vw, 2.45rem);
     line-height: 1;
     font-weight: 800;
@@ -1571,6 +1577,11 @@ body {
 }
 
 .prediction-believer {
+    display: grid;
+    align-self: end;
+    justify-self: stretch;
+    gap: 0.08rem;
+    min-width: 0;
     overflow: hidden;
     color: rgba(226, 232, 240, 0.76);
     font-size: 0.66rem;
@@ -1580,9 +1591,30 @@ body {
     white-space: nowrap;
 }
 
+.prediction-believer-label {
+    color: var(--gold);
+    font-size: 0.54rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.prediction-believer-value {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .prediction-believer strong {
     color: var(--text);
     font-weight: 850;
+}
+
+.prediction-believer--empty {
+    visibility: hidden;
 }
 
 .prediction-bar {
@@ -1629,14 +1661,14 @@ body {
     }
 
     .prediction-advance-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(4.45rem, 0.68fr) minmax(0, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.34rem;
     }
 
     .prediction-advance-team {
-        align-content: start;
-        gap: 0.2rem;
-        min-height: 4.7rem;
+        grid-template-rows: 1.05rem 1.95rem 1.5rem;
+        gap: 0.12rem;
+        min-height: 5.05rem;
         padding: 0.5rem 0.34rem;
     }
 
@@ -1652,6 +1684,17 @@ body {
         line-height: 1.1;
         white-space: nowrap;
         text-overflow: ellipsis;
+    }
+
+    .prediction-believer-label {
+        display: block;
+        margin-bottom: 0.12rem;
+        font-size: 0.44rem;
+        letter-spacing: 0.08em;
+    }
+
+    .prediction-believer-value {
+        display: block;
     }
 
     .prediction-pct {
@@ -3677,6 +3720,7 @@ body {
     }
 
     .prediction-advance-team {
+        grid-template-rows: 1.05rem 1.95rem 1.5rem;
         padding: 0.55rem 0.34rem;
     }
 
@@ -3702,6 +3746,10 @@ body {
     .prediction-believer {
         font-size: 0.52rem;
         white-space: nowrap;
+    }
+
+    .prediction-believer-label {
+        font-size: 0.42rem;
     }
 
     .prediction-card {
