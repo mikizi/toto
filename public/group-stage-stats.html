@@ -381,30 +381,6 @@
       text-transform: uppercase;
     }
 
-    .stats-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      padding: 1rem;
-    }
-
-    .stats-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      min-height: 2.2rem;
-      padding: 0.25rem 0.72rem 0.25rem 0.35rem;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.055);
-      font-weight: 850;
-    }
-
-    .stats-chip-count {
-      color: var(--gold);
-      font-weight: 950;
-    }
-
     .stats-error {
       padding: 1.5rem;
       color: #fecaca;
@@ -860,7 +836,6 @@ function renderPlayerTables(data, players, matches, qualifiers) {
 
   panels.push(renderMatchDifficultyPanel(data, players, matches));
   panels.push(renderKnockoutAdvancementMatrix(data));
-  panels.push(renderQualifierConsensusPanel(players, qualifiers));
   document.getElementById("statsGrid").innerHTML = panels.join("");
   initPredictionSortControls();
 }
@@ -891,40 +866,6 @@ function renderMatchDifficultyPanel(data, players, matches) {
     true,
     "stats-table--difficulty"
   );
-}
-
-function renderQualifierConsensusPanel(players, qualifiers) {
-  const counts = new Map();
-  for (const player of players) {
-    for (const team of playerQualifierPicks(player)) {
-      counts.set(team, (counts.get(team) || 0) + 1);
-    }
-  }
-  const rows = [...counts.entries()]
-    .map(([team, count]) => ({ team, count, qualified: qualifiers.includes(team) }))
-    .sort((a, b) => Number(b.qualified) - Number(a.qualified) || b.count - a.count || a.team.localeCompare(b.team))
-    .slice(0, 32);
-
-  return `
-    <article class="stats-panel stats-panel--wide glass-panel">
-      <header class="stats-panel-head">
-        <div>
-          <span class="stats-section-kicker">Crowd wisdom</span>
-          <h2 class="stats-panel-title">Most picked knockout teams</h2>
-        </div>
-        <p class="stats-panel-note">Green means the team is in the confirmed R32 fixture list</p>
-      </header>
-      <div class="stats-chips">
-        ${rows.map(({ team, count, qualified }) => `
-          <span class="stats-chip" style="${qualified ? "border-color:rgba(34,197,94,.58);background:rgba(34,197,94,.12)" : ""}">
-            ${flagHtml(team, "sm")}
-            <span>${escapeHtml(shortTeamName(team))}</span>
-            <span class="stats-chip-count">${count}</span>
-          </span>
-        `).join("")}
-      </div>
-    </article>
-  `;
 }
 
 async function init() {
