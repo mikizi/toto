@@ -27,6 +27,7 @@
     --z-music-player: 1100;
     --z-update-toast: 1200;
     --z-mobile-swipe-hint: 1300;
+    --z-celebration: 1000;
 }
 
 *,
@@ -68,6 +69,71 @@ body {
         rgba(12, 18, 28, 0.58) 100%
     );
     pointer-events: none;
+}
+
+.celebration-fireworks {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-celebration);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.celebration-firework {
+    position: absolute;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    color: var(--gold);
+    background: currentColor;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+    animation: celebration-firework 2.4s ease-out 6 both;
+    box-shadow:
+        0 -3.1rem 0 currentColor,
+        2.2rem -2.2rem 0 #60a5fa,
+        3.1rem 0 0 #f8fafc,
+        2.2rem 2.2rem 0 #22c55e,
+        0 3.1rem 0 #facc15,
+        -2.2rem 2.2rem 0 #fb7185,
+        -3.1rem 0 0 #f8fafc,
+        -2.2rem -2.2rem 0 #38bdf8;
+}
+
+.celebration-firework--2 {
+    color: #60a5fa;
+    animation-duration: 2.8s;
+}
+
+.celebration-firework--3 {
+    color: #22c55e;
+    animation-duration: 2.2s;
+}
+
+@keyframes celebration-firework {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.08) rotate(0deg);
+        filter: blur(0);
+    }
+    8% {
+        opacity: 1;
+    }
+    58% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1) rotate(24deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.22) rotate(42deg);
+        filter: blur(1px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .celebration-fireworks {
+        display: none;
+    }
 }
 
 .glass-panel {
@@ -2485,6 +2551,62 @@ body {
     min-width: 0;
 }
 
+.group-stage-winner-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 100%;
+    padding: 0.18rem 0.5rem 0.18rem 0.22rem;
+    border: 1px solid rgba(250, 204, 21, 0.48);
+    border-radius: 999px;
+    background:
+        linear-gradient(135deg, rgba(250, 204, 21, 0.24), rgba(232, 185, 35, 0.08)),
+        rgba(13, 17, 23, 0.56);
+    color: #ffe589;
+    box-shadow:
+        0 0 18px rgba(232, 185, 35, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    font-size: 0.61rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex: 0 1 auto;
+}
+
+.group-stage-winner-badge-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.08rem;
+    height: 1.08rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f8df69, #d7a917);
+    color: #111827;
+    font-size: 0.68rem;
+    font-weight: 950;
+    box-shadow: 0 0 14px rgba(250, 204, 21, 0.28);
+}
+
+.lb-row--group-winner {
+    border-left-color: var(--gold);
+    background:
+        linear-gradient(90deg, rgba(232, 185, 35, 0.1), transparent 44%),
+        rgba(255, 255, 255, 0.018);
+}
+
+.lb-row--group-winner::before {
+    opacity: 1;
+    background:
+        radial-gradient(circle at 16% 50%, rgba(250, 204, 21, 0.18), transparent 32%),
+        linear-gradient(90deg, rgba(232, 185, 35, 0.08), transparent 62%);
+}
+
+.lb-player .group-stage-winner-badge {
+    margin-left: 0.15rem;
+}
+
 .crown-icon {
     display: block;
     width: 16px;
@@ -2560,8 +2682,43 @@ body {
 
 .player-page-title {
     margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
     font-size: clamp(1.45rem, 4vw, 2.4rem);
     line-height: 1.1;
+}
+
+.player-page-title .group-stage-winner-badge {
+    transform: translateY(0.08rem);
+}
+
+.group-stage-winner-badge--profile {
+    padding: 0.28rem 0.68rem 0.28rem 0.26rem;
+    font-size: 0.68rem;
+}
+
+.group-stage-winner-badge--profile .group-stage-winner-badge-mark {
+    width: 1.28rem;
+    height: 1.28rem;
+}
+
+@media (max-width: 520px) {
+    .lb-player .group-stage-winner-badge {
+        padding-right: 0.42rem;
+        font-size: 0.56rem;
+        letter-spacing: 0.06em;
+    }
+
+    .lb-player .group-stage-winner-badge-text {
+        font-size: 0;
+    }
+
+    .lb-player .group-stage-winner-badge-text::before {
+        content: "Group winner";
+        font-size: 0.56rem;
+    }
 }
 
 .player-page-summary {

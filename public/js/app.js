@@ -7,6 +7,8 @@ const CHAMPION_FILTER_STORAGE_KEY = "wc26-champion-filter";
 const FOLLOWED_PLAYERS_STORAGE_KEY = "wc26-followed-players";
 const MOBILE_SWIPE_HINT_STORAGE_KEY = "wc26-mobile-swipe-hint-v1";
 const LEADERBOARD_TABS = new Set(["full", "following", "champion"]);
+const GROUP_STAGE_WINNER_KEY = "sharonwisman";
+const GROUP_STAGE_CELEBRATION_DATE = "2026-06-28";
 
 const DATA_URL = "data/latest.json";
 const VERSION_URL = "data/version.json";
@@ -93,6 +95,70 @@ const mobileSwipeHintState = {
   active: false,
   hasPrompted: false,
 };
+
+/** @param {string | null | undefined} name */
+function normalizedPersonKey(name) {
+  return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** @param {{ name?: string } | null | undefined} entry */
+function isGroupStageWinner(entry) {
+  return normalizedPersonKey(entry?.name) === GROUP_STAGE_WINNER_KEY;
+}
+
+/** @param {"row" | "profile"} [variant] */
+function groupStageWinnerBadgeHtml(variant = "row") {
+  return `<span class="group-stage-winner-badge group-stage-winner-badge--${variant}" aria-label="Group stage winner">
+    <span class="group-stage-winner-badge-mark" aria-hidden="true">1</span>
+    <span class="group-stage-winner-badge-text">Group stage winner</span>
+  </span>`;
+}
+
+/** @returns {string} */
+function israelDateKey() {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function maybeStartGroupStageFireworks() {
+  if (israelDateKey() !== GROUP_STAGE_CELEBRATION_DATE) {
+    return;
+  }
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  if (document.querySelector(".celebration-fireworks")) {
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "celebration-fireworks";
+  overlay.setAttribute("aria-hidden", "true");
+  const bursts = [
+    ["12%", "18%", "0s"],
+    ["30%", "10%", "0.35s"],
+    ["52%", "20%", "0.7s"],
+    ["74%", "12%", "0.15s"],
+    ["88%", "26%", "0.95s"],
+    ["18%", "42%", "1.1s"],
+    ["43%", "34%", "1.45s"],
+    ["68%", "44%", "1.8s"],
+    ["84%", "52%", "2.1s"],
+  ];
+  overlay.innerHTML = bursts
+    .map(([left, top, delay], index) => (
+      `<span class="celebration-firework celebration-firework--${(index % 3) + 1}" style="left:${left};top:${top};animation-delay:${delay}"></span>`
+    ))
+    .join("");
+  document.body.append(overlay);
+  window.setTimeout(() => overlay.remove(), 18000);
+}
 
 /** @returns {boolean} */
 function shouldPlayEntrance() {
@@ -601,6 +667,7 @@ function handleLeaderboardBodyKeydown(event) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  maybeStartGroupStageFireworks();
   const refreshBtn = document.getElementById("refreshBtn");
   refreshBtn?.addEventListener("click", () => loadData(true));
   document.getElementById("viewFixturesBtn")?.addEventListener("click", toggleFixturesPanel);
@@ -2407,6 +2474,9 @@ function renderLeaderboard(container, data, animate = false) {
       const trend = trendHtml(entry.movement);
       const rowFlag = lbRowFlagHtml(entry.champion);
       const championClass = rowFlag ? " lb-row--champion" : "";
+      const groupWinner = isGroupStageWinner(entry);
+      const groupWinnerClass = groupWinner ? " lb-row--group-winner" : "";
+      const groupWinnerBadge = groupWinner ? groupStageWinnerBadgeHtml("row") : "";
       const enterClass = animate && index < LEADERBOARD_PREVIEW_ROWS ? " lb-row--enter" : "";
       const revealIndex = Math.min(index, 16);
       const stagger = ` style="--enter-i: ${index}; --reveal-i: ${revealIndex}"`;
@@ -2418,13 +2488,15 @@ function renderLeaderboard(container, data, animate = false) {
         ? `, champion ${entry.champion}`
         : "";
       const rowTitle = entry.champion
-        ? `Champion pick: ${entry.champion}`
-        : "";
+        ? `${groupWinner ? "Group stage winner · " : ""}Champion pick: ${entry.champion}`
+        : groupWinner
+          ? "Group stage winner"
+          : "";
       const href = playerHref(entry);
       const livePick = livePredictionsHtml(entry, liveMatches);
 
       return `
-    <div class="lb-row ${rowClass}${championClass}${enterClass}" role="link" tabindex="0" data-href="${escapeAttribute(href)}" data-rank="${displayRank}" data-points="${entry.points.toFixed(0)}" data-has-champion="${entry.champion ? "true" : "false"}" title="${escapeAttribute(rowTitle)}" aria-label="${escapeAttribute(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}`)}"${stagger}>
+    <div class="lb-row ${rowClass}${championClass}${groupWinnerClass}${enterClass}" role="link" tabindex="0" data-href="${escapeAttribute(href)}" data-rank="${displayRank}" data-points="${entry.points.toFixed(0)}" data-has-champion="${entry.champion ? "true" : "false"}" title="${escapeAttribute(rowTitle)}" aria-label="${escapeAttribute(`${entry.name}, ${entry.points.toFixed(0)} points${championLabel}${groupWinner ? ", group stage winner" : ""}`)}"${stagger}>
       ${rowFlag}
       <div class="lb-rank-cell">
         <span class="rank-badge ${rankClass}">${escapeHtml(rankLabel)}</span>
@@ -2432,6 +2504,7 @@ function renderLeaderboard(container, data, animate = false) {
       <div class="lb-trend-cell">${trend}</div>
       <div class="lb-player">
         <span class="lb-player-name">${escapeHtml(entry.name)}</span>
+        ${groupWinnerBadge}
         ${crown}
       </div>
       <div class="lb-pick-cell">${livePick}</div>

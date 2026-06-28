@@ -1,4 +1,6 @@
 const PLAYER_DATA_URL = "data/latest.json";
+const GROUP_STAGE_WINNER_KEY = "sharonwisman";
+const GROUP_STAGE_CELEBRATION_DATE = "2026-06-28";
 const KNOCKOUT_QUALIFIER_ROUND_BY_FIXTURE_ROUND = {
   r32_match: "r16",
   r16_match: "quarter",
@@ -18,6 +20,70 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+/** @param {string | null | undefined} name */
+function normalizedPersonKey(name) {
+  return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** @param {{ name?: string } | null | undefined} player */
+function isGroupStageWinner(player) {
+  return normalizedPersonKey(player?.name) === GROUP_STAGE_WINNER_KEY;
+}
+
+/** @param {"row" | "profile"} [variant] */
+function groupStageWinnerBadgeHtml(variant = "profile") {
+  return `<span class="group-stage-winner-badge group-stage-winner-badge--${variant}" aria-label="Group stage winner">
+    <span class="group-stage-winner-badge-mark" aria-hidden="true">1</span>
+    <span class="group-stage-winner-badge-text">Group stage winner</span>
+  </span>`;
+}
+
+/** @returns {string} */
+function israelDateKey() {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function maybeStartGroupStageFireworks() {
+  if (israelDateKey() !== GROUP_STAGE_CELEBRATION_DATE) {
+    return;
+  }
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  if (document.querySelector(".celebration-fireworks")) {
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "celebration-fireworks";
+  overlay.setAttribute("aria-hidden", "true");
+  const bursts = [
+    ["12%", "18%", "0s"],
+    ["30%", "10%", "0.35s"],
+    ["52%", "20%", "0.7s"],
+    ["74%", "12%", "0.15s"],
+    ["88%", "26%", "0.95s"],
+    ["18%", "42%", "1.1s"],
+    ["43%", "34%", "1.45s"],
+    ["68%", "44%", "1.8s"],
+    ["84%", "52%", "2.1s"],
+  ];
+  overlay.innerHTML = bursts
+    .map(([left, top, delay], index) => (
+      `<span class="celebration-firework celebration-firework--${(index % 3) + 1}" style="left:${left};top:${top};animation-delay:${delay}"></span>`
+    ))
+    .join("");
+  document.body.append(overlay);
+  window.setTimeout(() => overlay.remove(), 18000);
 }
 
 /** @returns {{ id: string, name: string }} */
@@ -671,7 +737,7 @@ function renderPlayer(player, data) {
   const knockoutSummary = playerKnockoutCorrectSummary(picks, visualResultSets, eliminatedSets, roundDefinitions);
 
   if (name) {
-    name.textContent = player.name;
+    name.innerHTML = `${escapeHtml(player.name)}${isGroupStageWinner(player) ? groupStageWinnerBadgeHtml("profile") : ""}`;
   }
   if (summary) {
     summary.textContent = `${data.gamesPlayed} games played`;
@@ -735,6 +801,7 @@ async function loadPlayerPage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  maybeStartGroupStageFireworks();
   initBackToTopButton();
   document.getElementById("playerKnockoutCarousel")?.addEventListener("scroll", handlePlayerKnockoutScroll);
   void loadPlayerPage();
