@@ -406,10 +406,14 @@ function playerQualifierPicks(player) {
   return (r32?.teams || []).map((item) => String(item.team || "").trim()).filter(Boolean);
 }
 
+function isEligibleStatsPlayer(player) {
+  return !/^N_\s*/i.test(String(player?.name || "").trim());
+}
+
 function buildPlayerStats(data) {
   const matches = playedMatches(data);
   const qualifiers = new Set(qualifierTeams(data));
-  return (data.leaderboard || []).map((player) => {
+  return (data.leaderboard || []).filter(isEligibleStatsPlayer).map((player) => {
     let exact = 0;
     let direction = 0;
     let zeroes = 0;
@@ -487,10 +491,10 @@ function panel(title, kicker, note, headers, rowsHtml, wide = false) {
   `;
 }
 
-function renderSummary(data, players, matches, qualifiers) {
+function renderSummary(data, players, matches, qualifiers, excludedCount) {
   const winner = [...players].sort((a, b) => b.groupPoints - a.groupPoints || b.exact - a.exact)[0];
   document.getElementById("statsSubtitle").textContent =
-    `${matches.length} group-stage games scored · ${players.length} players · ${qualifiers.length} confirmed knockout teams`;
+    `${matches.length} group-stage games scored · ${players.length} eligible players · ${qualifiers.length} confirmed knockout teams${excludedCount ? ` · ${excludedCount} late average entries excluded` : ""}`;
   document.getElementById("winnerCard").innerHTML = `
     <div class="stats-winner-label">Group stage winner</div>
     <div class="stats-winner-name">${escapeHtml(winner?.name || "-")}</div>
@@ -681,7 +685,8 @@ async function init() {
     const matches = playedMatches(data);
     const qualifiers = qualifierTeams(data);
     const players = buildPlayerStats(data);
-    renderSummary(data, players, matches, qualifiers);
+    const excludedCount = (data.leaderboard || []).filter((player) => !isEligibleStatsPlayer(player)).length;
+    renderSummary(data, players, matches, qualifiers, excludedCount);
     renderPlayerTables(data, players, matches, qualifiers);
   } catch (error) {
     document.getElementById("statsGrid").innerHTML = `<div class="stats-error glass-panel">Could not load stats. ${escapeHtml(error.message || error)}</div>`;
