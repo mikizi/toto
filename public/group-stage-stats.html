@@ -255,6 +255,16 @@
       font-weight: 800;
     }
 
+    .stats-table--matrix {
+      min-width: 30rem;
+    }
+
+    .stats-table--matrix th:not(:first-child),
+    .stats-table--matrix td:not(:first-child) {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
     .stats-table tr:last-child td {
       border-bottom: 0;
     }
@@ -391,6 +401,14 @@ const PREDICTION_SORTS = {
   exact: "Exact",
   zeroes: "Fewest zeroes",
 };
+const KNOCKOUT_MATRIX_ROUNDS = [
+  { id: "r32", label: "32" },
+  { id: "r16", label: "16" },
+  { id: "quarter", label: "8" },
+  { id: "semi", label: "4" },
+  { id: "final", label: "2" },
+  { id: "champion", label: "1" },
+];
 let predictionLeaders = [];
 
 function escapeHtml(text) {
@@ -449,6 +467,12 @@ function qualifierTeams(data) {
 function playerQualifierPicks(player) {
   const r32 = (player.knockoutPicks || []).find((round) => round.roundId === "r32");
   return (r32?.teams || []).map((item) => String(item.team || "").trim()).filter(Boolean);
+}
+
+function knockoutRoundTeamNames(roundPick) {
+  return (roundPick?.teams || [])
+    .map((item) => String((item && typeof item === "object" ? item.team : item) || "").trim())
+    .filter(Boolean);
 }
 
 function isEligibleStatsPlayer(player) {
@@ -611,6 +635,69 @@ function renderPredictionLeadersPanel(players) {
   `;
 }
 
+function knockoutAdvancementRows(data) {
+  const roundIds = new Set(KNOCKOUT_MATRIX_ROUNDS.map((round) => round.id));
+  const rowsByTeam = new Map();
+  for (const player of data.leaderboard || []) {
+    for (const roundPick of player.knockoutPicks || []) {
+      const roundId = roundPick?.roundId;
+      if (!roundIds.has(roundId)) {
+        continue;
+      }
+      for (const team of knockoutRoundTeamNames(roundPick)) {
+        if (!rowsByTeam.has(team)) {
+          rowsByTeam.set(team, Object.fromEntries(KNOCKOUT_MATRIX_ROUNDS.map((round) => [round.id, 0])));
+        }
+        rowsByTeam.get(team)[roundId] += 1;
+      }
+    }
+  }
+  return [...rowsByTeam.entries()]
+    .map(([team, counts]) => ({ team, counts }))
+    .sort((a, b) => (
+      b.counts.champion - a.counts.champion ||
+      b.counts.final - a.counts.final ||
+      b.counts.semi - a.counts.semi ||
+      b.counts.quarter - a.counts.quarter ||
+      b.counts.r16 - a.counts.r16 ||
+      b.counts.r32 - a.counts.r32 ||
+      a.team.localeCompare(b.team)
+    ));
+}
+
+function renderKnockoutAdvancementMatrix(data) {
+  const rows = knockoutAdvancementRows(data);
+  return `
+    <article class="stats-panel stats-panel--wide glass-panel">
+      <header class="stats-panel-head">
+        <div>
+          <span class="stats-section-kicker">Knockout picks</span>
+          <h2 class="stats-panel-title">Team advancement matrix</h2>
+        </div>
+        <p class="stats-panel-note">How many entries picked each team to reach 32, 16, 8, 4, 2, or win it all</p>
+      </header>
+      <div class="stats-table-wrap">
+        <table class="stats-table stats-table--matrix">
+          <thead>
+            <tr>
+              <th>Team</th>
+              ${KNOCKOUT_MATRIX_ROUNDS.map((round) => `<th>${escapeHtml(round.label)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(({ team, counts }) => `
+              <tr>
+                <td><span class="stats-team">${flagHtml(team, "sm")} ${escapeHtml(shortTeamName(team))}</span></td>
+                ${KNOCKOUT_MATRIX_ROUNDS.map((round) => `<td>${counts[round.id] || 0}</td>`).join("")}
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
 function renderSummary(data, players, matches, qualifiers) {
   const winner = [...players].sort((a, b) => b.groupPoints - a.groupPoints || b.exact - a.exact)[0];
   const playerCount = DISPLAY_PLAYER_COUNT || (data.leaderboard || []).length;
@@ -675,6 +762,7 @@ function renderPlayerTables(data, players, matches, qualifiers) {
   ));
 
   panels.push(renderMatchDifficultyPanel(data, players, matches));
+  panels.push(renderKnockoutAdvancementMatrix(data));
   panels.push(renderQualifierConsensusPanel(players, qualifiers));
   document.getElementById("statsGrid").innerHTML = panels.join("");
   initPredictionSortControls();
