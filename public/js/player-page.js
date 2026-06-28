@@ -324,9 +324,13 @@ function knockoutEliminatedSets(data) {
   /** @type {Map<string, Set<string>>} */
   const resultSets = new Map();
   if (Array.isArray(data.knockout?.rounds)) {
+    const cumulative = new Set();
     for (const round of data.knockout.rounds) {
       const teams = Array.isArray(eliminated[round.id]) ? eliminated[round.id].filter(Boolean) : [];
-      resultSets.set(round.id, new Set(teams));
+      for (const team of teams) {
+        cumulative.add(team);
+      }
+      resultSets.set(round.id, new Set(cumulative));
     }
   }
   return resultSets;
