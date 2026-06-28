@@ -43,6 +43,9 @@ let cachedRegistration = null;
 /** @type {{ matches?: KnockoutMatch[], actual?: Record<string, string[]> } | null} */
 let cachedKnockout = null;
 
+/** @type {string | null} */
+let cachedVersion = null;
+
 /** @type {number | null} */
 let selectedMatchId = null;
 
@@ -374,6 +377,7 @@ async function loadData() {
       throw new Error(`HTTP ${response.status}`);
     }
     const data = await response.json();
+    cachedVersion = data.version || null;
     cachedMatches = data.matches;
     cachedBroadcast = normalizeBroadcast(data.broadcast);
     cachedRegistration = normalizeRegistration(data.registration, data.matches);
@@ -389,12 +393,19 @@ async function loadData() {
     }
     applySelectedMatch();
     scheduleFocusedMatchScroll();
+    return data;
   } catch (err) {
     console.error(err);
     if (status) {
       status.textContent = "Could not load data.";
     }
+    return null;
   }
+}
+
+/** @param {number} ms */
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 /**
@@ -1317,6 +1328,7 @@ function onKnockoutPublish(event) {
  * @param {HTMLElement | null} msg
  */
 async function postKnockoutAction(payload, msg) {
+  const previousVersion = cachedVersion;
   setMessage(msg, "Updating knockout…", "");
   try {
     let response;
@@ -1377,12 +1389,44 @@ async function postKnockoutAction(payload, msg) {
         : "Knockout updated.";
       setMessage(msg, successMessage, "success");
     } else {
-      setMessage(msg, "Queued. Refresh in ~1 min to verify.", "success");
+      await waitForQueuedKnockoutRefresh(payload, msg, previousVersion);
     }
   } catch (err) {
     console.error(err);
     setMessage(msg, `Knockout update failed. ${err instanceof Error ? err.message : ""}`, "error");
   }
+}
+
+/**
+ * @param {Record<string, unknown>} payload
+ * @param {HTMLElement | null} msg
+ * @param {string | null} previousVersion
+ */
+async function waitForQueuedKnockoutRefresh(payload, msg, previousVersion) {
+  const isEspnSync = payload.action === "sync_fixtures";
+  const waitingMessage = isEspnSync
+    ? "Queued ESPN sync. Waiting for GitHub to publish the fixtures…"
+    : "Queued. Waiting for GitHub to publish the update…";
+  setMessage(msg, waitingMessage, "success");
+
+  for (let attempt = 1; attempt <= 8; attempt += 1) {
+    await wait(15000);
+    setMessage(msg, `${waitingMessage} (${attempt}/8)`, "success");
+    const data = await loadData();
+    const nextVersion = data?.version || null;
+    if (nextVersion && previousVersion && nextVersion !== previousVersion) {
+      setMessage(
+        msg,
+        isEspnSync
+          ? "ESPN fixtures updated. Real team pairings are ready automatically."
+          : "Knockout updated.",
+        "success"
+      );
+      return;
+    }
+  }
+
+  setMessage(msg, "Queued. GitHub is still processing; refresh in ~1 min to verify.", "success");
 }
 
 /** @param {string} text */
