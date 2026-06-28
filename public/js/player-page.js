@@ -486,17 +486,6 @@ function playerKnockoutRoundHtml(roundPick, scoringSet, visualSet, eliminatedSet
         </span>
         <span class="player-knockout-toggle" aria-hidden="true"></span>
       </summary>
-      <div class="player-knockout-legend" aria-label="Knockout prediction status legend">
-        <span class="player-knockout-legend-item player-knockout-legend-item--pending">
-          <span><strong>Pending</strong><small>Not decided yet</small></span>
-        </span>
-        <span class="player-knockout-legend-item player-knockout-legend-item--correct">
-          <span><strong>Qualified</strong><small>Your prediction was correct</small></span>
-        </span>
-        <span class="player-knockout-legend-item player-knockout-legend-item--missed">
-          <span><strong>Eliminated</strong><small>Your prediction was wrong</small></span>
-        </span>
-      </div>
       <div class="player-knockout-teams${teams.length ? "" : " is-empty"}">
         ${teams.length ? teams.map((item) => {
           const status = playerKnockoutTeamStatus(item, visualSet, eliminatedSet, expected);
