@@ -14,6 +14,7 @@ on:
         "Auto-start kickoff matches",
         "Sync ESPN scores",
         "Sync uploaded workbook",
+        "Update knockout",
       ]
     types: [completed]
 
