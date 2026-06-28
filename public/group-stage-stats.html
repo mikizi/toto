@@ -576,6 +576,7 @@ function predictionLeadersRowsHtml(players, sortKey) {
     <td>${playerCell(p)}</td>
     <td><span class="stats-score-pill">${p.groupPoints.toFixed(0)}</span></td>
     <td>${p.direction}/${p.played}</td>
+    <td>${Math.round(p.directionRate * 100)}%</td>
     <td>${p.exact}</td>
     <td>${p.zeroes}</td>
   `);
@@ -624,6 +625,7 @@ function renderPredictionLeadersPanel(players) {
               <th>Player</th>
               <th>Pts</th>
               <th>Correct result</th>
+              <th>Accuracy</th>
               <th>Exact</th>
               <th>Zeroes</th>
             </tr>
