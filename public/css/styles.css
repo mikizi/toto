@@ -1563,6 +1563,21 @@ body {
     color: var(--text-muted);
 }
 
+.prediction-believer {
+    overflow: hidden;
+    color: rgba(226, 232, 240, 0.76);
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.prediction-believer strong {
+    color: var(--text);
+    font-weight: 850;
+}
+
 .prediction-bar {
     display: flex;
     height: 0.58rem;

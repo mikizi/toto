@@ -39,6 +39,14 @@ const KNOCKOUT_ADVANCE_PICK_ROUND = {
   semi_match: "final",
   final_match: "champion",
 };
+const KNOCKOUT_PICK_ROUND_DEPTH = {
+  r32: 0,
+  r16: 1,
+  quarter: 2,
+  semi: 3,
+  final: 4,
+  champion: 5,
+};
 
 /** @typedef {{ matchId: number, homePick: number | null, awayPick: number | null, points: number | null }} PlayerPick */
 /** @typedef {{ id: string, name: string, points: number, rank: number | null, rankLabel?: string | null, champion: string | null, movement: string, picks?: PlayerPick[], knockoutPicks?: Array<{ roundId: string, teams: Array<string | { team: string }> }> }} LeaderboardEntry */
@@ -1754,6 +1762,29 @@ function predictionTeamKey(team) {
   return normalized.toLowerCase();
 }
 
+/** @param {string} value */
+function stableHash(value) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * @template T
+ * @param {T[]} items
+ * @param {string} seed
+ * @returns {T | null}
+ */
+function stableSample(items, seed) {
+  if (!items.length) {
+    return null;
+  }
+  return items[stableHash(seed) % items.length];
+}
+
 /**
  * @param {unknown} roundPick
  * @returns {string[]}
@@ -1765,6 +1796,57 @@ function knockoutPickTeamNames(roundPick) {
   return roundPick.teams
     .map((item) => String((item && typeof item === "object" ? item.team : item) || "").trim())
     .filter(Boolean);
+}
+
+/**
+ * @param {TotoData} data
+ * @param {string} team
+ * @param {string} seed
+ */
+function farthestKnockoutBeliever(data, team, seed) {
+  const teamKey = predictionTeamKey(team);
+  if (!teamKey) {
+    return null;
+  }
+  const roundLabels = new Map(
+    (data.knockout?.rounds || []).map((round) => [round.id, round.label])
+  );
+  let bestDepth = -1;
+  /** @type {{ name: string, roundId: string, roundLabel: string }[]} */
+  let candidates = [];
+
+  for (const entry of data.leaderboard || []) {
+    let entryDepth = -1;
+    let entryRoundId = "";
+    for (const roundPick of entry.knockoutPicks || []) {
+      const roundId = String(roundPick?.roundId || "");
+      const depth = KNOCKOUT_PICK_ROUND_DEPTH[roundId] ?? -1;
+      if (depth <= entryDepth) {
+        continue;
+      }
+      const teams = knockoutPickTeamNames(roundPick).map(predictionTeamKey);
+      if (teams.includes(teamKey)) {
+        entryDepth = depth;
+        entryRoundId = roundId;
+      }
+    }
+    if (entryDepth < 0) {
+      continue;
+    }
+    if (entryDepth > bestDepth) {
+      bestDepth = entryDepth;
+      candidates = [];
+    }
+    if (entryDepth === bestDepth) {
+      candidates.push({
+        name: entry.name,
+        roundId: entryRoundId,
+        roundLabel: roundLabels.get(entryRoundId) || entryRoundId,
+      });
+    }
+  }
+
+  return stableSample(candidates, seed);
 }
 
 /**
@@ -1784,6 +1866,8 @@ function knockoutAdvancePickStats(data, match) {
   const round = (data.knockout?.rounds || []).find((item) => item.id === pickRoundId);
   const homeKey = predictionTeamKey(match.home);
   const awayKey = predictionTeamKey(match.away);
+  const homeBeliever = farthestKnockoutBeliever(data, match.home, `${data.version}:${match.id}:home:${homeKey}`);
+  const awayBeliever = farthestKnockoutBeliever(data, match.away, `${data.version}:${match.id}:away:${awayKey}`);
   let homeCount = 0;
   let awayCount = 0;
   let neitherCount = 0;
@@ -1829,14 +1913,22 @@ function knockoutAdvancePickStats(data, match) {
     homePct: predictionPercent(homeCount, total),
     awayPct: predictionPercent(awayCount, total),
     neitherPct: predictionPercent(neitherCount, total),
+    homeBeliever,
+    awayBeliever,
   };
 }
 
 /**
- * @param {{ match: MatchEntry, total: number, roundLabel: string, homeCount: number, awayCount: number, neitherCount: number, bothCount: number, homeOnlyCount: number, awayOnlyCount: number, homePct: number, awayPct: number, neitherPct: number }} stats
+ * @param {{ match: MatchEntry, total: number, roundLabel: string, homeCount: number, awayCount: number, neitherCount: number, bothCount: number, homeOnlyCount: number, awayOnlyCount: number, homePct: number, awayPct: number, neitherPct: number, homeBeliever: { name: string, roundId: string, roundLabel: string } | null, awayBeliever: { name: string, roundId: string, roundLabel: string } | null }} stats
  */
 function knockoutAdvancePredictionsHtml(stats) {
   const { match } = stats;
+  const homeBeliever = stats.homeBeliever
+    ? `<span class="prediction-believer">Believer: <strong>${escapeHtml(stats.homeBeliever.name)}</strong> · ${escapeHtml(stats.homeBeliever.roundLabel)}</span>`
+    : "";
+  const awayBeliever = stats.awayBeliever
+    ? `<span class="prediction-believer">Believer: <strong>${escapeHtml(stats.awayBeliever.name)}</strong> · ${escapeHtml(stats.awayBeliever.roundLabel)}</span>`
+    : "";
   return `
     <div class="predictions-summary predictions-summary--advance glass-panel">
       <div class="predictions-head">
@@ -1851,11 +1943,13 @@ function knockoutAdvancePredictionsHtml(stats) {
           <span class="prediction-advance-name">${flagHtml(match.home, "sm")} ${escapeHtml(shortTeamName(match.home))}</span>
           <span class="prediction-pct">${stats.homeCount}</span>
           <span class="prediction-label">${stats.homePct}% picked to advance</span>
+          ${homeBeliever}
         </article>
         <article class="prediction-advance-team prediction-advance-team--away">
           <span class="prediction-advance-name">${flagHtml(match.away, "sm")} ${escapeHtml(shortTeamName(match.away))}</span>
           <span class="prediction-pct">${stats.awayCount}</span>
           <span class="prediction-label">${stats.awayPct}% picked to advance</span>
+          ${awayBeliever}
         </article>
         <article class="prediction-advance-team prediction-advance-team--neither">
           <span class="prediction-advance-name">Neither</span>
