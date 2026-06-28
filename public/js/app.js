@@ -1828,6 +1828,20 @@ function knockoutQualifiedTeamHtml(team) {
     </span>`;
 }
 
+/** @param {KnockoutMatch[]} matches */
+function chronologicalKnockoutMatches(matches) {
+  if (typeof chronologicalMatches === "function") {
+    return chronologicalMatches(matches);
+  }
+  return [...matches].sort((a, b) => {
+    const aMs = a.kickoffAt ? Date.parse(a.kickoffAt) : Number.POSITIVE_INFINITY;
+    const bMs = b.kickoffAt ? Date.parse(b.kickoffAt) : Number.POSITIVE_INFINITY;
+    const aSafeMs = Number.isNaN(aMs) ? Number.POSITIVE_INFINITY : aMs;
+    const bSafeMs = Number.isNaN(bMs) ? Number.POSITIVE_INFINITY : bMs;
+    return aSafeMs - bSafeMs || Number(a.id) - Number(b.id);
+  });
+}
+
 /** @param {KnockoutMatch} match */
 function knockoutMatchCardHtml(match) {
   const home = match.home || match.homeSlot || "TBD";
@@ -1875,7 +1889,7 @@ function knockoutRoundPanelHtml(data, round, index) {
     ? actual[round.id].filter((team) => String(team || "").trim())
     : [];
   const matches = Array.isArray(data.knockout?.matches)
-    ? data.knockout.matches.filter((match) => (KNOCKOUT_FIXTURE_ROUND_IDS[round.id] || []).includes(match.roundId))
+    ? chronologicalKnockoutMatches(data.knockout.matches.filter((match) => (KNOCKOUT_FIXTURE_ROUND_IDS[round.id] || []).includes(match.roundId)))
     : [];
   const count = teams.length;
   const emptyCopy = round.id === "winner"
