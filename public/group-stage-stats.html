@@ -660,14 +660,14 @@ function knockoutRoundTeamNames(roundPick) {
     .filter(Boolean);
 }
 
-function isEligibleStatsPlayer(player) {
-  return !/^N_\s*/i.test(String(player?.name || "").trim());
+function hasEligiblePickPoints(pick) {
+  return pick?.points !== null && pick?.points !== undefined && pick?.points !== "";
 }
 
 function buildPlayerStats(data) {
   const matches = playedMatches(data);
   const qualifiers = new Set(qualifierTeams(data));
-  return (data.leaderboard || []).filter(isEligibleStatsPlayer).map((player) => {
+  return (data.leaderboard || []).map((player) => {
     let exact = 0;
     let direction = 0;
     let zeroes = 0;
@@ -678,6 +678,7 @@ function buildPlayerStats(data) {
     for (const match of matches) {
       const pick = playerPickFor(player, match.id);
       if (!pick) continue;
+      if (!hasEligiblePickPoints(pick)) continue;
       const pickHome = Number(pick.homePick);
       const pickAway = Number(pick.awayPick);
       if (!Number.isFinite(pickHome) || !Number.isFinite(pickAway)) continue;
@@ -700,9 +701,9 @@ function buildPlayerStats(data) {
       exact,
       direction,
       zeroes,
-      played: matches.length,
-      directionRate: matches.length ? direction / matches.length : 0,
-      exactRate: matches.length ? exact / matches.length : 0,
+      played: matchStats.length,
+      directionRate: matchStats.length ? direction / matchStats.length : 0,
+      exactRate: matchStats.length ? exact / matchStats.length : 0,
       qualifierCorrect,
       qualifierTotal: qualifierPicks.length,
       qualifierAccuracy,
