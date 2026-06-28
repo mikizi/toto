@@ -351,6 +351,7 @@
 <script>
 const DATA_URL = "data/latest.json";
 const MAX_ROWS = 12;
+const DISPLAY_PLAYER_COUNT = 88;
 
 function escapeHtml(text) {
   const div = document.createElement("div");
@@ -491,10 +492,11 @@ function panel(title, kicker, note, headers, rowsHtml, wide = false) {
   `;
 }
 
-function renderSummary(data, players, matches, qualifiers, excludedCount) {
+function renderSummary(data, players, matches, qualifiers) {
   const winner = [...players].sort((a, b) => b.groupPoints - a.groupPoints || b.exact - a.exact)[0];
+  const playerCount = DISPLAY_PLAYER_COUNT || (data.leaderboard || []).length;
   document.getElementById("statsSubtitle").textContent =
-    `${matches.length} group-stage games scored · ${players.length} eligible players · ${qualifiers.length} confirmed knockout teams${excludedCount ? ` · ${excludedCount} late average entries excluded` : ""}`;
+    `${matches.length} group-stage games scored · ${playerCount} players · ${players.length} eligible stat entries · ${qualifiers.length} confirmed knockout teams`;
   document.getElementById("winnerCard").innerHTML = `
     <div class="stats-winner-label">Group stage winner</div>
     <div class="stats-winner-name">${escapeHtml(winner?.name || "-")}</div>
@@ -502,7 +504,7 @@ function renderSummary(data, players, matches, qualifiers, excludedCount) {
   `;
   document.getElementById("summaryGrid").innerHTML = [
     ["Games scored", matches.length],
-    ["Players", players.length],
+    ["Players", playerCount],
     ["Exact score leader", Math.max(...players.map((p) => p.exact), 0)],
     ["Qualifier leader", Math.max(...players.map((p) => p.qualifierCorrect), 0)],
   ].map(([label, value]) => `
@@ -685,8 +687,7 @@ async function init() {
     const matches = playedMatches(data);
     const qualifiers = qualifierTeams(data);
     const players = buildPlayerStats(data);
-    const excludedCount = (data.leaderboard || []).filter((player) => !isEligibleStatsPlayer(player)).length;
-    renderSummary(data, players, matches, qualifiers, excludedCount);
+    renderSummary(data, players, matches, qualifiers);
     renderPlayerTables(data, players, matches, qualifiers);
   } catch (error) {
     document.getElementById("statsGrid").innerHTML = `<div class="stats-error glass-panel">Could not load stats. ${escapeHtml(error.message || error)}</div>`;
