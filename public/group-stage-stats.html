@@ -265,6 +265,29 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .stats-table--difficulty {
+      min-width: 28rem;
+      table-layout: fixed;
+    }
+
+    .stats-table--difficulty th:nth-child(1),
+    .stats-table--difficulty td:nth-child(1) {
+      width: 2.75rem;
+    }
+
+    .stats-table--difficulty th:nth-child(3),
+    .stats-table--difficulty td:nth-child(3) {
+      width: 4.8rem;
+    }
+
+    .stats-table--difficulty th:nth-child(4),
+    .stats-table--difficulty td:nth-child(4),
+    .stats-table--difficulty th:nth-child(5),
+    .stats-table--difficulty td:nth-child(5) {
+      width: 4.25rem;
+      text-align: center;
+    }
+
     .stats-table tr:last-child td {
       border-bottom: 0;
     }
@@ -314,6 +337,48 @@
       width: 1.35rem;
       height: 1.35rem;
       flex: 0 0 auto;
+    }
+
+    .stats-matchup {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+
+    .stats-matchup-team {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      gap: 0.38rem;
+    }
+
+    .stats-matchup-team--away {
+      justify-content: flex-end;
+      text-align: right;
+    }
+
+    .stats-matchup-team-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stats-matchup-vs {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.8rem;
+      min-height: 1.35rem;
+      padding: 0 0.35rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-size: 0.58rem;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .stats-chips {
@@ -368,6 +433,20 @@
 
       .stats-panel-note {
         text-align: left;
+      }
+
+      .stats-matchup {
+        grid-template-columns: 1fr;
+        gap: 0.28rem;
+      }
+
+      .stats-matchup-team--away {
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .stats-matchup-vs {
+        justify-self: start;
       }
     }
   </style>
@@ -540,7 +619,7 @@ function playerCell(player) {
   return `<a class="stats-player-link" href="${playerHref(player)}">${escapeHtml(player.name)}</a>`;
 }
 
-function panel(title, kicker, note, headers, rowsHtml, wide = false) {
+function panel(title, kicker, note, headers, rowsHtml, wide = false, tableClass = "") {
   return `
     <article class="stats-panel ${wide ? "stats-panel--wide " : ""}glass-panel">
       <header class="stats-panel-head">
@@ -551,12 +630,28 @@ function panel(title, kicker, note, headers, rowsHtml, wide = false) {
         <p class="stats-panel-note">${escapeHtml(note)}</p>
       </header>
       <div class="stats-table-wrap">
-        <table class="stats-table">
+        <table class="stats-table${tableClass ? ` ${escapeAttribute(tableClass)}` : ""}">
           <thead><tr><th>#</th>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>
     </article>
+  `;
+}
+
+function matchupHtml(home, away) {
+  return `
+    <span class="stats-matchup">
+      <span class="stats-matchup-team">
+        ${flagHtml(home, "sm")}
+        <span class="stats-matchup-team-name">${escapeHtml(shortTeamName(home))}</span>
+      </span>
+      <span class="stats-matchup-vs">vs</span>
+      <span class="stats-matchup-team stats-matchup-team--away">
+        ${flagHtml(away, "sm")}
+        <span class="stats-matchup-team-name">${escapeHtml(shortTeamName(away))}</span>
+      </span>
+    </span>
   `;
 }
 
@@ -788,16 +883,13 @@ function renderMatchDifficultyPanel(data, players, matches) {
     "Fewest exact scores, then fewest correct results",
     ["Match", "Result", "Exact hits", "Correct result"],
     tableRows(rows, ({ match, exact, direction }) => `
-      <td>
-        <span class="stats-team">${flagHtml(match.home, "sm")} ${escapeHtml(match.home)}</span>
-        <span class="stats-muted"> vs </span>
-        <span class="stats-team">${flagHtml(match.away, "sm")} ${escapeHtml(match.away)}</span>
-      </td>
+      <td>${matchupHtml(match.home, match.away)}</td>
       <td><span class="stats-score-pill">${match.homeScore}-${match.awayScore}</span></td>
       <td>${exact}</td>
       <td>${direction}</td>
     `),
-    true
+    true,
+    "stats-table--difficulty"
   );
 }
 
