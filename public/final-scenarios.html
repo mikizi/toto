@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta name="theme-color" content="#07110d">
+    <title>World Cup Pool: Scenario Top 10s</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://flagcdn.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+    <link rel="stylesheet" href="css/final-scenarios.css?v=2">
+    <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png?v=3" type="image/png">
+    <meta property="og:title" content="World Cup Pool: Scenario Top 10s">
+    <meta property="og:description" content="Eight possible title paths for the prediction pool.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<div class="scene-bg" aria-hidden="true"></div>
+<main class="scenario-page">
+    <header class="hero">
+        <nav class="top-nav" aria-label="Page navigation">
+            <span class="brand-link">WC26 Toto</span>
+            <div class="nav-actions">
+                <button id="copyPageBtn" class="icon-btn" type="button" aria-label="Copy share link">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L10.9 5.03"></path>
+                        <path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 1 0 7.07 7.07l1.21-1.22"></path>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+
+        <section class="hero-grid" aria-labelledby="pageTitle">
+            <div class="hero-copy">
+                <h1 id="pageTitle">World Cup Pool: Scenario Top 10s</h1>
+                <p class="hero-subtitle">
+                    Eight possible results. Eight projected top-10 tables.
+                </p>
+                <div class="score-rules" aria-label="Simulation summary">
+                    <div>
+                        <span class="rule-value">8</span>
+                        <span class="rule-label">scenarios</span>
+                    </div>
+                    <div>
+                        <span class="rule-value">10</span>
+                        <span class="rule-label">names each</span>
+                    </div>
+                    <div>
+                        <span id="versionStamp" class="rule-value">Jul 12</span>
+                        <span class="rule-label">snapshot</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bracket-stage" aria-label="Remaining bracket">
+                <div class="semi-row">
+                    <div class="match-card">
+                        <span class="match-label">Semi-final 1</span>
+                        <div class="team-line" data-team-line="France"></div>
+                        <div class="team-line" data-team-line="Spain"></div>
+                    </div>
+                    <div class="match-card">
+                        <span class="match-label">Semi-final 2</span>
+                        <div class="team-line" data-team-line="England"></div>
+                        <div class="team-line" data-team-line="Argentina"></div>
+                    </div>
+                </div>
+                <div class="final-node">
+                    <span class="final-label">Final</span>
+                    <strong id="activeFinal">Pick a scenario</strong>
+                    <span id="activeChampion">Champion path appears here</span>
+                </div>
+            </div>
+        </section>
+    </header>
+
+    <section class="outcome-section" aria-labelledby="outcomeTitle">
+        <div class="section-head">
+            <h2 id="outcomeTitle">Eight Scenario Tables</h2>
+            <p>Each board shows the result path and the projected top 10 names.</p>
+        </div>
+        <div id="scenarioGrid" class="scenario-grid" aria-live="polite"></div>
+    </section>
+
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="js/flags.js?v=3"></script>
+<script src="js/final-scenarios-snapshot.js?v=2"></script>
+<script src="js/final-scenarios.js?v=2"></script>
+</body>
+</html>
