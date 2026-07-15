@@ -23,6 +23,16 @@ from scripts.update_knockout import _normalize_eliminated_payload
 
 
 class TestKnockoutState(unittest.TestCase):
+    def test_schedule_skips_third_place_match_and_ends_with_final(self) -> None:
+        state = normalize_knockout_state(
+            {"matches": [{"id": 103, "home": "France", "away": "England"}]}
+        )
+
+        match_ids = [match["id"] for match in state["matches"]]
+        self.assertNotIn(103, match_ids)
+        self.assertEqual(state["matches"][-1]["id"], 104)
+        self.assertEqual(state["matches"][-1]["roundId"], "final_match")
+
     def test_normalize_keeps_autofilled_fixture_unlocked(self) -> None:
         state = normalize_knockout_state(
             {

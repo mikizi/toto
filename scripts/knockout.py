@@ -102,7 +102,6 @@ KNOCKOUT_SCHEDULE = (
     {"id": 100, "roundId": "quarter_match", "roundLabel": "Quarter-finals", "kickoffAt": "2026-07-12T01:00:00+00:00", "homeSlot": "Winner 95", "awaySlot": "Winner 96", "nextMatchId": 102},
     {"id": 101, "roundId": "semi_match", "roundLabel": "Semi-finals", "kickoffAt": "2026-07-14T19:00:00+00:00", "homeSlot": "Winner 97", "awaySlot": "Winner 98", "nextMatchId": 104},
     {"id": 102, "roundId": "semi_match", "roundLabel": "Semi-finals", "kickoffAt": "2026-07-15T19:00:00+00:00", "homeSlot": "Winner 99", "awaySlot": "Winner 100", "nextMatchId": 104},
-    {"id": 103, "roundId": "third_place", "roundLabel": "Third place", "kickoffAt": "2026-07-18T21:00:00+00:00", "homeSlot": "Loser 101", "awaySlot": "Loser 102", "nextMatchId": None, "isScoring": False},
     {"id": 104, "roundId": "final_match", "roundLabel": "Final", "kickoffAt": "2026-07-19T19:00:00+00:00", "homeSlot": "Winner 101", "awaySlot": "Winner 102", "nextMatchId": None},
 )
 
