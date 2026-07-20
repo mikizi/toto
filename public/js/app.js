@@ -2,6 +2,7 @@
 
 const LEADERBOARD_PREVIEW_ROWS = 8;
 const SHOW_LEADERBOARD_ROWS = true;
+const TOURNAMENT_COMPLETE = true;
 const LEADERBOARD_TAB_STORAGE_KEY = "wc26-leaderboard-tab";
 const CHAMPION_FILTER_STORAGE_KEY = "wc26-champion-filter";
 const FOLLOWED_PLAYERS_STORAGE_KEY = "wc26-followed-players";
@@ -2797,18 +2798,23 @@ function renderLeaderboard(container, data, animate = false) {
     .join("");
   }
 
-  if (container instanceof HTMLElement) {
+  if (container instanceof HTMLElement && TOURNAMENT_COMPLETE) {
+    container.classList.add("is-open");
+    container.style.removeProperty("--lb-scroll-collapsed-h");
+    standingsBtn?.classList.add("hidden");
+    standingsBtn?.setAttribute("aria-expanded", "true");
+  } else if (container instanceof HTMLElement) {
     syncLeaderboardCollapsedHeight(container, container, true);
     requestAnimationFrame(() => {
       syncLeaderboardCollapsedHeight(container, container, true);
     });
   }
 
-  if (standingsBtn) {
+  if (standingsBtn && !TOURNAMENT_COMPLETE) {
     standingsBtn.classList.toggle("hidden", sorted.length <= LEADERBOARD_PREVIEW_ROWS);
   }
 
-  if (container && sorted.length <= LEADERBOARD_PREVIEW_ROWS) {
+  if (!TOURNAMENT_COMPLETE && container && sorted.length <= LEADERBOARD_PREVIEW_ROWS) {
     container.classList.remove("is-open");
     container.scrollTop = 0;
     standingsBtn?.setAttribute("aria-expanded", "false");

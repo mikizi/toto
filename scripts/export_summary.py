@@ -715,6 +715,8 @@ def _read_raw_leaderboard_by_name(
     late_joiner_baseline = _late_joiner_baseline_points(wb_formulas, ws_data, matches)
     for row in range(raw_start, USER_ROW_END):
         uid = ws_data[f"C{row}"].value
+        if uid is None or not str(uid).strip():
+            continue
         name = _cell_text(ws_data[f"D{row}"].value)
         if not name or name == "Name":
             sheet_name = _user_sheet_for_uid(wb_formulas, uid)

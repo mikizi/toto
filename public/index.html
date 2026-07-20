@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://flagcdn.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-    <link rel="stylesheet" href="css/styles.css?v=104">
+    <link rel="stylesheet" href="css/styles.css?v=110">
     <link rel="manifest" href="manifest.json?v=3">
     <link rel="icon" sizes="192x192" href="assets/icons/icon-192x192.png?v=3" type="image/png">
     <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png?v=3">
@@ -78,7 +78,7 @@
         </div>
     </section>
 
-    <div id="scoreboardApp" class="scoreboard-app hidden">
+    <div id="scoreboardApp" class="scoreboard-app is-tournament-complete hidden">
         <div id="mainSwipe" class="main-swipe" aria-label="Scoreboard sections">
             <section id="rulesSwipePanel" class="swipe-screen rules-screen" aria-label="Rules and prizes" dir="rtl">
                 <div class="rules-panel glass-panel">
@@ -155,7 +155,7 @@
                 <section id="predictionsPanel" class="predictions-panel hidden" aria-label="Match predictions"></section>
 
                 <div class="title-row">
-                    <h1 class="page-title">World Cup <span class="gold">2026</span> Toto</h1>
+                    <h1 class="page-title">World Cup <span class="gold">2026</span> Final Standings</h1>
                     <span id="gamesBadge" class="games-badge">—</span>
                 </div>
 
@@ -260,6 +260,90 @@
 })();
 </script>
 
+<div id="worldCupStoryModal" class="story-modal" role="dialog" aria-modal="true" aria-labelledby="storyModalTitle" aria-describedby="storyModalDescription" hidden>
+    <div class="story-modal-backdrop" data-story-close aria-hidden="true"></div>
+    <section class="story-modal-card" tabindex="-1">
+        <header class="story-modal-header">
+            <div>
+                <p class="story-modal-eyebrow">Our month in seven chapters</p>
+                <h2 id="storyModalTitle" class="story-modal-title">A journey to the final</h2>
+                <p id="storyModalDescription" class="story-modal-subtitle">We predicted. We climbed. We fell. We kept going.</p>
+            </div>
+            <div class="story-modal-header-actions">
+                <button id="storySoundBtn" class="story-sound-btn" type="button" aria-pressed="false">
+                    <span class="story-sound-dot" aria-hidden="true"></span>
+                    <span id="storySoundLabel">Sound on</span>
+                </button>
+                <button id="storySkipBtn" class="story-text-action" type="button">Skip story</button>
+                <button id="storyCloseBtn" class="story-close-btn" type="button" aria-label="Close World Cup story">Close</button>
+            </div>
+        </header>
+
+        <div id="storyStage" class="story-stage" data-tone="opening">
+            <div class="story-stage-scrim" aria-hidden="true"></div>
+            <div class="story-stage-content" aria-live="polite" aria-atomic="true">
+                <div class="story-chapter-marker" aria-hidden="true">
+                    <span id="storySceneNumber" class="story-chapter-number">01</span>
+                    <span id="storySceneLabel" class="story-chapter-label">Kickoff</span>
+                </div>
+                <p id="storySceneKicker" class="story-scene-kicker"></p>
+                <h3 id="storySceneTitle" class="story-scene-title"></h3>
+                <p id="storySceneCopy" class="story-scene-copy"></p>
+                <div class="story-scene-stat">
+                    <span id="storySceneLeader" class="story-scene-leader"></span>
+                    <strong id="storyScenePoints" class="story-scene-points"></strong>
+                    <span id="storySceneMeta" class="story-scene-meta"></span>
+                </div>
+                <div id="storyFinalMatch" class="story-final-match" hidden>
+                    <div class="story-final-team">
+                        <span class="fi fi-es fis story-final-flag" aria-hidden="true"></span>
+                        <span>Spain</span>
+                    </div>
+                    <span class="story-final-vs">VS</span>
+                    <div class="story-final-team">
+                        <span class="fi fi-ar fis story-final-flag" aria-hidden="true"></span>
+                        <span>Argentina</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="story-handoff" aria-label="Leaderboard journey">
+            <div class="story-handoff-person story-handoff-person--previous">
+                <span>Previous chapter</span>
+                <strong id="storyPreviousLeader">The beginning</strong>
+            </div>
+            <div class="story-handoff-line" aria-hidden="true"><span></span></div>
+            <div class="story-handoff-person story-handoff-person--current">
+                <span>This moment</span>
+                <strong id="storyCurrentLeader">World Cup 2026 Toto</strong>
+            </div>
+            <div class="story-handoff-line" aria-hidden="true"><span></span></div>
+            <div class="story-handoff-person story-handoff-person--next">
+                <span>Next chapter</span>
+                <strong id="storyNextLeader">Pini2</strong>
+            </div>
+        </div>
+
+        <div class="story-playback" aria-label="Story playback">
+            <div class="story-progress-track" aria-hidden="true">
+                <span id="storyProgressBar" class="story-progress-bar"></span>
+            </div>
+            <div id="storyTimeline" class="story-timeline" aria-label="Story chapters"></div>
+            <div class="story-controls">
+                <p id="storyTimeLabel" class="story-time-label">Chapter 1 of 7</p>
+                <div class="story-control-actions">
+                    <button id="storyPrevBtn" type="button" class="story-control-btn">Previous</button>
+                    <button id="storyPlayBtn" type="button" class="story-control-btn story-control-btn--primary">Pause</button>
+                    <button id="storyNextBtn" type="button" class="story-control-btn">Next</button>
+                    <button id="storyReplayBtn" type="button" class="story-control-btn">Replay</button>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+<audio id="storyAudio" preload="auto" src="assets/music/Light_Through_Old_Glass.mp3"></audio>
+
 <div id="updateToast" class="update-toast glass-panel hidden" role="status" aria-live="polite" aria-atomic="true">
     <svg class="update-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -289,6 +373,7 @@
 <script src="js/analytics.js?v=7"></script>
 <script src="js/ga.js?v=2"></script>
 <script src="js/app.js?v=79"></script>
-<script src="js/player.js?v=17"></script>
+<script src="js/story-modal.js?v=5"></script>
+<script src="js/player.js?v=18"></script>
 </body>
 </html>
