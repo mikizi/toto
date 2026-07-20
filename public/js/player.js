@@ -217,7 +217,6 @@ function initMusicPlayer() {
 
   let mutedAutoplay = false;
   let autoplayStartAttempted = false;
-  let storyActive = false;
 
   function clearAwaitingPlayUi() {
     player.classList.remove("is-awaiting-play");
@@ -237,7 +236,7 @@ function initMusicPlayer() {
   function tryPlay(options = {}) {
     const userInitiated = options.userInitiated === true;
 
-    if (state.closed || storyActive) {
+    if (state.closed) {
       return Promise.resolve();
     }
 
@@ -371,17 +370,6 @@ function initMusicPlayer() {
   });
   closeBtn.addEventListener("click", closePlayer);
   reopenBtn.addEventListener("click", openPlayer);
-
-  document.addEventListener("toto:story-open", () => {
-    storyActive = true;
-    video.pause();
-    setPlayingUi(false);
-  });
-
-  document.addEventListener("toto:story-close", () => {
-    storyActive = false;
-    if (!state.paused && !state.closed) void tryPlay();
-  });
 
   video.addEventListener("ended", () => {
     trackMusicAction("track_completed");
